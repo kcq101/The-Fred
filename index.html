@@ -292,7 +292,7 @@ const V3 = THREE.Vector3;
 const LOOK={ink:0.4,dots:0.2,mis:0.2,hatch:0.2,sat:1.05,grain:0.25,sun:34,forest:0.7,
   pal:{sky:['#ffe6c4','#cfe4f2','#8ec2ea','#3d86d4'],sun:'#fff6ea',sunI:0.9,hemi:['#e8f2ff','#2f4a3a',0.5],fog:'#c4d6da',
    cloud:['#ffffff','#fbf3ea','#d8cfd2'],cloudInk:false,city:{far:'#b3c2d8',near:['#8496b4','#90a2bf','#7586a6','#9cadc8'],win:['#ffe0a0','#fff0c8'],lit:0.18},treeline:['#3f6e4e','#2f6040'],
-   g:{tee:'#5aa83a',fw1:'#5cab3a',fw2:'#4c9a31',cut:'#3b852e',rough:'#2a6e2c',deep:'#1d5826',fringe:'#5a9c35',green1:'#88c94b',green2:'#7cbe43',sand:'#f6dcae',sandRim:'#c89a62',bed:'#3a7fa8',path:'#c4b090',pathEdge:'#9a8668'},
+   g:{tee:'#5aa83a',fw1:'#69b641',fw2:'#4c9a31',cut:'#3f8a30',rough:'#2a6e2c',deep:'#1d5826',fringe:'#4f9433',green1:'#8cc955',green2:'#74b546',sand:'#f6dcae',sandRim:'#c89a62',bed:'#3a7fa8',path:'#c4b090',pathEdge:'#9a8668'},
    trees:['#1d5a34','#226638','#2a7240','#174d2c','#2f7a44','#205c36'],trunk:'#5a3e2a',bush:['#2a6a32','#30763a','#235e2c','#3a8242'],water:['#2a6fa0','#7ab8d0'],bank:'#5a6a5a',rock:'#a89a88',ink:'#3a2a22',teeSide:'#2f7a2c',flag:'#e04a2a'}};
 const PAL=LOOK.pal;
 const D2R = Math.PI/180;
@@ -776,29 +776,36 @@ function buildWorld(){
       if(cliffB&&s!==GREENS&&s!==FRINGE){const sd=cliffB.sd(x,z);if(sd>-0.7){const h=H(x,z);const band=Math.floor((h-cliffB.level)/1.7);c.copy(ROCKFACE[(band%4+4)%4]);return;}}
       const dc=Math.abs(x-centerX(z));
       if(s===TEE)c.setHex(COL.tee);
-      else if(s===FAIRWAY){const edge=!inFairway(x,z,-1.0);c.setHex(edge?COL.cut:((Math.floor(z/9)%2)?COL.fw1:COL.fw2));}
+      else if(s===FAIRWAY){const edge=!inFairway(x,z,-1.0);c.setHex(edge?COL.cut:COL.fw1);}
       else if(s===GREENS)c.setHex(COL.green2);
       else if(s===FRINGE)c.setHex(COL.fringe);
       else if(s===SAND){let e=1;for(const b of BUNKERS)e=Math.min(e,ell(x,z,b));c.setHex(e>0.84?COL.sandRim:COL.sand);}
       else{c.setHex(dc>fairwayHalf(z)+18?COL.deep:(inFairway(x,z,3)?COL.cut:COL.rough));
         if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}}
     };
+    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count);
     for(let i=0;i<pos.count;i++){
       const x0=pos.getX(i),z0=pos.getZ(i);pos.setY(i,H(x0,z0));
-      acc.setRGB(0,0,0);
-      for(const[ox,oz]of[[-0.3,-0.3],[0.3,-0.3],[-0.3,0.3],[0.3,0.3]]){colorAt(x0+ox,z0+oz);acc.r+=c.r/4;acc.g+=c.g/4;acc.b+=c.b/4;}
+      acc.setRGB(0,0,0);let fw=0;
+      for(const[ox,oz]of[[-0.3,-0.3],[0.3,-0.3],[-0.3,0.3],[0.3,0.3]]){const xx=x0+ox,zz=z0+oz;colorAt(xx,zz);acc.r+=c.r/4;acc.g+=c.g/4;acc.b+=c.b/4;if(S(xx,zz)===FAIRWAY&&inFairway(xx,zz,-1.0))fw+=0.25;}
       cols[i*3]=acc.r;cols[i*3+1]=acc.g;cols[i*3+2]=acc.b;
+      fwA[i]=fw;uA[i]=x0-centerX(z0); // sideways distance from the centre line: mowing stripes run down the hole and bend with it
     }
-    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.computeVertexNormals();
-    const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});
+    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.computeVertexNormals();
+    const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});tm.extensions={derivatives:true};
     tm.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;');
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;varying float vFw;varying float vU;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-        varying vec3 vWP;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        varying vec3 vWP;varying float vFw;varying float vU;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}`)
        .replace('#include <color_fragment>',`#include <color_fragment>
         float gn=vnoise(vWP.xz*0.05)*0.6+vnoise(vWP.xz*0.21)*0.3+vnoise(vWP.xz*1.7)*0.1;
-        diffuseColor.rgb*=0.93+0.12*gn+(vnoise(vWP.xz*7.0)-0.5)*0.06;`);
+        float fwm=smoothstep(0.35,0.65,vFw);
+        // crisp lengthwise mowing stripes, anti-aliased so they fade to an even tone in the distance
+        float su=vU/4.2,aa=fwidth(su)*1.5,tri=abs(fract(su)-0.5)*2.0;
+        float st=mix(smoothstep(0.5-aa,0.5+aa,tri),0.5,smoothstep(0.25,0.6,aa));
+        diffuseColor.rgb*=1.0-0.15*st*fwm;
+        diffuseColor.rgb*=1.0+(0.12*gn-0.06+(vnoise(vWP.xz*7.0)-0.5)*0.06)*(1.0-0.65*fwm);`);
     };
     const terrain=add(new THREE.Mesh(tg,tm));terrain.receiveShadow=true;
   }
@@ -816,12 +823,15 @@ function buildWorld(){
         vec2 gd2=vec2((dd.x*${GREEN.c.toFixed(4)}+dd.y*${GREEN.s.toFixed(4)})/${GREEN.rx.toFixed(2)},(-dd.x*${GREEN.s.toFixed(4)}+dd.y*${GREEN.c.toFixed(4)})/${GREEN.rz.toFixed(2)});
         float e=length(gd2);
         if(e>1.21)discard;
-        float band=0.5+0.5*sin((vGP.x*0.55+vGP.z*0.84)/2.6);
-        vec3 c=mix(${glv(PAL.g.green2)},${glv(PAL.g.green1)},0.35+0.3*smoothstep(0.2,0.8,band));
+        // diagonal checkerboard mowing, anti-aliased
+        vec2 cr=vec2(vGP.x+vGP.z,vGP.x-vGP.z)*(0.7071/1.6);vec2 cw=fwidth(cr);
+        vec2 sq=clamp((abs(fract(cr)-0.5)-0.25)/max(cw,vec2(1e-4))+0.5,0.0,1.0);
+        float chk=sq.x*sq.y+(1.0-sq.x)*(1.0-sq.y);chk=mix(chk,0.5,smoothstep(0.3,0.7,max(cw.x,cw.y)));
+        vec3 c=mix(${glv(PAL.g.green2)},${glv(PAL.g.green1)},chk);
         float w=max(fwidth(e),0.002);
         c=mix(c,${glv(PAL.g.fringe)},smoothstep(1.0-w,1.0+w,e));
-        c=mix(c,${glv(PAL.ink)},(1.0-smoothstep(w*0.6,w*1.8,abs(e-1.0)))*0.8);
-        c=mix(c,${glv(PAL.g.cut)},(1.0-smoothstep(w*0.5,w*1.5,abs(e-1.2)))*0.6);
+        c=mix(c,${glv(PAL.ink)},(1.0-smoothstep(w*0.6,w*1.8,abs(e-1.0)))*0.3);
+        c=mix(c,${glv(PAL.g.cut)},(1.0-smoothstep(w*0.5,w*1.5,abs(e-1.2)))*0.25);
         diffuseColor.rgb=c;`);
     };
     const gmesh=add(new THREE.Mesh(gg,gm));gmesh.receiveShadow=true;
@@ -1320,7 +1330,9 @@ function pxPer(d){return(vh/2)/(Math.max(d,0.1)*Math.tan(camera.fov*D2R/2));}
 function drawGuide(power){
   const c=CLUBS[clubIdx];const pts=[];let land;
   if(c.putt){
-    land=drawPuttLine(simPutt(shotSpeed(power),aimYaw+puttYaw()));guide.count=0;guideOut.count=0;return land;
+    guide.count=0;guideOut.count=0;
+    if(!(drag&&drag.kind==='pull')){puttLine.visible=false;return null;} // the putting line only shows once you start pulling back
+    land=drawPuttLine(simPutt(shotSpeed(power),aimYaw+puttYaw()));return land;
   }else{puttLine.visible=false;const sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);land=simArc(sp,aimYaw+y,pts,spin);}
   const step=Math.max(1,Math.ceil(pts.length/GUIDE_N));let n=0;
   for(let i=step;i<pts.length&&n<GUIDE_N;i+=step){
@@ -1784,7 +1796,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-window.__fred={go:i=>loadHole(i),ball:()=>ballScreen(),target:()=>screenOf(target),state:()=>state,skip:()=>{for(let i=0;i<6000&&state==='flight';i++)simulateFlight(1/60);}};
+window.__fred={go:i=>loadHole(i),put:(dx,dz)=>{ball.p.set(PIN.x+dx,H(PIN.x+dx,PIN.z+dz)+R,PIN.z+dz);ballGroup.visible=true;setupAim();},ball:()=>ballScreen(),target:()=>screenOf(target),state:()=>state,skip:()=>{for(let i=0;i<6000&&state==='flight';i++)simulateFlight(1/60);}};
 resize();loadHole(0);$('intro').hidden=true; // hole 1 is built behind the menu so New game starts instantly
 requestAnimationFrame(frame);
 })();
