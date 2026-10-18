@@ -490,19 +490,20 @@ renderer.setPixelRatio(DPR);
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 scene.fog=new THREE.Fog(PAL.fog,430,1450);
-const camera=new THREE.PerspectiveCamera(56,1,0.3,1800);
+const camera=new THREE.PerspectiveCamera(56,1,0.5,1800);
 
 let rt=null;
 function makeRT(w,h){
   if(rt){rt.depthTexture.dispose();rt.dispose();}
   rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter});
-  rt.depthTexture=new THREE.DepthTexture(w,h);rt.depthTexture.type=THREE.UnsignedIntType;rt.depthBuffer=true;
+  rt.depthTexture=new THREE.DepthTexture(w,h);rt.depthTexture.type=renderer.capabilities.isWebGL2?THREE.FloatType:THREE.UnsignedIntType;rt.depthBuffer=true;
 }
 const postU={tColor:{value:null},tDepth:{value:null},res:{value:new THREE.Vector2(1,1)},cNear:{value:camera.near},cFar:{value:camera.far},dpr:{value:DPR},
   uInk:{value:1},uDots:{value:0},uMis:{value:0},uHatch:{value:0},uSat:{value:1},uGrain:{value:0},uTime:{value:0},ink:{value:new THREE.Color(PAL.ink)}};
 const postMat=new THREE.ShaderMaterial({uniforms:postU,depthTest:false,depthWrite:false,
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
   fragmentShader:`
+  precision highp sampler2D;
   uniform sampler2D tColor;uniform sampler2D tDepth;uniform vec2 res;uniform float cNear;uniform float cFar;uniform float dpr;
   uniform float uInk;uniform float uDots;uniform float uMis;uniform float uHatch;uniform float uSat;uniform float uGrain;uniform float uTime;uniform vec3 ink;
   varying vec2 vUv;
@@ -513,11 +514,12 @@ const postMat=new THREE.ShaderMaterial({uniforms:postU,depthTest:false,depthWrit
     vec2 px=1.0/res;vec2 dv=vUv-0.5;
     vec4 raw=texture2D(tColor,vUv);
     float clean=1.0-step(0.5,raw.a);
+    float ground=step(0.5,raw.a)*(1.0-step(0.9,raw.a));
     float ab=(0.4+uMis*5.0)*dpr;
     vec2 off=(vec2(ab,ab*0.45)+dv*ab*1.4)*px*step(0.01,uMis);
     vec3 col;col.r=texture2D(tColor,vUv+off).r;col.g=raw.g;col.b=texture2D(tColor,vUv-off).b;
     float edge=0.0;
-    if(uInk>0.02){
+    if(uInk>0.02&&ground<0.5){
       float s=(0.7+0.45*uInk)*dpr;
       float dc=lin(texture2D(tDepth,vUv).x);
       float d1=lin(texture2D(tDepth,vUv+vec2(s,0.)*px).x),d2=lin(texture2D(tDepth,vUv-vec2(s,0.)*px).x);
@@ -784,7 +786,7 @@ function buildWorld(){
       cols[i*3]=acc.r;cols[i*3+1]=acc.g;cols[i*3+2]=acc.b;
     }
     tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.computeVertexNormals();
-    const tm=toon(0xffffff,{vertexColors:true});
+    const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});
     tm.onBeforeCompile=sh=>{
       sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
@@ -801,7 +803,7 @@ function buildWorld(){
     const gw=Math.max(GREEN.rx,GREEN.rz)*2.6;
     const gg=new THREE.PlaneGeometry(gw,gw,Math.round(gw*2),Math.round(gw*2));gg.rotateX(-Math.PI/2);gg.translate(GREEN.x,0,GREEN.z);
     const gp=gg.attributes.position;for(let i=0;i<gp.count;i++)gp.setY(i,H(gp.getX(i),gp.getZ(i))+0.012);gg.computeVertexNormals();
-    const gm=toon(0xffffff,{polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});gm.extensions={derivatives:true};
+    const gm=toon(0xffffff,{opacity:0.75,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});gm.extensions={derivatives:true};
     gm.onBeforeCompile=sh=>{
       sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vGP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvGP=(modelMatrix*vec4(position,1.0)).xyz;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vGP;')
@@ -824,9 +826,9 @@ function buildWorld(){
   if(cliffB){
     const sh=new THREE.Shape(cliffB.shape.pts.map(([x,z])=>new THREE.Vector2(x,-z)));
     const lg=new THREE.ShapeGeometry(sh);lg.rotateX(-Math.PI/2);
-    const land=add(new THREE.Mesh(lg,toon(COL.deep)));land.position.y=-8;
+    const land=add(new THREE.Mesh(lg,toon(COL.deep,{opacity:0.75})));land.position.y=-8;
   }else{
-    const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),toon(COL.deep)));
+    const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),toon(COL.deep,{opacity:0.75})));
     ground.rotation.x=-Math.PI/2;ground.position.set((bb.x0+bb.x1)/2,-8,(bb.z0+bb.z1)/2);
   }
   // ---- water surfaces: one grid per body, with distance-to-shore for foam and ripples
@@ -850,9 +852,9 @@ function buildWorld(){
         float rings=smoothstep(0.9,0.97,fract(s*${look[2].toFixed(2)}-t*0.18))*(1.0-smoothstep(1.5,${look[3].toFixed(1)},s));
         float streak=smoothstep(0.975,0.998,sin(vP.x*0.08+vP.z*0.31+sin(vP.z*0.05)*3.0+t*0.4))*smoothstep(3.0,9.0,s)*${look[5].toFixed(2)};
         c=mix(c,vec3(0.94,0.98,1.0),clamp(foam*0.9+rings*0.55+streak,0.0,1.0));
-        gl_FragColor=vec4(c,1.0);}`});
+        gl_FragColor=vec4(c,0.75);}`});
     const wmesh=add(new THREE.Mesh(wg,wm));wmesh.position.y=b.level;
-    if(b.kind==='ocean'){const far=add(new THREE.Mesh(new THREE.CircleGeometry(1200,64),new THREE.MeshBasicMaterial({color:look[0]})));far.rotation.x=-Math.PI/2;far.position.set((bb.x0+bb.x1)/2,b.level-0.05,(bb.z0+bb.z1)/2);}
+    if(b.kind==='ocean'){const far=add(new THREE.Mesh(new THREE.CircleGeometry(1200,64),new THREE.MeshBasicMaterial({color:look[0],opacity:0.75})));far.rotation.x=-Math.PI/2;far.position.set((bb.x0+bb.x1)/2,b.level-0.05,(bb.z0+bb.z1)/2);}
   }
   // ---- wooden bulkheads where water meets land on 'wall' bodies
   for(const b of BODIES){
@@ -1008,16 +1010,21 @@ function buildWorld(){
 // ---------------------------------------------------------------- ball, markers, trail
 const BALL_R=0.065;
 const ballGroup=new THREE.Group();
-// ball with a dark stripe and a red logo arc so its spin and roll are visible
+// ball with faint dimples so its spin and roll are visible
 const ballMat=new THREE.ShaderMaterial({
   uniforms:{lightV:{value:sunDirV}},
   vertexShader:`varying vec3 vN;varying vec3 vO;void main(){vO=position;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
   fragmentShader:`varying vec3 vN;varying vec3 vO;uniform vec3 lightV;void main(){
     vec3 n=normalize(vN);float d=dot(n,normalize(lightV));float s=d>0.35?1.0:(d>-0.15?0.88:0.74);
-    vec3 q=normalize(vO);
-    float band=1.0-smoothstep(0.07,0.1,abs(q.y));
-    float logo=(1.0-smoothstep(0.08,0.12,abs(q.x)))*smoothstep(0.15,0.25,q.z)*(1.0-smoothstep(0.55,0.65,abs(q.y)));
-    vec3 c=vec3(1.0);c=mix(c,vec3(0.18,0.14,0.2),band*0.9);c=mix(c,vec3(0.9,0.24,0.16),logo);
+    vec3 q=normalize(vO)*3.4;
+    // nearest point of a jittered 3D grid = one dimple per cell
+    vec3 ci=floor(q);float dm=9.0;
+    for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)for(int k=-1;k<=1;k++){
+      vec3 g=ci+vec3(float(i),float(j),float(k));
+      vec3 o=fract(sin(vec3(dot(g,vec3(127.1,311.7,74.7)),dot(g,vec3(269.5,183.3,246.1)),dot(g,vec3(113.5,271.9,124.6))))*43758.5453);
+      dm=min(dm,length(q-(g+0.15+0.7*o)));}
+    float dimple=1.0-smoothstep(0.2,0.4,dm);
+    vec3 c=vec3(1.0)*(1.0-0.16*dimple);
     c*=s;c=mix(c,vec3(0.78,0.9,1.0),pow(1.0-abs(n.z),3.0)*0.3);
     gl_FragColor=vec4(c,0.0);}`
 });
@@ -1569,7 +1576,7 @@ function startPlay(){
   if(state!=='intro')return;
   $('intro').hidden=true;state='aim';introT=99;
   aimTarget(tP,tL);camPos.copy(tP);camLook.copy(tL); // cut straight to the tee
-  if(firstShot&&holeIdx===0){$('hint').hidden=false;later(9,()=>{$('hint').hidden=true;});}
+  if(firstShot&&holeIdx===0){$('hint').hidden=false;setTimeout(()=>{$('hint').hidden=true;},2000);}
   updateHUD();
 }
 function buildScorecard(){
