@@ -46,6 +46,10 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 #targetTag{background:var(--caption);font-size:22px;border-width:3px}
 #ballTag{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border:3px solid var(--paper);border-radius:50%;box-shadow:0 0 0 2px var(--ink),inset 0 0 0 2px var(--ink)}
 #ballTag.off{border-color:var(--caption)}
+#ballTag.back{width:44px;height:44px;margin:-22px 0 0 -22px;border-width:4px;animation:ringPulse 1.1s ease-in-out infinite}
+@keyframes ringPulse{50%{transform:scale(1.12)}}
+#zoomTag{text-align:center;line-height:1.1}
+#zoomTag small{font-size:12px}
 #pullHint{position:absolute;transform:translate(-50%,0);font-family:var(--display);font-size:15px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;white-space:nowrap}
 
 .bottom{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -71,7 +75,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 
 #pend{position:absolute;right:max(4px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 175px);width:min(210px,52vw);filter:drop-shadow(3px 3px 0 rgba(23,11,51,.55))}
 #pend svg{display:block;width:100%;height:auto;overflow:visible}
-#zoomTag{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 128px);transform:translateX(-50%);font-family:var(--display);font-size:15px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;white-space:nowrap}
+#zoomTag{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 218px);transform:translateX(-50%);font-family:var(--display);font-size:15px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;white-space:nowrap}
 #band{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #hint{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 150px);transform:translateX(-50%) rotate(-1deg);width:min(330px,calc(100% - 32px));text-align:center;font-size:14px}
 
@@ -407,7 +411,7 @@ function rawH(x,z){
 }
 function H(x,z){
   let h=rawH(x,z);
-  const tq=Math.max(Math.abs(x)/4.5,Math.abs(z)/6);h=mix(h,TEE_H,1-smooth(1,1.18,tq));
+  const tq=Math.max(Math.abs(x)/4.5,Math.abs(z)/6);h=mix(h,TEE_H,1-smooth(1,1.7,tq));
   const g=ell(x,z,GREEN);if(g<1.6){const gp=GH+GT.x*(x-PIN.x)+GT.z*(z-PIN.z);h=mix(h,gp,1-smooth(1.0,1.6,g));}
   for(const b of BUNKERS){const e=ell(x,z,b);if(e<1.3){h-=0.9*(1-smooth(0.55,1.0,e));h+=0.25*smooth(0.8,1.0,e)*(1-smooth(1.0,1.3,e));}}
   for(const b of BODIES){
@@ -458,7 +462,7 @@ function prepHole(i){
       for(const o of[-1,1]){const ex=P[i][0]-P[i-1][0],ez=P[i][1]-P[i-1][1],l=Math.hypot(ex,ez);lo=Math.min(lo,rawH(x-ez/l*(b.shape.w+b.edge+2)*o,z+ex/l*(b.shape.w+b.edge+2)*o));}}
     b.level=lo-0.9;b.bed=b.level-1.3;}
   GH=rawH(GREEN.x,GREEN.z)+0.25;
-  TEE_H=rawH(0,0)+1.8; // tee box stands well above the surrounding grass
+  TEE_H=rawH(0,0)+0.3; // tee box sits just a little above the surrounding grass
   PIN_H=H(PIN.x,PIN.z);
 }
 
@@ -970,7 +974,7 @@ function buildWorld(){
     const po=add(new THREE.Mesh(pg,outlineMat(0.03)));po.position.copy(pole.position);
     FLAGSTICK.push(pole,po);
     const tb=new THREE.Group();
-    const lipG=new THREE.BoxGeometry(10.6,2.6,13.6);const lip=new THREE.Mesh(lipG,toon(PAL.teeSide));lip.position.y=-1.27;tb.add(lip);
+    const lipG=new THREE.BoxGeometry(10.6,0.5,13.6);const lip=new THREE.Mesh(lipG,toon(PAL.teeSide));lip.position.y=-0.22;tb.add(lip);
     const lipO=new THREE.Mesh(lipG,outlineMat(0.06));lipO.position.copy(lip.position);tb.add(lipO);
     for(let k=0;k<4;k++){const s=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.06,13.4),toon(k%2?PAL.g.tee:new THREE.Color(PAL.g.tee).offsetHSL(0,0,-0.05).getHex()));s.position.set(-3.9+k*2.6,0.06,0);tb.add(s);}
     const blk=new THREE.BoxGeometry(0.45,0.38,0.45);
@@ -1418,7 +1422,7 @@ function endPull(fire){
   $('meter').hidden=true;$('pend').hidden=true;landRing.visible=false;
   ['bandLine','bandEnd'].forEach(id=>$(id).setAttribute('visibility','hidden'));
   updateHUD();
-  if(fire&&power>=0.04&&state==='aim')shoot(power,off,sh,py);
+  if(fire&&power>=0.04&&state==='aim'&&Math.abs(zoomT)<=0.05)shoot(power,off,sh,py);
 }
 // zoom: -1 = close on the target, 0 = behind the ball, 1 = overhead view of the hole
 let zoomT=0,zoomV=0;
@@ -1442,7 +1446,10 @@ canvas.addEventListener('pointerdown',e=>{
   if(state!=='aim'||drag||pinch)return;
   canvas.setPointerCapture(e.pointerId);
   const bs=ballScreen();
-  const nearBall=Math.hypot(e.clientX-bs.x,e.clientY-bs.y)<Math.max(70,vw*0.16)||e.clientY>bs.y-20;
+  const zoomed=Math.abs(zoomT)>0.05;
+  // zoomed in or out: shots are off; tapping the gold ball marker returns to the normal view behind the ball
+  if(zoomed&&Math.hypot(e.clientX-bs.x,e.clientY-bs.y)<Math.max(56,vw*0.12)){setZoom(0);SND.tick();return;}
+  const nearBall=!zoomed&&(Math.hypot(e.clientX-bs.x,e.clientY-bs.y)<Math.max(70,vw*0.16)||e.clientY>bs.y-20);
   if(nearBall){
     $('hint').hidden=true;
     drag={kind:'pull',id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,bx:bs.x,by:bs.y};
@@ -1463,7 +1470,7 @@ canvas.addEventListener('pointermove',e=>{
 function lift(e,fire){touches.delete(e.pointerId);if(pinch){if(touches.size<2)pinch=null;return;}if(drag&&e.pointerId===drag.id){if(drag.kind==='pull')endPull(fire);else drag=null;}}
 canvas.addEventListener('pointerup',e=>lift(e,true));
 canvas.addEventListener('pointercancel',e=>lift(e,false));
-canvas.addEventListener('wheel',e=>{e.preventDefault();if(state==='aim')setZoom(zoomT+e.deltaY*0.0015);},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();if(state==='aim'&&!(drag&&drag.kind==='pull'))setZoom(zoomT+e.deltaY*0.0015);},{passive:false});
 $('viewBtn').addEventListener('click',()=>{if(state==='aim')setZoom(zoomT>0.5?0:1);});
 const keys={};
 addEventListener('keydown',e=>{if(titleOpen)return;keys[e.key]=true;if(['1','2','3','4','5'].includes(e.key)&&state==='aim')pickClub(+e.key-1);});
@@ -1683,7 +1690,7 @@ function frame(now){
   zoomV+=(zoomT-zoomV)*(1-Math.exp(-(pinch?14:6)*dt));
   const zp=Math.max(0,zoomV);scene.fog.near=430+zp*500;scene.fog.far=1450+zp*700;
   const zt=$('zoomTag');zt.hidden=!(state==='aim'&&Math.abs(zoomT)>0.05&&!(drag&&drag.kind==='pull'));
-  if(!zt.hidden)zt.textContent=zoomT<0?`ZOOM IN ${Math.round(-zoomT*100)}%`:(zoomT>0.5?"BIRD'S EYE":`ZOOM OUT ${Math.round(zoomT*100)}%`);
+  if(!zt.hidden)zt.innerHTML=(zoomT<0?`ZOOM IN ${Math.round(-zoomT*100)}%`:(zoomT>0.5?"BIRD'S EYE":`ZOOM OUT ${Math.round(zoomT*100)}%`))+'<br><small>TAP THE GOLD RING TO GO BACK</small>';
   if(state==='flight')simulateFlight(dt);
   updateCamera(dt);
   shakeT=Math.max(0,shakeT-dt);
@@ -1750,8 +1757,9 @@ function frame(now){
   const bt=$('ballTag');
   if(ballGroup.visible&&(state==='flight'||state==='settle'||state==='aim')){
     const s=screenOf(ballGroup.position);const pinned=state==='aim'?ballScreen():null;
-    if(pinned&&pinned.off){
-      // zoomed away from the ball: park the marker at the screen edge so you can still pull back from it
+    const zoomedOut=state==='aim'&&Math.abs(zoomT)>0.05;bt.classList.toggle('back',zoomedOut);
+    if(pinned&&(pinned.off||zoomedOut)){
+      // zoomed away from the ball: a gold ring on the ball (or the screen edge) that taps back to the normal view
       bt.hidden=false;bt.classList.add('off');bt.style.left=pinned.x+'px';bt.style.top=pinned.y+'px';
     }else bt.hidden=true;
   }else bt.hidden=true;
