@@ -1339,17 +1339,50 @@ function pxPer(d){return(vh/2)/(Math.max(d,0.1)*Math.tan(camera.fov*D2R/2));}
 function drawGuide(power){
   const c=CLUBS[clubIdx];const pts=[];let land;
   if(c.putt){
-    guide.count=0;guideOut.count=0;
+    guide.count=0;guideOut.count=0;arcLine.visible=false;
     if(!(drag&&drag.kind==='pull')){puttLine.visible=false;return null;} // the putting line only shows once you start pulling back
     land=drawPuttLine(simPutt(shotSpeed(power),aimYaw+puttYaw()));return land;
   }else{puttLine.visible=false;const sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);land=simArc(sp,aimYaw+y,pts,spin);}
-  const step=Math.max(1,Math.ceil(pts.length/GUIDE_N));let n=0;
-  for(let i=step;i<pts.length&&n<GUIDE_N;i+=step){
-    const p=pts[i];const s=Math.max(0.06,4.6/pxPer(camera.position.distanceTo(p)));
-    _m.compose(p,_q,_s.set(s,s,s));guide.setMatrixAt(n++,_m);
-  }
-  guide.count=n;guideOut.count=n;guide.instanceMatrix.needsUpdate=true;
+  guide.count=0;guideOut.count=0;
+  if(land)pts.push(land.clone());drawArc(pts);
   return land;
+}
+// shot arc: a thin see-through ribbon, blue and white dashes drifting toward the landing spot
+const ARC_N=160;
+const arcGeo=new THREE.BufferGeometry();
+arcGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(ARC_N*2*3),3));
+arcGeo.setAttribute('aSide',new THREE.BufferAttribute(new Float32Array(ARC_N*2),1));
+arcGeo.setAttribute('aAlong',new THREE.BufferAttribute(new Float32Array(ARC_N*2),1));
+{const idx=[];for(let i=0;i<ARC_N-1;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}arcGeo.setIndex(idx);
+ const sd=arcGeo.attributes.aSide.array;for(let i=0;i<ARC_N;i++){sd[i*2]=-1;sd[i*2+1]=1;}}
+// custom blend writes 0 to the alpha channel so the comic post pass leaves the arc's true blue and white alone
+const arcMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  blending:THREE.CustomBlending,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor,blendSrcAlpha:THREE.ZeroFactor,blendDstAlpha:THREE.ZeroFactor,
+  uniforms:{t:{value:0},len:{value:1},blue:{value:new THREE.Color('#5fb4ff')},white:{value:new THREE.Color('#ffffff')}},
+  vertexShader:`attribute float aSide;attribute float aAlong;varying float vS;varying float vA;void main(){vS=aSide;vA=aAlong;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`varying float vS;varying float vA;uniform float t;uniform float len;uniform vec3 blue;uniform vec3 white;void main(){
+    float edge=1.0-smoothstep(0.45,1.0,abs(vS));
+    float dash=smoothstep(0.42,0.5,fract(vA/2.4-t*0.7))*(1.0-smoothstep(0.92,1.0,fract(vA/2.4-t*0.7)));
+    vec3 c=mix(blue,white,dash);c=mix(c,white,(1.0-smoothstep(0.0,0.5,abs(vS)))*0.25);
+    float fade=smoothstep(0.0,2.5,vA)*(1.0-smoothstep(len-1.5,len,vA));
+    float a=edge*fade*mix(0.55,0.8,dash);if(a<0.01)discard;
+    gl_FragColor=vec4(c,a);}`});
+const arcLine=new THREE.Mesh(arcGeo,arcMat);arcLine.visible=false;arcLine.frustumCulled=false;arcLine.renderOrder=2;scene.add(arcLine);
+const _aT=new V3(),_aV=new V3(),_aS=new V3(),_aP=new V3();
+function drawArc(pts){
+  if(pts.length<2){arcLine.visible=false;return;}
+  const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+pts[i].distanceTo(pts[i-1]));const tot=Math.max(L[L.length-1],0.05);
+  const pos=arcGeo.attributes.position.array,al=arcGeo.attributes.aAlong.array;let j=0;
+  for(let k=0;k<ARC_N;k++){
+    const d=tot*k/(ARC_N-1);while(j<L.length-2&&L[j+1]<d)j++;
+    const a=pts[j],b=pts[Math.min(j+1,pts.length-1)];const f=clamp((d-L[j])/Math.max(L[j+1]-L[j],1e-4),0,1);
+    _aP.lerpVectors(a,b,f);_aT.subVectors(b,a);if(_aT.lengthSq()<1e-8)_aT.set(0,0,1);_aT.normalize();
+    _aV.subVectors(camera.position,_aP);const dist=_aV.length();_aV.divideScalar(dist||1);
+    _aS.crossVectors(_aT,_aV);if(_aS.lengthSq()<1e-8)_aS.set(1,0,0);_aS.normalize();
+    const w=clamp(3.2/pxPer(dist),0.03,3);
+    pos.set([_aP.x-_aS.x*w,_aP.y-_aS.y*w,_aP.z-_aS.z*w,_aP.x+_aS.x*w,_aP.y+_aS.y*w,_aP.z+_aS.z*w],k*6);al[k*2]=al[k*2+1]=d;
+  }
+  arcGeo.attributes.position.needsUpdate=true;arcGeo.attributes.aAlong.needsUpdate=true;arcMat.uniforms.len.value=tot;arcLine.visible=true;
 }
 
 function setupAim(){
@@ -1760,7 +1793,7 @@ function frame(now){
     if(c.putt||pulling)$('targetTag').hidden=true;else placeTag($('targetTag'),new V3(target.x,target.y,target.z),Math.round(td2)+'y');
     const bsn=screenOf(ballGroup.position);const ph=$('pullHint');
     ph.hidden=!!drag||!firstShot||Math.abs(zoomT)>0.05;if(!ph.hidden){ph.style.left=bsn.x+'px';ph.style.top=Math.min(bsn.y+22,vh-170)+'px';}
-  }else{guide.count=0;guideOut.count=0;puttLine.visible=false;$('targetTag').hidden=true;$('pullHint').hidden=true;}
+  }else{guide.count=0;guideOut.count=0;arcLine.visible=false;puttLine.visible=false;$('targetTag').hidden=true;$('pullHint').hidden=true;}
 
   // trees between the camera and the ball are hidden so they never block the shot
   if(state==='aim'||state==='flight'||state==='settle')updateTreeCutaway();else if(hiddenTrees.size)updateTreeCutaway(true);
@@ -1791,7 +1824,7 @@ function frame(now){
   const spd=state==='flight'?ball.v.length():0;aberrKick=Math.max(0,aberrKick-dt*22);
   // misprint grows a little with ball speed and on impacts
   let mis=LOOK.mis+Math.min(spd/60,0.25)+aberrKick/40;if(reduceMotion)mis=Math.min(mis,0.3);
-  postU.uMis.value=mis;postU.uTime.value=twos?stepN:Math.floor(clock*24);puttMat.uniforms.t.value=clock;WT.value=clock;
+  postU.uMis.value=mis;postU.uTime.value=twos?stepN:Math.floor(clock*24);puttMat.uniforms.t.value=clock;arcMat.uniforms.t.value=clock;WT.value=clock;
   const camYaw=Math.atan2(camLook.x-camPos.x,camLook.z-camPos.z);
   $('windArrow').style.transform=`rotate(${-(windYaw-camYaw)}rad)`;
   if((state==='aim'||state==='flight'||state==='settle')&&distToPin()>30&&!targetPinned&&!(drag&&drag.kind==='pull')){
