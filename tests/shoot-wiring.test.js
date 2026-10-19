@@ -30,7 +30,9 @@ function world(clubIdx0) {
 test('perfect swing: club word, one PERFECT! popup, ball launched straight at full speed', () => {
   const w = world(0); w.shoot(1, 0.02);
   assert.deepEqual(w.popups.map(p => p.t), ['THWACK!', 'PERFECT!']);
-  assert.ok(Math.abs(w.ball.v.x) < 0.5 && w.ball.v.z > 0);   // jitter only, rng is live here
+  // straight apart from the model's own small random jitter (rng is live here)
+  const flat = Math.hypot(w.ball.v.x, w.ball.v.z), maxYaw = g.CLUBS[0].dev * Math.pow(0.02, 1.25) + g.SwingModel.JIT_YAW;
+  assert.ok(Math.abs(w.ball.v.x) <= flat * Math.sin(maxYaw) + 1e-9 && w.ball.v.z > 0, `straight within the jitter (${w.ball.v.x.toFixed(3)} sideways)`);
   assert.equal(w.state(), 'flight'); assert.equal(w.strokes(), 1);
 });
 
