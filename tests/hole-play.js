@@ -99,29 +99,63 @@ const BASE = [[0, 1], [10, 2.18], [20, 2.4], [50, 2.6], [100, 2.8], [150, 2.98],
 const PUTT = [[0, 1], [1, 1.04], [3.3, 1.6], [6.7, 1.87], [13.3, 2.1], [30, 2.3]];   // yards on the green
 const interp = (T, d) => { for (let i = 1; i < T.length; i++) if (d <= T[i][0]) return T[i - 1][1] + (T[i][1] - T[i - 1][1]) * (d - T[i - 1][0]) / (T[i][0] - T[i - 1][0]); return T[T.length - 1][1]; };
 const LIE_ADD = { FAIRWAY: 0, TEE: 0, FRINGE: 0, ROUGH: 0.18, PINE: 0.3, SAND: 0.35, ROAD: 0.4, WASTE: 0.3 };
-function expected(course, r, start, add = LIE_ADD) {
-  if (r.end === 'holed') return 0;
-  if (r.end === 'water' || r.end === 'oob') return 1 + expected(course, { end: 'rest', surf: 'FAIRWAY', toPin: Math.hypot(start.x - course.PIN.x, start.z - course.PIN.z) }, start, add);
-  if (r.surf === 'GREENS') return interp(PUTT, r.toPin);
-  return interp(BASE, r.toPin) + (add[r.surf] || 0);
+
+// Recovery difficulty: how hard the NEXT shot is, from where a ball rests, beyond what its lie (LIE_ADD) already charges.
+// A distance-only baseline scores a ball 15 yd off the green the same whether it sits on a flat apron or at the foot of a steep falloff, in a deep
+// pot bunker, or short-sided with the pin tucked behind a bank. These two measures are read off the hole's real terrain, so no hole needs its own
+// per-hole lie costs (the old `lieAdd` hack):
+//   up     the face the ball has to climb: the highest ground within `window` yd along the line to the pin, above the ball (a bunker lip, a falloff,
+//          a shaved bank: a lie below the green edge), less `allow` yd, since a normal bunker lip (0.9 deep + 0.25 lip) is already in the lie charge.
+//          Only the local face counts: an ordinary approach up to an elevated green from open fairway has none, and the distance baseline prices it
+//   short  short-sided: the pin is within `shortRoom` yd of the green's edge nearest the ball (little green to land on), and the ball is close to that edge
+// charge = reach(distance to pin) * min(cap, up * UP + short * SHORT); balls on the green pay nothing (the putt table has them), the fringe pays
+// no short-side charge (you can putt it), full weight inside `near` yd of the pin fading to nothing at `far` (beyond that the next shot is a full shot).
+const RECOVERY = { near: 45, far: 90, window: 10, allow: 1.0, UP: 0.35, SHORT: 0.30, shortRoom: 6, edgeReach: 20, cap: 1.0 };
+function recovery(course, p, surf, cfg = RECOVERY) {
+  if (!p || surf === 'GREENS' || !course.GREEN || !course.ell) return 0;
+  const dx = course.PIN.x - p.x, dz = course.PIN.z - p.z, d = Math.hypot(dx, dz);
+  if (d < 0.5 || d >= cfg.far) return 0;
+  const reach = d <= cfg.near ? 1 : (cfg.far - d) / (cfg.far - cfg.near);
+  const ux = dx / d, uz = dz / d, h0 = course.H(p.x, p.z);
+  let face = 0;
+  for (let t = 1; t <= Math.min(cfg.window, d); t++) face = Math.max(face, course.H(p.x + ux * t, p.z + uz * t) - h0);
+  const up = Math.max(0, face - cfg.allow);
+  let short = 0;
+  if (surf !== 'FRINGE') {
+    let front = 0;                                                       // green between the pin and the edge nearest the ball
+    while (front < 12 && course.ell(course.PIN.x - ux * front, course.PIN.z - uz * front, course.GREEN) < 1) front += 0.5;
+    const edge = Math.max(0, d - front);                                 // the ball's distance to that edge
+    short = Math.max(0, (cfg.shortRoom - front) / cfg.shortRoom) * Math.max(0, (cfg.edgeReach - edge) / cfg.edgeReach);
+  }
+  return reach * Math.min(cfg.cap, up * cfg.UP + short * cfg.SHORT);
 }
 
-// Play a plan with a spread of swings: needles evenly spaced over [-spread, spread]. Returns hazard rate, mean leave, expected score.
-// lieAdd: this hole's own extra strokes for a lie, over the shared defaults (LIE_ADD), for a hazard the baseline understates (a bunker you cannot play out of forwards).
-function evaluate(course, shot, spread, n = 21, lieAdd = null) {
+// opts.recovery === false switches the recovery term off (the previous distance-and-lie-only baseline), for comparisons.
+function expected(course, r, start, add = LIE_ADD, opts = {}) {
+  if (r.end === 'holed') return 0;
+  if (r.end === 'water' || r.end === 'oob') return 1 + expected(course, { end: 'rest', surf: 'FAIRWAY', p: start, toPin: Math.hypot(start.x - course.PIN.x, start.z - course.PIN.z) }, start, add, opts);
+  if (r.surf === 'GREENS') return interp(PUTT, r.toPin);
+  return interp(BASE, r.toPin) + (add[r.surf] || 0) + (opts.recovery === false ? 0 : recovery(course, r.p, r.surf));
+}
+
+// Play a plan with a spread of swings: needles evenly spaced over [-spread, spread]. Returns hazard rate, mean leave, expected score
+// (and `recovery`, the mean recovery charge over the balls that were not on the green or in a hazard).
+// lieAdd: a last-resort per-strategy override of the shared lie costs (LIE_ADD), for a hazard the baseline still understates. Log any use in the hole's spec §6.
+function evaluate(course, shot, spread, n = 21, lieAdd = null, opts = {}) {
   const add = lieAdd ? { ...LIE_ADD, ...lieAdd } : LIE_ADD;
-  const out = { n, hazard: 0, toPin: 0, score: 0, surfs: {} };
+  const out = { n, hazard: 0, toPin: 0, score: 0, recovery: 0, surfs: {} };
   for (let i = 0; i < n; i++) {
     const off = n === 1 ? 0 : -spread + 2 * spread * i / (n - 1);
     const r = playShot(course, { ...shot, offset: off });
     const bad = r.end === 'water' || r.end === 'oob';
     if (bad) out.hazard++; else out.toPin += r.toPin;
     out.surfs[bad ? r.end : r.surf] = (out.surfs[bad ? r.end : r.surf] || 0) + 1;
-    out.score += 1 + expected(course, r, r.from, add);
+    if (!bad && r.end !== 'holed' && opts.recovery !== false) out.recovery += recovery(course, r.p, r.surf);
+    out.score += 1 + expected(course, r, r.from, add, opts);
   }
   const dry = n - out.hazard;
-  out.toPin = dry ? out.toPin / dry : NaN; out.hazard /= n; out.score /= n;
+  out.toPin = dry ? out.toPin / dry : NaN; out.hazard /= n; out.score /= n; out.recovery /= n;
   return out;
 }
 
-module.exports = { playShot, evaluate, expected, resolvePoint, CHECKS, loadCourse };
+module.exports = { playShot, evaluate, expected, recovery, RECOVERY, resolvePoint, CHECKS, loadCourse };

@@ -5,7 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadCourse, makeTerrain, runBall, flatShot } = require('./harness');
-const { playShot, evaluate, CHECKS } = require('./hole-play');
+const { playShot, evaluate, expected, recovery, RECOVERY, CHECKS } = require('./hole-play');
 
 const course = loadCourse();
 const g = course.game, SM = g.StanceModel;
@@ -158,6 +158,72 @@ test('hole checks: a per-strategy lieAdd changes what a lie costs in the compari
   const shot = { club: 'Iron', at: [8, 455] };
   const a = evaluate(course, shot, 0.55, 9), b = evaluate(course, shot, 0.55, 9, { SAND: 5 });
   assert.ok(b.score >= a.score && (a.surfs.SAND ? b.score > a.score : true));
+});
+
+// ---------------------------------------------------------------- the baseline's recovery-difficulty term (tests/hole-play.js)
+// A stand-in course for the properties: height function `h`, a pin at (0,50), a green of radius 10 centred at (0, gz).
+const stub = (h, gz = 50) => ({ H: h, PIN: { x: 0, z: 50 }, GREEN: { x: 0, z: gz, rx: 10, rz: 10, rot: 0, c: 1, s: 0 }, ell: course.ell });
+const flat = () => 0;
+
+test('recovery: nothing on the green, nothing beyond the short game, nothing for an open approach up to an elevated green', () => {
+  const c = stub(flat);
+  assert.equal(recovery(c, { x: 0, z: 45 }, 'GREENS'), 0, 'a ball on the green is the putt table\'s');
+  assert.equal(recovery(stub((x, z) => z > 20 ? 6 : 0), { x: 0, z: 50 - RECOVERY.far }, 'ROUGH'), 0, 'at `far` yards from the pin the next shot is a full shot');
+  assert.equal(recovery(stub((x, z) => z > 40 ? 3 : 0), { x: 0, z: 0 }, 'FAIRWAY'), 0, 'a fairway approach 40 yd from a 3 yd step has no face to climb');
+  assert.equal(recovery(c, { x: 0, z: 30 }, 'ROUGH'), 0, 'flat ground, plenty of green: nothing to charge');
+  assert.equal(recovery(c, null, 'ROUGH'), 0, 'no position, no charge');
+});
+
+test('recovery: a face in front of the ball costs beyond the allowance, in proportion, up to the cap', () => {
+  const wall = hgt => stub((x, z) => z > 33 ? hgt : 0);                       // a ball at (0,30), 20 yd from the pin, with a face 3 yd ahead
+  const ball = { x: 0, z: 30 }, at = hgt => recovery(wall(hgt), ball, 'ROUGH');
+  assert.equal(at(RECOVERY.allow), 0, 'a face within the allowance (a normal bunker lip) is already in the lie charge');
+  assert.ok(Math.abs(at(RECOVERY.allow + 1) - RECOVERY.UP) < 1e-9, 'one yard past the allowance costs UP strokes');
+  assert.ok(at(RECOVERY.allow + 2) > at(RECOVERY.allow + 1), 'higher faces cost more');
+  assert.equal(at(30), RECOVERY.cap, 'and the charge stops at the cap');
+});
+
+test('recovery: fades with distance from the pin, from full inside `near` to nothing at `far`', () => {
+  const at = d => { const zb = 50 - d; return recovery(stub((x, z) => z > zb + 3 ? 3 : 0), { x: 0, z: zb }, 'ROUGH'); };    // same 3 yd face, ball d yd from the pin
+  assert.ok(at(20) > 0 && Math.abs(at(20) - at(RECOVERY.near)) < 1e-9, 'full weight inside `near`');
+  assert.ok(at(RECOVERY.near) > at(65) && at(65) > at(80) && at(80) > 0, 'falling between near and far');
+  assert.equal(at(RECOVERY.far), 0);
+});
+
+test('recovery: short-sided means a pin near the edge the ball is on; it needs a ball close to that edge and is not charged on the fringe', () => {
+  const nearEdge = stub(flat, 56), centred = stub(flat, 50);                 // the pin 6 yd inside the front edge vs in the middle of the green
+  const ball = { x: 0, z: 40 };
+  assert.ok(recovery(nearEdge, ball, 'ROUGH') > 0, 'little green to land on: a charge');
+  assert.equal(recovery(centred, ball, 'ROUGH'), 0, 'the same ball with the pin in the middle of the green: none');
+  assert.equal(recovery(nearEdge, ball, 'FRINGE'), 0, 'on the fringe you can putt it');
+  assert.ok(recovery(nearEdge, ball, 'ROUGH') > recovery(nearEdge, { x: 0, z: 25 }, 'ROUGH'), 'a ball further from the edge pays less');
+  assert.ok(recovery(nearEdge, ball, 'ROUGH') < RECOVERY.SHORT + 1e-9, 'and it never exceeds SHORT on its own');
+});
+
+test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary bunkers and fairway lay-ups almost nothing', () => {
+  course.prepHole(idx('standrews-17'));
+  const road = course.BUNKERS.find(b => b.depth > 2);
+  assert.ok(recovery(course, { x: road.x, z: road.z }, 'SAND') >= 0.9 * RECOVERY.cap, 'a ball in the pot bunker whose face is the whole story');
+  course.prepHole(idx('pebble-8'));
+  const bunker = (x, z) => course.BUNKERS.find(b => b.x === x && b.z === z);
+  const beside = bunker(-33, 391), below = bunker(-6, 362);                    // both default bunkers (0.9 deep, 0.25 lip) within 25 yd of the pin
+  const rec = b => recovery(course, { x: b.x, z: b.z }, 'SAND');
+  assert.ok(rec(beside) < 0.2, 'a default bunker beside the green is within the lie charge');
+  assert.ok(rec(below) > 3 * rec(beside) && rec(below) > 0.5, 'the one short of the raised green pays far more: the bank above it is the face to climb');
+  course.prepHole(idx('pinehurst-5'));
+  assert.equal(recovery(course, { x: 24, z: 432 }, 'FAIRWAY'), 0, 'the lay-up to the elevated plateau is an ordinary wedge');
+});
+
+test('recovery: expected() adds it for balls off the green, opts.recovery=false removes it, and evaluate() reports the mean charge', () => {
+  course.prepHole(idx('standrews-17'));
+  const shot = { from: [0, 334], club: 'Iron', at: [18, 464] };
+  const on = evaluate(course, shot, 0.55, 9), off = evaluate(course, shot, 0.55, 9, null, { recovery: false });
+  assert.ok(on.recovery > 0 && off.recovery === 0);
+  assert.equal(on.hazard, 0);
+  assert.ok(Math.abs((on.score - off.score) - on.recovery) < 1e-9, 'with no water or holed balls the score differs by exactly the mean charge');
+  const r = { end: 'rest', surf: 'SAND', p: { x: 21, z: 456 }, toPin: Math.hypot(21 - course.PIN.x, 456 - course.PIN.z) };
+  assert.ok(expected(course, r, { x: 0, z: 334 }) > expected(course, r, { x: 0, z: 334 }, undefined, { recovery: false }));
+  assert.equal(expected(course, { ...r, surf: 'GREENS' }, { x: 0, z: 334 }), expected(course, { ...r, surf: 'GREENS' }, { x: 0, z: 334 }, undefined, { recovery: false }));
 });
 
 test('rolling start: a ball landing on a steep slope never rolls faster than the model\'s speed cap', () => {
