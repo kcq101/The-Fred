@@ -51,6 +51,8 @@
 | Sidehill lie | noticeable | grade ~0.1 → a pure 3-wood aimed at the pin hooks ~26 yd left | the lie must change the aim, visibly, in the arc |
 | Creek + shaved bank | creek fronts green | balls landing on the front bank roll in | going for it must carry the whole way |
 
+**Realism bounds** (`node tests/tools/slope.js augusta-13`, `docs/maps/augusta-13-slope.png`): like Pebble Beach No. 8, one tilted plane (3.2 %, all of the surface in the 2.5–4 % band, tilt coherence 1.00): no steep ring and not a dome, but "gentle top" and "flat pockets" read WARN. Deliberate: the fast green sloping toward the creek is the point of §4's last row. Written before the bounds existed; recorded here, not reshaped.
+
 ## 6. Validation
 
 All in `tests/hole-checks.js` → `augusta-13`.
@@ -69,3 +71,28 @@ All in `tests/hole-checks.js` → `augusta-13`.
 | Decision | Must hold | Result (wet %, expected score) |
 |---|---|---|
 | Go (3-wood) vs lay up (iron), from the valley | creek in play when going; going is right for a sharp player, laying up for a shaky one | go: sharp 5% / 3.41, shaky 29% / 4.02 · lay up: sharp 0% / 3.67, shaky 0% / 3.76 |
+
+## 7. Results
+
+```
+=== Augusta National (augusta-13) — Dogleg left: a drive that finds the valley leaves a reachable second, but from a ball-above-the-feet lie that hooks toward the creek in front of a green perched on a shaved bank. Go for it, or lay up.
+shot                                                                           before           after
+a pure drive tumbles down the valley and runs out past 320                     FAIRWAY 293y     FAIRWAY 242y
+a drawn drive catches the slope and runs even further                          FAIRWAY 311y     FAIRWAY 228y
+the second shot is played with the ball above the feet                         ROUGH 18y        FRINGE 14y
+aimed straight at the pin, the hanging lie hooks a pure 3-wood left of the gr  GREENS 4y        FAIRWAY 26y
+aimed right to allow for the hook, a pure 3-wood reaches the putting surface   ROUGH 18y        FRINGE 14y
+a slightly thin 3-wood lands on the shaved bank and rolls back into the creek  ROUGH 27y        WATER 29y
+the lay-up leaves a flat wedge that a decent swing puts on the green           GREENS 4y        GREENS 4y
+a ball that runs off the front of the green feeds into the creek               FAIRWAY 19y      WATER 29y
+
+  strategy: the momentous decision (second shot from the valley)
+  plan       skill   before: wet green score   after: wet green score
+  go         sharp           0%  24% 3.42              5%   0% 3.41
+  go         shaky          29%  10% 4.05             29%   0% 4.06
+  layup      sharp           0%   0% 3.92              0%   0% 3.67
+  layup      shaky           0%   0% 3.89              0%   0% 3.76
+  payoff of go over layup (strokes saved): sharp 0.50 → 0.27, shaky -0.17 → -0.30   (before → after)
+```
+
+Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`). "Before" is the original hole as it stood at commit 548d49a: the same tee and pin, none of the iconic-hole features, play profile or hazards.

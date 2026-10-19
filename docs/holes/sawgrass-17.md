@@ -45,6 +45,8 @@
 | Shedding margin | collar and rough | crowned strip falls to the bulkhead | a "just off" shot should still be in danger |
 | Green tier | (invented) | 0.45-yd step | gives the putting surface a feature; labelled as an arcade invention |
 
+**Realism bounds** (`node tests/tools/slope.js sawgrass-17`, `docs/maps/sawgrass-17-slope.png`): 0 / 82 / 1 / 16 % in the four bands. The 16 % over 4 % is the ridge of the invented tier (a 0.45 yd step over 3.5 yd), well inside the ~35 % ring bound; the rest is a 1.3 % tilt, so there are no flat pockets (WARN). The tier is already labelled an arcade invention above; the green is not where this hole is decided.
+
 ## 6. Validation
 
 All in `tests/hole-checks.js` → `sawgrass-17`.
@@ -63,3 +65,32 @@ All in `tests/hole-checks.js` → `sawgrass-17`.
 |---|---|---|
 | Reading a following wind: stock vs read | stock is a disaster even for a sharp player; reading keeps a sharp player dry and saves strokes | stock: sharp 86% / 4.72, shaky 33% / 3.91 · read: sharp 0% / 2.76, shaky 38% / 3.65 |
 | Skill in still air | sharp always dry; shaky wet at least 1 in 7 | sharp 0%, shaky 19% |
+
+## 7. Results
+
+```
+=== TPC Sawgrass (sawgrass-17) — Pure distance and direction control to an island green, with the wind as the hidden variable.
+shot                                                                           before           after
+a well-struck iron holds the green                                             GREENS 7y        GREENS 6y
+a shot carried 12 yards long runs off the back of the island into the water    WATER 18y        WATER 16y
+a bad miss right is wet                                                        WATER 22y        WATER 21y
+ignore a 17 mph tailwind and the ball flies the green into the water           ROUGH 13y        WATER 18y
+play the tailwind (land it short) and it finishes on the green                 GREENS 2y        GREENS 6y
+into a 17 mph headwind, a stock shot to a front pin comes up short and wet     GREENS 7y        WATER 18y
+into the same headwind, aiming the arc 11 yards past the pin finds the green   FRINGE 11y       GREENS 2y
+
+  strategy: reading a following wind
+  plan       skill   before: wet green score   after: wet green score
+  stock      sharp           0%  24% 3.19             86%   0% 4.72
+  stock      shaky          10%  52% 3.30             33%  14% 3.93
+  read       sharp           0%  71% 2.81              0% 100% 2.76
+  read       shaky          57%  24% 4.07             38%  52% 3.65
+  payoff of stock over read (strokes saved): sharp -0.38 → -1.96, shaky 0.78 → -0.28   (before → after)
+
+  strategy: skill matters
+  plan       skill   before: wet green score   after: wet green score
+  pin        sharp           0% 100% 2.76              0% 100% 2.78
+  pin        shaky          19%  71% 3.23             19%  71% 3.29
+```
+
+Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`). "Before" is the original hole as it stood at commit 548d49a: the same tee and pin, none of the iconic-hole features, play profile or hazards.

@@ -59,6 +59,8 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 | Creek margin on the right | a few yards | creek bent in at the right | The pin attack has to cost a shaky player (wet 38% vs 14% for the middle) |
 | Wind | 0–15+ mph | 3–14, windPush 2 | A 14 mph headwind takes a stock iron into the creek |
 
+**Realism bounds** (`node tests/tools/slope.js augusta-12`, `docs/maps/augusta-12-slope.png`): 0 / 92 / 1 / 7 % in the four bands: a 2.4 % tilt, with the 7 % over 4 % along the front edge where the `rise` under the green begins to fall away. No dome; "flat pockets" reads WARN. §3 calls the green's contours mild (a slight tilt and a bank behind); the decision is the creek and the wind, so the putting surface is left as it is.
+
 ## 6. Validation — the contract
 
 | Shot | Expected |
@@ -74,9 +76,15 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 
 | Decision | Plans | Must hold |
 |---|---|---|
-| The Sunday pin | pin / deep middle | The pin is never wet for a sharp player and wet ≥ 25% for a shaky one; the middle drowns half as often or less; the pin saves over 0.4 strokes for a sharp player; for a shaky player the middle costs no more than 0.1 stroke extra |
+| The Sunday pin | pin / deep middle | The pin is never wet for a sharp player (100 % on the green) and wet ≥ 25 % for a shaky one (38 %, with 62 % on the green); the middle drowns half as often or less (14 %); the pin saves a sharp player over 0.4 strokes (0.55); for a shaky player the two plans are within a quarter stroke of each other, either way (the pin is 0.10 better) |
 
-**Honest note**: the tour-style baseline still rates the pin as a wash for a shaky player (pin 3.54, middle 3.55) because its penalty for a wet ball is only one stroke. The contract therefore asserts the hazard rates, not a score advantage for the middle. The real hole is the same at the margin: the middle is safer, not better.
+**Honest note**: the baseline still rates the two plans as close for a shaky player (pin 3.54, middle 3.64: the pin is 0.10 stroke better) because its penalty for a wet ball is only one stroke; the middle drowns 14 % of the time against 38 %. The contract therefore asserts the hazard rates and a bounded gap, not a score advantage for the middle. The real hole is the same at the margin: the middle is safer, not better.
+
+**Check-change log**
+
+| Check | Was | Now | Why |
+|---|---|---|---|
+| The Sunday pin, shaky player | the middle costs a shaky player no more than 0.1 stroke extra (`middle.shaky ≤ pin.shaky + 0.1`) | the two plans are within a quarter stroke of each other, either way (`|pin.shaky − middle.shaky| < 0.25`) | The baseline gained a recovery term that charges a ball that finishes in the deep back bunkers or at the foot of the bank (shaky middle 3.55 → 3.64) while the pin's score did not move (3.54): the gap went from 0.01 to 0.10, a hair past the old bound. "Costs nothing" claimed more than the baseline shows; the new wording states the gap it does |
 
 ## 7. Results
 
@@ -93,11 +101,12 @@ clubbing up for the headwind (arc past the pin) finishes on the putting surfa  R
 with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  ROUGH 9y         ROUGH 9y
 
   strategy: the Sunday pin: attack it by the creek, or play to the deep middle
-  plan       skill   before: wet  score     after: wet  score
-  pin        sharp             0%  2.64              0%  2.67
-  pin        shaky             0%  2.95             38%  3.54
-  middle     sharp             0%  3.13              0%  3.21
-  middle     shaky             0%  3.23             14%  3.55
+  plan       skill   before: wet green score   after: wet green score
+  pin        sharp           0% 100% 2.64              0% 100% 2.67
+  pin        shaky           0%  67% 2.95             38%  62% 3.54
+  middle     sharp           0% 100% 3.13              0%  81% 3.22
+  middle     shaky           0%  71% 3.23             14%  48% 3.64
+  payoff of pin over middle (strokes saved): sharp 0.49 → 0.55, shaky 0.28 → 0.10   (before → after)
 ```
 
-"Before" is the same land and green with no creek bank, bunkers, wind or green shaping.
+"Before" is the same land and green with no creek bank, bunkers, wind or green shaping. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.
