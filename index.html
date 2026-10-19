@@ -1086,7 +1086,7 @@ const ballMat=new THREE.ShaderMaterial({
     gl_FragColor=vec4(c,0.0);}`
 });
 const ballMesh=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,32,20),ballMat);
-const ballOut=new THREE.Mesh(ballMesh.geometry,outlineMat(0.016,0));
+const ballOut=new THREE.Mesh(ballMesh.geometry,outlineMat(0.0065,0)); // thin ink line, just enough to lift the ball off the grass
 ballGroup.add(ballMesh,ballOut);scene.add(ballGroup);
 // tee peg under the ball for the tee shot
 const pegG=new THREE.CylinderGeometry(1,0.45,1,10);pegG.translate(0,-0.5,0);
@@ -1712,9 +1712,9 @@ function aimTarget(outP,outL){
   const c=CLUBS[clubIdx];
   const dir=new V3(Math.sin(aimYaw),0,Math.cos(aimYaw));
   const D=Math.max(hdist(ball.p,target),c.putt?7:28);
-  // ball low on screen, target about a third of the way down, horizon near the top quarter
-  const back=0.18*D+(c.putt?2:8),up=back*0.587,ahead=back*1.2;
-  outP.copy(ball.p).addScaledVector(dir,-back);outP.y=Math.max(ball.p.y+up,H(outP.x,outP.z)+1.5);
+  // low, golfer's-eye view standing behind the ball: camera close to the ground, looking down the line
+  const back=c.putt?0.18*D+2:0.11*D+5,up=c.putt?back*0.5:back*0.3+1.2,ahead=c.putt?back*1.2:back*1.6;
+  outP.copy(ball.p).addScaledVector(dir,-back);outP.y=Math.max(ball.p.y+up,H(outP.x,outP.z)+1.4);
   outL.copy(ball.p).addScaledVector(dir,ahead);outL.y=ball.p.y;
   if(zoomV<-0.001){
     // zoomed in: close over the target, looking down the line of the shot
