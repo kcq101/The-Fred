@@ -1518,26 +1518,34 @@ function groundAt(cx,cy){
 function screenOf(p){const v=p.clone().project(camera);return{x:(v.x+1)/2*vw,y:(1-v.y)/2*vh,z:v.z};}
 let drag=null,pendPhase=0,pendOffset=0;
 // <fan-geometry>
-// The accuracy rainbow lies flat on the ground in front of the ball, fanned out toward the target and drawn in the game camera's own perspective.
-// Geometry is in ground terms (yards from the ball, degrees off the aim line, + = right) so it can be tested without a camera.
-// Sizes are for a camera FAN.refDist yards from the ball and scale with the real distance, so the fan keeps the same size on screen.
-const FAN={r0:2.4,r1:5.0,sweep:72,slices:84,tail:1.5,headAt:4.4,tip:5.2,shaft:0.11,head:0.24,refDist:29,depth:3.2}; // depth: how much the fan's distance-from-the-ball is stretched on screen (a golfer's-eye camera is so low that a true ground projection is a thin sliver)
-const fanDims=s=>({r0:FAN.r0*s,r1:FAN.r1*s,tail:FAN.tail*s,headAt:FAN.headAt*s,tip:FAN.tip*s,shaft:FAN.shaft*s,head:FAN.head*s});
+// The accuracy meter is a wide chevron band lying on the ground out in front of the ball, with a slim arrow swinging from the ball out across it
+// (Golf Clash style): thin in the middle, thick and pushed downrange at the ends. Geometry is in ground terms around the ball:
+// lat = yards to the right of the aim line, fwd = yards toward the hole. u = -1..1 across the band (0 = dead center, + = right).
+const FAN={half:5.4,f0:6.5,lift:2.2,liftPow:1.5,thMin:0.3,thMax:2.4,slices:72,tail:1.3,head:0.2,shaft:0.085,headLen:0.9,taper:0.035,aspect:0.7,refDist:29};
+// aspect = how far downrange stretches on screen relative to sideways (a golfer's-eye camera foreshortens it to a sliver); taper = the far end of the band is a little narrower
 // one smooth rainbow, no hard bands: the closer to the middle, the better the shot (cyan at dead center, deep wine at the ends)
 const stops=[[0,[45,226,255]],[0.16,[59,232,138]],[0.32,[255,225,77]],[0.50,[255,154,46]],[0.68,[255,46,136]],[1,[143,15,72]]];
 const fanColor=t=>{let i=1;while(i<stops.length-1&&t>stops[i][0])i++;const[t0,c0]=stops[i-1],[t1,c1]=stops[i],f=clamp((t-t0)/(t1-t0),0,1);return'rgb('+c0.map((v,k)=>Math.round(mix(v,c1[k],f))).join(',')+')';};
-// a ground point rho yards out along the ray deg off the aim line (+ = right), lat yards to the right of that ray
-function fanPoint(b,yaw,rho,deg,lat=0){
-  const t=deg*D2R,fx=Math.sin(yaw),fz=Math.cos(yaw),rx=-fz,rz=fx,c=Math.cos(t),n=Math.sin(t);
-  return{x:b.x+rho*(c*fx+n*rx)+lat*(-n*fx+c*rx),z:b.z+rho*(c*fz+n*rz)+lat*(-n*fz+c*rz)};
+// center line of the band, and its near/far edge at u (e = grow outward, for the dark outline)
+const fanCenter=u=>FAN.f0+FAN.lift*Math.pow(Math.abs(u),FAN.liftPow);
+const fanThick=u=>FAN.thMin+(FAN.thMax-FAN.thMin)*Math.pow(Math.abs(u),1.15);
+const fanEdge=(u,e=0)=>({lat:FAN.half*u,near:fanCenter(u)-fanThick(u)/2-e,far:fanCenter(u)+fanThick(u)/2+e});
+const fanPts=(m,list)=>{const o=[];for(const p of list){const q=m(p[0],p[1]);if(!q)return null;o.push(q.x.toFixed(1)+','+q.y.toFixed(1));}return o.join(' ');};
+const fanSlice=(m,u0,u1)=>{const a=fanEdge(u0),b=fanEdge(u1);return fanPts(m,[[a.lat,a.near],[a.lat,a.far],[b.lat,b.far],[b.lat,b.near]]);};
+// the arrow lies on the ground too, running from the ball out to the middle of the band at u: a slim shaft and a small head. Returns [left half, right half].
+function fanArrow(m,u){
+  const tx=FAN.half*u,tz=fanCenter(u),len=Math.hypot(tx,tz),dx=tx/len,dz=tz/len,nx=dz,nz=-dx; // d = unit direction, n = its right-hand side
+  const at=(t,w)=>[dx*t+nx*w,dz*t+nz*w],hs=len-FAN.headLen;
+  return[fanPts(m,[at(FAN.tail,0),at(FAN.tail,-FAN.shaft),at(hs,-FAN.shaft),at(hs,-FAN.head),at(len,0)]),
+         fanPts(m,[at(FAN.tail,0),at(FAN.tail,FAN.shaft),at(hs,FAN.shaft),at(hs,FAN.head),at(len,0)])];
 }
-const fanPts=(toScreen,list)=>{const o=[];for(const p of list){const q=toScreen(p.x,p.z);if(!q)return null;o.push(q.x.toFixed(1)+','+q.y.toFixed(1));}return o.join(' ');};
-const fanWedge=(toScreen,b,yaw,r0,r1,d0,d1)=>fanPts(toScreen,[fanPoint(b,yaw,r0,d0),fanPoint(b,yaw,r1,d0),fanPoint(b,yaw,r1,d1),fanPoint(b,yaw,r0,d1)]);
-// the arrow lies on the ground too: a slim shaft and a small head, pointing out along deg. Returns [left half, right half] as screen points.
-function fanArrow(toScreen,b,yaw,deg,s){
-  const d=fanDims(s),P=(rho,lat)=>fanPoint(b,yaw,rho,deg,lat);
-  return[fanPts(toScreen,[P(d.tail,0),P(d.tail,-d.shaft),P(d.headAt,-d.shaft),P(d.headAt,-d.head),P(d.tip,0)]),
-         fanPts(toScreen,[P(d.tail,0),P(d.tail,d.shaft),P(d.headAt,d.shaft),P(d.headAt,d.head),P(d.tip,0)])];
+// ground (lat,fwd) -> screen pixels. Pixels-per-yard is measured from the real camera at the ball, so the band keeps its look whatever the camera does.
+function fanMapper(toScreen,b,yaw,s){
+  const fx=Math.sin(yaw),fz=Math.cos(yaw),o=toScreen(b.x,b.z),A=toScreen(b.x+3*fx,b.z+3*fz),R=toScreen(b.x-3*fz,b.z+3*fx);
+  if(!o||!A||!R)return null;
+  const rl=Math.hypot(R.x-o.x,R.y-o.y),fl=Math.hypot(A.x-o.x,A.y-o.y),ppl=rl/3;if(!(ppl>0&&fl>0))return null;
+  const rx=(R.x-o.x)/rl,ry=(R.y-o.y)/rl,ux=(A.x-o.x)/fl,uy=(A.y-o.y)/fl;
+  return(lat,fwd)=>{const L=lat*s,F=fwd*s,k=1/(1+FAN.taper*F);return{x:o.x+ppl*(rx*L*k+ux*FAN.aspect*F),y:o.y+ppl*(ry*L*k+uy*FAN.aspect*F)};};
 }
 // </fan-geometry>
 const _fv=new V3();
@@ -1545,22 +1553,23 @@ function fanScreen(x,z){_fv.set(x,H(x,z)+0.07,z).project(camera);return _fv.z>=1
 let fanKey='';
 // <fan-draw>
 function drawFan(){
-  const b=ball.p,yaw=aimYaw,s=camera.position.distanceTo(b)/FAN.refDist,d=fanDims(s);
-  const o=fanScreen(b.x,b.z);if(!o)return;                 // the ball's own screen spot is the pivot of the stretch
-  const scr=(x,z)=>{const q=fanScreen(x,z);return q&&{x:q.x,y:o.y+(q.y-o.y)*FAN.depth};};
+  const b=ball.p,yaw=aimYaw,s=camera.position.distanceTo(b)/FAN.refDist;
+  const m=fanMapper(fanScreen,b,yaw,s);if(!m)return;
   const key=[b.x.toFixed(2),b.z.toFixed(2),yaw.toFixed(4),s.toFixed(3),vw,vh,camera.matrixWorld.elements.map(v=>v.toFixed(3)).join()].join('|');
-  if(key!==fanKey){ // the rainbow only moves when the ball, the aim or the camera does; the arrow is redrawn every frame below
-    fanKey=key;const SW=FAN.sweep,N=FAN.slices;let h='';
-    const ring=[];for(let i=0;i<=N;i++)ring.push(fanPoint(b,yaw,d.r1+0.22*s,-SW-1.5+(2*SW+3)*i/N));for(let i=N;i>=0;i--)ring.push(fanPoint(b,yaw,d.r0-0.22*s,-SW-1.5+(2*SW+3)*i/N));
-    const ro=fanPts(scr,ring);if(ro)h+=`<polygon points="${ro}" fill="#170b33"/>`;
-    for(let i=0;i<N;i++){const a0=-SW+2*SW*i/N,a1=-SW+2*SW*(i+1)/N,pl=fanWedge(scr,b,yaw,d.r0,d.r1,a0,Math.min(SW,a1+0.8));if(pl)h+=`<polygon points="${pl}" fill="${fanColor(Math.abs((a0+a1)/2)/SW)}"/>`;}
-    const gl=[];for(let a=-SW+5;a<=SW-5;a+=4)gl.push(fanPoint(b,yaw,d.r1-0.32*s,a));const gp=fanPts(scr,gl);
-    if(gp)h+=`<polyline points="${gp}" fill="none" stroke="#fffaf0" stroke-opacity=".4" stroke-width="3" stroke-linecap="round"/>`;
-    const n0=fanWedge(scr,b,yaw,d.r0-0.3*s,d.r1+0.3*s,-1.5,1.5),n1=fanWedge(scr,b,yaw,d.r0-0.2*s,d.r1+0.2*s,-0.8,0.8); // notch = the exact middle
-    if(n0)h+=`<polygon points="${n0}" fill="#170b33"/>`;if(n1)h+=`<polygon points="${n1}" fill="#fffaf0"/>`;
+  if(key!==fanKey){ // the band only moves when the ball, the aim or the camera does; the arrow is redrawn every frame below
+    fanKey=key;const N=FAN.slices;let h='';
+    const ring=[],ex=i=>i===0?-0.2:i===N?0.2:0;
+    for(let i=0;i<=N;i++){const e=fanEdge(-1+2*i/N,0.2);ring.push([e.lat+ex(i),e.far]);}
+    for(let i=N;i>=0;i--){const e=fanEdge(-1+2*i/N,0.2);ring.push([e.lat+ex(i),e.near]);}
+    const ro=fanPts(m,ring);if(ro)h+=`<polygon points="${ro}" fill="#170b33" stroke="#170b33" stroke-width="2" stroke-linejoin="round"/>`;
+    for(let i=0;i<N;i++){const u0=-1+2*i/N,u1=-1+2*(i+1)/N,pl=fanSlice(m,u0,Math.min(1,u1+0.012));if(pl)h+=`<polygon points="${pl}" fill="${fanColor(Math.abs((u0+u1)/2))}"/>`;}
+    const gl=[];for(let i=2;i<=N-2;i++){const e=fanEdge(-1+2*i/N);gl.push([e.lat,e.far-0.18*(0.4+fanThick(-1+2*i/N)/FAN.thMax)]);}const gp=fanPts(m,gl);
+    if(gp)h+=`<polyline points="${gp}" fill="none" stroke="#fffaf0" stroke-opacity=".38" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const n0=fanSlice(m,-0.022,0.022),n1=fanSlice(m,-0.011,0.011); // notch = the exact middle
+    if(n0)h+=`<polygon points="${n0}" fill="#170b33" stroke="#170b33" stroke-width="2"/>`;if(n1)h+=`<polygon points="${n1}" fill="#fffaf0"/>`;
     $('fanStatic').innerHTML=h;
   }
-  const ar=fanArrow(scr,b,yaw,pendOffset*FAN.sweep,s);
+  const ar=fanArrow(m,pendOffset);
   if(ar[0]&&ar[1])['arrL','arrSL'].forEach(id=>$(id).setAttribute('points',ar[0])),['arrR','arrSR'].forEach(id=>$(id).setAttribute('points',ar[1]));
 }
 // </fan-draw>

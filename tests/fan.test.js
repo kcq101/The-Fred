@@ -8,74 +8,82 @@ const { makeCamera } = require('./camera');
 
 const D2R = Math.PI / 180, clamp = (x, a, b) => Math.min(b, Math.max(a, x)), mix = (a, b, t) => a + (b - a) * t;
 const block = (a, b) => SRC.slice(SRC.indexOf(a), SRC.indexOf(b));
-const geo = new Function('D2R', 'clamp', 'mix', block('// <fan-geometry>', '// </fan-geometry>') + ';return {FAN,fanDims,fanColor,fanPoint,fanPts,fanWedge,fanArrow,stops};')(D2R, clamp, mix);
-const { FAN, fanDims, fanPoint, fanPts, fanWedge, fanArrow, fanColor, stops } = geo;
-const B = { x: 3, z: -7 };
-const dist = (p, q) => Math.hypot(p.x - q.x, p.z - q.z);
+const geo = new Function('D2R', 'clamp', 'mix', block('// <fan-geometry>', '// </fan-geometry>') + ';return {FAN,fanColor,fanCenter,fanThick,fanEdge,fanPts,fanSlice,fanArrow,fanMapper,stops};')(D2R, clamp, mix);
+const { FAN, fanColor, fanCenter, fanThick, fanEdge, fanPts, fanSlice, fanArrow, fanMapper, stops } = geo;
+const px = str => str.split(' ').map(p => p.split(',').map(Number));
 
 test('the old flat HUD meter is gone', () => {
   assert.ok(!/pendBands|pendLayout|PEND_SWEEP|pendNeedle|pendHit|pendOk/.test(SRC));
   assert.match(SRC, /<div id="pend" hidden><svg aria-hidden="true">/);
 });
 
-test('fan points are real ground geometry: along the aim line, equal distance from the ball, + = screen-right', () => {
-  for (const yawDeg of [0, 17, -40]) {
-    const yaw = yawDeg * D2R;
-    const ahead = fanPoint(B, yaw, 5, 0);
-    assert.ok(Math.abs(ahead.x - (B.x + 5 * Math.sin(yaw))) < 1e-9 && Math.abs(ahead.z - (B.z + 5 * Math.cos(yaw))) < 1e-9, `aim ray at yaw ${yawDeg}`);
-    for (const deg of [-72, -30, 0, 45, 72]) assert.ok(Math.abs(dist(B, fanPoint(B, yaw, 4.2, deg)) - 4.2) < 1e-9, `constant radius at ${deg}`);
-  }
-  const r = fanPoint({ x: 0, z: 0 }, 0, 5, 90), l = fanPoint({ x: 0, z: 0 }, 0, 5, -90);
-  assert.ok(r.x < -4.99 && l.x > 4.99, 'positive angle is screen-right (world -x), as in launchVel');
-  const p = fanPoint({ x: 0, z: 0 }, 0, 3, 0, 4); assert.ok(Math.abs(Math.hypot(p.x, p.z) - 5) < 1e-9 && p.x < 0, 'lat is sideways to the right');
+test('band shape: thin at dead center, thick at the ends, ends pushed downrange, symmetric', () => {
+  assert.ok(fanThick(0) < 0.5 && fanThick(1) > 4 * fanThick(0), 'thin middle, thick ends');
+  for (let u = 0; u < 1; u += 0.05) { assert.ok(fanThick(u + 0.05) > fanThick(u)); assert.ok(fanCenter(u + 0.05) >= fanCenter(u)); }
+  assert.ok(fanCenter(1) > fanCenter(0) + 1, 'chevron: ends are farther toward the hole than the middle');
+  assert.ok(Math.abs(fanEdge(0.6).far - fanEdge(-0.6).far) < 1e-9 && fanEdge(0.6).lat === -fanEdge(-0.6).lat);
+  assert.ok(fanEdge(0).near > FAN.tail + 2, 'band sits out in front of the ball, not on it');
 });
 
 test('the rainbow is smooth and the arrow is slim, small-headed and clear of the ball', () => {
-  assert.ok(FAN.sweep >= 60 && FAN.sweep <= 85 && FAN.slices >= 60);
+  assert.ok(FAN.slices >= 60);
   assert.equal(stops[0][0], 0); assert.equal(stops[stops.length - 1][0], 1);
   for (let i = 1; i < stops.length; i++) assert.ok(stops[i][0] > stops[i - 1][0]);
   const rgb = t => fanColor(t).match(/\d+/g).map(Number);
   assert.ok(rgb(0)[2] > rgb(0)[0], 'cyan at dead center'); assert.ok(rgb(1)[0] > rgb(1)[2], 'deep red at the ends');
   let worst = 0; for (let t = 0; t < 0.999; t += 0.005) worst = Math.max(worst, ...rgb(t).map((v, k) => Math.abs(v - rgb(t + 0.005)[k])));
   assert.ok(worst <= 8, `neighbouring slices differ by at most 8/255 (got ${worst})`);
-  assert.ok(FAN.shaft * 2 <= 0.3 && FAN.head * 2 <= 0.6, 'arrow is about half the width of the first version');
-  assert.ok(FAN.head / FAN.shaft < 2.3, 'arrow point is less pronounced');
-  assert.ok(FAN.tail >= 1.2 && FAN.tail < FAN.r0, 'arrow starts clear of the ball, inside the inner edge');
-  assert.ok(FAN.tip >= FAN.r1 - 0.5 && FAN.tip <= FAN.r1 + 1, 'arrow reaches the band');
+  assert.ok(FAN.shaft * 2 <= 0.3 && FAN.head * 2 <= 0.6 && FAN.head / FAN.shaft < 2.5, 'slim shaft, modest head');
+  assert.ok(FAN.tail >= 1 && FAN.tail < fanEdge(0).near, 'arrow starts clear of the ball and ends in the band');
 });
 
-test('geometry scales with camera distance so the fan keeps its size on screen', () => {
-  const a = fanDims(1), b = fanDims(2);
-  for (const k of Object.keys(a)) assert.ok(Math.abs(b[k] - 2 * a[k]) < 1e-12);
+const flat = (x, z) => ({ x, y: -z });                       // simplest camera: aim line is straight up the screen
+test('mapper: ground (lat,fwd) -> screen, + lat is screen-right, forward is up the screen, far end narrower', () => {
+  const m = fanMapper((x, z) => ({ x: 300 - x * 50, y: 800 - z * 20 }), { x: 0, z: 0 }, 0, 1);   // world +x is screen-left
+  const o = m(0, 0), r = m(2, 0), f = m(0, 4), far = m(2, 20);
+  assert.ok(r.x > o.x && Math.abs(r.y - o.y) < 1e-6, 'right of the aim line is screen-right');
+  assert.ok(f.y < o.y && Math.abs(f.x - o.x) < 1e-6, 'toward the hole is up the screen');
+  assert.ok(far.x - m(0, 20).x < r.x - o.x, 'far end is narrower (ground perspective)');
 });
 
-test('seen through the aiming camera: lies on the ground, centered on the ball, aim line runs through the notch', () => {
-  for (const [vw, vh] of [[390, 780], [466, 848], [932, 1695]]) for (const D of [60, 200, 450]) for (const yawDeg of [0, 12, -25]) {
-    const cam = makeCamera({ vw, vh, D }), yaw = yawDeg * D2R, b = { x: 0, z: 0 }, s = cam.dist / FAN.refDist, d = fanDims(s);
-    const scr = (x, z) => cam.toScreen(x, z);
-    const o = scr(b.x, b.z), mid = scr(...Object.values(fanPoint(b, yaw, (d.r0 + d.r1) / 2, 0)));
-    const far = scr(...Object.values(fanPoint(b, yaw, 60, 0)));
-    // perspective keeps straight lines straight: ball, notch and a far point on the aim ray are collinear on screen
-    const cross = (mid.x - o.x) * (far.y - o.y) - (mid.y - o.y) * (far.x - o.x);
-    assert.ok(Math.abs(cross) < 0.02 * Math.hypot(mid.x - o.x, mid.y - o.y) * Math.hypot(far.x - o.x, far.y - o.y), `aim line through notch (D ${D}, yaw ${yawDeg})`);
-    assert.ok(mid.y < o.y, 'the fan is in front of the ball (higher up the screen), not on top of it');
-    // size on screen, after the depth stretch the game applies
-    const lifted = (x, z) => { const q = scr(x, z); return { x: q.x, y: o.y + (q.y - o.y) * FAN.depth }; };
-    const pts = []; for (let a = -FAN.sweep; a <= FAN.sweep; a += 6) for (const r of [d.r0, d.r1]) pts.push(lifted(...Object.values(fanPoint(b, 0, r, a))));
-    const xs = pts.map(p => p.x), ys = pts.map(p => p.y), w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
-    assert.ok(w / h > 1.2 && w / h < 4.5, `fan reads as lying flat but not a sliver: ${w.toFixed(0)}x${h.toFixed(0)} px (D ${D}, ${vw}x${vh})`);
-    assert.ok(w > 0.3 * vw && w < 0.8 * vw, `fan is ${(100 * w / vw).toFixed(0)}% of the screen width`);
-    assert.ok(Math.min(...ys) > 0.3 * vh, 'fan stays in the lower part of the screen');
+test('scales with camera distance (s) so the band keeps its size on screen', () => {
+  const cam = D => makeCamera({ vw: 466, vh: 848, D });
+  for (const D of [60, 200, 450]) {
+    const c = cam(D), s = c.dist / FAN.refDist, m = fanMapper((x, z) => c.toScreen(x, z), { x: 0, z: 0 }, 0, s);
+    const w = m(FAN.half, FAN.f0).x - m(-FAN.half, FAN.f0).x;
+    assert.ok(w > 0.3 * 466 && w < 0.85 * 466, `band is ${(100 * w / 466).toFixed(0)}% of screen width (D ${D})`);
   }
 });
 
-test('geometry helpers refuse points behind the camera', () => {
-  assert.equal(fanPts(() => null, [B, B]), null);
-  assert.equal(fanWedge((x, z) => (z > -4 ? null : { x, y: z }), B, 0, 1, 5, -10, 10), null);
-  assert.equal(fanArrow(() => null, B, 0, 0, 1)[0], null);
+test('seen through stand-in cameras (phone/desktop, near/far, any aim): in front of the ball, flat and wide, aim line through the notch', () => {
+  for (const [vw, vh] of [[390, 780], [466, 848], [932, 1695], [1280, 720]]) for (const D of [60, 200, 450]) for (const yawDeg of [0, 12, -25]) {
+    const c = makeCamera({ vw, vh, D }), yaw = yawDeg * D2R, s = c.dist / FAN.refDist, m = fanMapper((x, z) => c.toScreen(x, z), { x: 0, z: 0 }, yaw, s);
+    const o = c.toScreen(0, 0), notch = m(0, fanCenter(0)), pts = [];
+    for (let i = 0; i <= 20; i++) { const e = fanEdge(-1 + i / 10); pts.push(m(e.lat, e.near), m(e.lat, e.far)); }
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y), w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+    assert.ok(notch.y < o.y, 'band is in front of (above) the ball on screen');
+    assert.ok(Math.min(...ys) > 0.1 * vh && Math.max(...ys) < o.y, 'band stays on screen, above the ball');
+    assert.ok(w / h > 1.6 && w / h < 5, `reads as lying flat, not a sliver or a tower: ${w.toFixed(0)}x${h.toFixed(0)} (D ${D}, ${vw}x${vh}, yaw ${yawDeg})`);
+    assert.ok(w > 0.25 * Math.min(vw, vh * 0.6) && w < 0.9 * vw, `${(100 * w / vw).toFixed(0)}% of screen width`);
+  }
 });
 
-test('drawFan(): builds the rainbow once, redraws only the arrow each frame, rebuilds when the aim moves', () => {
+test('arrow: runs from near the ball to the band, swings left/right with the offset', () => {
+  const m = (lat, fwd) => ({ x: 300 + lat * 50, y: 800 - fwd * 40 });
+  const tip = u => { const [l, r] = fanArrow(m, u).map(px), p = l.concat(r); return p.reduce((a, q) => (q[1] < a[1] ? q : a)); };
+  assert.ok(tip(1)[0] > 300 + 100 && tip(-1)[0] < 300 - 100 && Math.abs(tip(0)[0] - 300) < 1e-6, 'tip lands right / left / dead center');
+  const ys = px(fanArrow(m, 0)[0]).map(p => p[1]);
+  assert.ok(Math.max(...ys) > 800 - FAN.tail * 40 - 1 && Math.min(...ys) < 800 - fanCenter(0) * 40 + 1, 'spans ball to band');
+});
+
+test('geometry helpers refuse points behind the camera', () => {
+  assert.equal(fanPts(() => null, [[0, 0], [1, 1]]), null);
+  assert.equal(fanSlice(() => null, -0.5, 0.5), null);
+  assert.equal(fanArrow(() => null, 0.3)[0], null);
+  assert.equal(fanMapper(() => null, { x: 0, z: 0 }, 0, 1), null);
+});
+
+test('drawFan(): builds the band once, redraws only the arrow each frame, rebuilds when the aim moves', () => {
   const html = []; const set = {};
   const cam = makeCamera({ vw: 466, vh: 848, D: 200 });
   const body = `let fanKey='',aimYaw=0,pendOffset=0;const vw=466,vh=848;
@@ -84,17 +92,16 @@ test('drawFan(): builds the rainbow once, redraws only the arrow each frame, reb
     const $=id=>({set innerHTML(v){env.html.push(v);},setAttribute(k,v){env.set[id]=v;}});
     ${block('// <fan-draw>', '// </fan-draw>')}
     return {drawFan,setYaw:v=>{aimYaw=v;},setOff:v=>{pendOffset=v;}};`;
-  const w = new Function('env', 'D2R', 'clamp', 'mix', 'FAN', 'fanDims', 'fanPoint', 'fanPts', 'fanWedge', 'fanArrow', 'fanColor', body)({ cam, html, set }, D2R, clamp, mix, FAN, fanDims, fanPoint, fanPts, fanWedge, fanArrow, fanColor);
+  const w = new Function('env', 'FAN', 'fanEdge', 'fanThick', 'fanPts', 'fanSlice', 'fanArrow', 'fanMapper', 'fanColor', body)({ cam, html, set }, FAN, fanEdge, fanThick, fanPts, fanSlice, fanArrow, fanMapper, fanColor);
   w.drawFan(); assert.equal(html.length, 1);
   assert.ok((html[0].match(/<polygon/g) || []).length >= FAN.slices + 3, 'outline + slices + notch');
   assert.ok(html[0].includes('<polyline'), 'gloss line');
   assert.deepEqual(Object.keys(set).sort(), ['arrL', 'arrR', 'arrSL', 'arrSR']);
   const first = { ...set };
-  w.setOff(0.5); w.drawFan(); assert.equal(html.length, 1, 'rainbow not rebuilt when only the arrow moved');
+  w.setOff(0.5); w.drawFan(); assert.equal(html.length, 1, 'band not rebuilt when only the arrow moved');
   assert.notEqual(set.arrL, first.arrL, 'arrow moved');
-  w.setYaw(0.2); w.drawFan(); assert.equal(html.length, 2, 'rainbow rebuilt when the aim changes');
-  // arrow at offset -1 and +1 mirror each other left/right of the aim line
-  w.setYaw(0); w.setOff(1); w.drawFan(); const right = set.arrR.split(' ').map(p => +p.split(',')[0]);
-  w.setOff(-1); w.drawFan(); const left = set.arrL.split(' ').map(p => +p.split(',')[0]);
-  assert.ok(Math.min(...right) > 233 - 1 && Math.max(...left) < 233 + 1, 'right swing lands right of center, left swing left of it');
+  w.setYaw(0.2); w.drawFan(); assert.equal(html.length, 2, 'band rebuilt when the aim changes');
+  w.setYaw(0); w.setOff(1); w.drawFan(); const right = px(set.arrR).map(p => p[0]);
+  w.setOff(-1); w.drawFan(); const left = px(set.arrL).map(p => p[0]);
+  assert.ok(Math.max(...right) > Math.max(...left) + 100, 'right swing lands right of a left swing');
 });

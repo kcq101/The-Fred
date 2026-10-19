@@ -17,7 +17,7 @@ It's one HTML page with no build step. Open `index.html` through any static serv
 
 ## How a swing is scored
 
-Pull back to set power; the needle then sets contact quality. The meter is a smooth rainbow fan lying on the ground in front of the ball, fanned out toward the hole, with a slim translucent blue arrow sweeping across it. It has no hard zones: dead center (cyan) is the cleanest strike, and every bit further out costs a little more distance *and* direction. The deep wine ends are a CHUNK (the worst contact: roughly a quarter to over a third of the carry lost, plus a big miss).
+Pull back to set power; the needle then sets contact quality. The meter is a wide, flat rainbow band lying on the ground out in front of the ball (thin in the middle, thick and pushed downrange at the ends, like Golf Clash), with a slim translucent blue arrow swinging from the ball across it. It has no hard zones: dead center (cyan) is the cleanest strike, and every bit further out costs a little more distance *and* direction. The deep wine ends are a CHUNK (the worst contact: roughly a quarter to over a third of the carry lost, plus a big miss).
 Longer clubs are less forgiving than shorter ones. The only luck is a very small constant jitter that does not grow when you mistime. The numbers live in `SwingModel` (`index.html`) and the `dev` / `curve` / `mishit` values on each club.
 
 ## Tests
