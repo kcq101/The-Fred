@@ -12,7 +12,7 @@ Run from the repo root (Node 18+; no installs needed):
   and bounce/roll branches of `physStep()`.
 - `shoot-wiring.test.js` — **automated smoke test** of the real `shoot()` text from `index.html` against stubbed globals:
   which popups fire, launch direction/speed, putter path.
-- `fan.test.js` — **automated**: the Golf Clash-style band and arrow (shape, gradient, arrow path and on-screen size, extracted from `index.html`) and the real `drawFan()` against stubbed DOM and camera.
+- `fan.test.js` — **automated**: the see-through rainbow arc and arrow (shape, gradient, arrow path and on-screen size, extracted from `index.html`) and the real `drawFan()` against stubbed DOM and camera.
 - `legacy.js` — the swing math from commit `11d2b3f`, kept only as the "before" for the report.
 
 ## What these are not
