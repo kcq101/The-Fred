@@ -220,6 +220,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
   <div id="pend" hidden><svg viewBox="-100 -96 200 104" aria-hidden="true">
     <path id="pendBase" fill="none" stroke="#170b33" stroke-width="20"/>
     <path id="pendMiss" fill="none" stroke="#ff2e88" stroke-width="14"/>
+    <path id="pendChunk" fill="none" stroke="#a30f4d" stroke-width="14"/>
     <path id="pendOk" fill="none" stroke="#ffe14d" stroke-width="14"/>
     <path id="pendHit" fill="none" stroke="#19d3ff" stroke-width="14"/>
     <g id="pendNeedle"><line x1="0" y1="0" x2="0" y2="-92" stroke="#170b33" stroke-width="7" stroke-linecap="round"/><line x1="0" y1="0" x2="0" y2="-90" stroke="#fffaf0" stroke-width="3.5" stroke-linecap="round"/><path d="M0 -96 L-8 -82 L8 -82 Z" fill="#fffaf0" stroke="#170b33" stroke-width="2.5" stroke-linejoin="round"/></g>
@@ -239,7 +240,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
 
   <div id="fx"></div>
 
-  <div class="cap" id="hint" hidden>Drag the yellow target to aim. Pinch with two fingers to zoom. Then pull straight back from the ball and let go when the needle is in the blue.</div>
+  <div class="cap" id="hint" hidden>Drag the yellow target to aim. Pinch with two fingers to zoom. Then pull straight back from the ball and let go when the needle is in the blue. Off-center costs distance as well as direction.</div>
 
   <div class="bottom">
     <div class="infoRow">
@@ -492,11 +493,12 @@ function prepHole(i){
 const G=10.7,K=0.0011,R=0.05;
 const CLUBS=[
   // dev: how far (radians) a full miss starts the ball off line; curve: sideways pull in flight; swing: needle speed at no pull and full pull
+  // mishit: share of launch speed lost on the worst possible contact (see SwingModel). Long clubs punish a bad swing hardest, the wedge the least.
   // shape: sideways pull of a full draw/fade (yd/s²), set by pulling down-left or down-right
-  {name:'Hammer',carry:245,ang:13*D2R,roll:0.34,dev:0.06,curve:3.6,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
-  {name:'3-Wood',carry:215,ang:15*D2R,roll:0.32,dev:0.055,curve:3.2,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
-  {name:'Iron',  carry:155,ang:22*D2R,roll:0.14,dev:0.05,curve:2.6,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', carry:90, ang:40*D2R,roll:0.12,dev:0.05,curve:1.6,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Hammer',carry:245,ang:13*D2R,roll:0.34,dev:0.092,curve:5.50,mishit:0.20,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
+  {name:'3-Wood',carry:215,ang:15*D2R,roll:0.32,dev:0.083,curve:4.80,mishit:0.18,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
+  {name:'Iron',  carry:155,ang:22*D2R,roll:0.14,dev:0.063,curve:3.30,mishit:0.15,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
+  {name:'Wedge', carry:90, ang:40*D2R,roll:0.12,dev:0.048,curve:1.55,mishit:0.12,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 function carryFlat(v0,a){let x=0,y=0,vx=v0*Math.cos(a),vy=v0*Math.sin(a),t=0;const dt=1/240;while(t<15){const s=Math.hypot(vx,vy);vx-=K*s*vx*dt;vy-=(G+K*s*vy)*dt;x+=vx*dt;y+=vy*dt;t+=dt;if(y<0&&vy<0)return x;}return x;}
@@ -507,6 +509,44 @@ CLUBS.forEach(c=>{
 });
 function speedForCarry(c,D){const t=c.table;if(D<=t[0][1])return t[0][0]*Math.sqrt(D/Math.max(t[0][1],0.1));for(let i=1;i<t.length;i++)if(t[i][1]>=D){const f=(D-t[i-1][1])/(t[i][1]-t[i-1][1]);return mix(t[i-1][0],t[i][0],f);}return t[t.length-1][0];}
 function lieMult(lie,club){if(lie===SAND&&club===CLUBS[3])return 0.9;return SP[lie].lie;}
+// <swing-model>
+// Swing quality, kept apart from the physics so it can be tuned and tested on its own (tests/swing.test.js reads this block out of this file).
+// Input is where the needle was on release: offset -1..1, |offset| = distance from the center of the meter.
+// The pull sets the intended distance (and how fast the needle swings); the needle sets contact quality.
+// Contact quality costs distance AND direction, grows smoothly from the edge of the blue band, and is deterministic.
+// The only random parts are two small constant jitters that do not depend on how well the swing was timed.
+const SwingModel=(()=>{
+  const PERFECT=0.10,GOOD=0.35,CHUNK=0.70;  // tier edges on |offset|; blue band = PERFECT, yellow band = GOOD (see buildPendulum)
+  const JIT_SPEED=0.008,JIT_YAW=0.006;     // unavoidable randomness: ±0.8% launch speed (about ±1.6% carry), ±0.006 rad of direction
+  const bad=a=>clamp((a-PERFECT)/(1-PERFECT),0,1);       // 0 anywhere in the blue .. 1 at the very end of the swing
+  const lateralSev=a=>Math.pow(bad(a),1.3);              // share of the club's full sideways miss
+  const speedLoss=(c,a)=>c.mishit*Math.pow(bad(a),1.6);  // share of launch speed lost
+  // still-air carry at a given launch speed, from the club's own table
+  function carryAt(c,v){const t=c.table;if(v<=t[0][0])return t[0][1]*(v/t[0][0])*(v/t[0][0]);for(let i=1;i<t.length;i++)if(t[i][0]>=v)return mix(t[i-1][1],t[i][1],(v-t[i-1][0])/(t[i][0]-t[i-1][0]));return t[t.length-1][1];}
+  const carryFactor=(c,speedMult)=>carryAt(c,c.v0*speedMult)/carryAt(c,c.v0);
+  const tier=a=>a<PERFECT?'perfect':a<=GOOD?'good':a<=CHUNK?'bad':'chunk';
+  // returns what a swing does to the shot, plus the words to show for it
+  function resolve(c,offset,rng=Math.random){
+    const a=Math.abs(offset),t=tier(a),right=offset>0;
+    if(c.putt){ // putting keeps its original behavior: the needle only nudges the line
+      const miss=a<PERFECT?0:offset;
+      const tag=t==='perfect'?'PERFECT!':a<0.4?null:(right?'PUSHED':'PULLED');
+      return{tier:t,speedMult:1,yawErr:-miss*c.dev,spinErr:0,lossPct:0,feedback:{word:null,tag,tagCls:t==='perfect'?'cyan small':(a<GOOD?'small':'hot small'),note:null}};
+    }
+    const loss=speedLoss(c,a),lat=lateralSev(a),s=right?1:-1;
+    const speedMult=(1-loss)*(1+(rng()*2-1)*JIT_SPEED);
+    const yawErr=-s*c.dev*lat+(rng()*2-1)*JIT_YAW;      // screen-right is -yaw
+    const lossPct=Math.round((1-carryFactor(c,1-loss))*100);
+    const fb={word:null,note:null};
+    if(t==='perfect'){fb.tag='PERFECT!';fb.tagCls='cyan small';}
+    else if(t==='good'){fb.tag=right?'FADE':'DRAW';fb.tagCls='small';}
+    else{fb.tag=right?'SLICE!':'HOOK!';fb.tagCls='hot small';if(t==='chunk')fb.word='CHUNK!';}
+    if(lossPct>=5){fb.note='\u2212'+lossPct+'% DIST';fb.noteCls=t==='good'?'small':'hot small';}
+    return{tier:t,speedMult,yawErr,spinErr:s*c.curve*lat,lossPct,feedback:fb};
+  }
+  return{PERFECT,GOOD,CHUNK,JIT_SPEED,JIT_YAW,lateralSev,speedLoss,carryAt,carryFactor,tier,resolve};
+})();
+// </swing-model>
 
 // ---------------------------------------------------------------- renderer + post
 const canvas=$('c');
@@ -1438,28 +1478,23 @@ function updateHUD(){
   const d=distToPin();pinHUD(lie,d);
   $('dist').textContent=(lie===GREENS||lie===FRINGE)?Math.round(d*3)+' ft to cup':Math.round(d)+' yds to pin';
   const pen=CLUBS[clubIdx].putt?1:lieMult(lie,CLUBS[clubIdx]);
-  $('liePen').textContent=pen<1?`−${Math.round((1-pen)*100)}% power`:'';
+  $('liePen').textContent=pen<1?`−${Math.round((1-SwingModel.carryFactor(CLUBS[clubIdx],pen))*100)}% distance`:'';
   document.querySelectorAll('.club').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.i===clubIdx)));
 }
 
 // ---------------------------------------------------------------- shooting
 // offset: where the needle was on release, -1 (full left) .. 1 (full right)
 function shoot(power,offset,sh=0,py=0){
-  const club=CLUBS[clubIdx];const a=Math.abs(offset);const miss=a<0.1?0:offset;
-  let tag;
-  if(a<0.1)tag='PERFECT!';
-  else if(club.putt)tag=a<0.4?null:(offset>0?'PUSHED':'PULLED');
-  else if(a<0.35)tag=offset>0?'FADE':'DRAW';
-  else tag=offset>0?'SLICE!':'HOOK!';
-  let speed=shotSpeed(power);
-  if(!club.putt)speed*=1+(Math.random()-0.5)*0.03*(1+a*2);
+  const club=CLUBS[clubIdx];
+  const sw=SwingModel.resolve(club,offset),fb=sw.feedback;
+  const speed=shotSpeed(power)*sw.speedMult;
   const sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin);
-  const yaw=aimYaw+sYaw+py-miss*club.dev+(club.putt?0:(Math.random()-0.5)*0.012); // screen-right is -yaw
+  const yaw=aimYaw+sYaw+py+sw.yawErr;
   prevLie.copy(ball.p);strokes++;
-  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+miss*(club.curve||0)});ball.lastOut.copy(ball.p);
+  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+sw.spinErr});ball.lastOut.copy(ball.p);
   if(club.putt){ball.v.set(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed);ball.rolling=true;ball.p.y=H(ball.p.x,ball.p.z)+R;SND.putt();sfx('TAP',ball.p.clone(),{cls:'small',dy:-60});}
-  else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();sfx(club.word,ball.p.clone(),{dy:-110});aberrKick=7;shakeT=0.18;}
-  if(tag)setTimeout(()=>sfx(tag,null,{cls:tag==='PERFECT!'?'cyan small':(a<0.35?'small':'hot small'),dy:60,rot:4}),180);
+  else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();sfx(fb.word||club.word,ball.p.clone(),{dy:-110});aberrKick=7;shakeT=0.18;}
+  if(fb.tag||fb.note)setTimeout(()=>{if(fb.tag)sfx(fb.tag,null,{cls:fb.tagCls,dy:60,rot:4});if(fb.note)sfx(fb.note,null,{cls:fb.noteCls,dy:112,rot:-3});},180);
   flightDir.set(Math.sin(yaw),0,Math.cos(yaw));trailPts.length=0;
   setZoom(0);state='flight';
   if(firstShot){firstShot=false;$('hint').hidden=true;}
@@ -1486,6 +1521,7 @@ let drag=null,pendPhase=0,pendOffset=0;
 (function buildPendulum(){
   const arc=(a0,a1)=>{const r=80,p=a=>[Math.sin(a*D2R)*r,-Math.cos(a*D2R)*r];const[x0,y0]=p(a0),[x1,y1]=p(a1);return`M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;};
   $('pendBase').setAttribute('d',arc(-62,62));$('pendMiss').setAttribute('d',arc(-60,60));
+  {const c=SwingModel.CHUNK*60;$('pendChunk').setAttribute('d',arc(-60,-c)+arc(c,60));} // the worst contact: big distance loss as well as a big miss
   $('pendOk').setAttribute('d',arc(-21,21));$('pendHit').setAttribute('d',arc(-6,6));
 })();
 function pullPower(){const dy=drag.y-drag.y0;return dy>6?clamp(dy/(Math.min(vw,vh)*0.34),0,1):0;}
