@@ -137,8 +137,8 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
 .tLogo span{display:block}
 .tLogo .the{font-size:clamp(24px,7vw,40px);letter-spacing:.08em;padding-bottom:.35em;color:var(--paper);-webkit-text-stroke:3px var(--ink);text-shadow:3px 3px 0 var(--magenta)}
 .tLogo .fred{font-size:clamp(64px,19vw,110px);letter-spacing:.02em}
-.tTapMusic{position:absolute;right:10px;top:12px;z-index:2;font-family:var(--display);font-size:14px;letter-spacing:.06em;padding:5px 9px 3px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);transform:rotate(2deg);animation:tapPulse 1.2s steps(2) infinite}
-@keyframes tapPulse{50%{transform:rotate(-1deg) scale(1.06)}}
+#title .tTapMusic{position:absolute;left:8px;top:8px;z-index:2;font-family:var(--display);font-weight:400;font-size:11px;line-height:1;letter-spacing:.06em;padding:3px 6px 2px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);transform:rotate(-2deg);animation:tapPulse 1.2s steps(2) infinite}
+@keyframes tapPulse{50%{transform:rotate(-1deg) scale(1.05)}}
 @keyframes slam{0%{transform:rotate(-14deg) scale(2.1);opacity:0}45%{transform:rotate(-1deg) scale(.92);opacity:1}70%{transform:rotate(-4deg) scale(1.04)}100%{transform:rotate(-3deg) scale(1)}}
 .tFacts{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 8px;margin-top:-2px}
 .tFacts .cap{font-family:var(--display);font-weight:400;font-size:14px;letter-spacing:.06em;padding:2px 8px 0}
@@ -278,7 +278,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
     <figure class="tArt">
       <img src="title/fred.jpg" alt="Fred on the course at sunset, iron in one hand and a cigar in the other">
       <div class="tBubble" aria-hidden="true">You're up.</div>
-      <button class="tTapMusic" id="tTapMusic" hidden>♪ Tap anywhere for music</button>
+      <button class="tTapMusic" id="tTapMusic" hidden>♪ Tap for music</button>
     </figure>
     <div class="tShade"></div>
     <div class="tSide">
