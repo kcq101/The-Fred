@@ -2,7 +2,7 @@
 
 Run from the repo root (Node 18+; no installs needed):
 
-    node --test                    # 26 checks
+    node --test                    # 30 checks
     node tests/swing-report.js     # before/after tables (legacy swing math vs SwingModel)
 
 ## What these are
@@ -12,6 +12,7 @@ Run from the repo root (Node 18+; no installs needed):
   and bounce/roll branches of `physStep()`.
 - `shoot-wiring.test.js` — **automated smoke test** of the real `shoot()` text from `index.html` against stubbed globals:
   which popups fire, launch direction/speed, putter path.
+- `fan.test.js` — **automated**: the ground-plane rainbow and arrow (geometry extracted from `index.html`, seen through `camera.js`, a stand-in for the aiming camera) and the real `drawFan()` against stubbed DOM.
 - `legacy.js` — the swing math from commit `11d2b3f`, kept only as the "before" for the report.
 
 ## What these are not
