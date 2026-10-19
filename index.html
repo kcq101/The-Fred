@@ -1728,9 +1728,8 @@ function updateHUD(){
   const d=distToPin();pinHUD(lie,d);
   $('dist').textContent=(lie===GREENS||lie===FRINGE)?Math.round(d*3)+' ft to cup':Math.round(d)+' yds to pin';
   const pen=CLUBS[clubIdx].putt?1:lieMult(lie,CLUBS[clubIdx]);
-  const st=stanceNow(),notes=[];
+  const notes=[];
   if(pen<1)notes.push(`−${Math.round((1-SwingModel.carryFactor(CLUBS[clubIdx],pen))*100)}% distance`);
-  if(st.tag)notes.push(st.tag);
   $('liePen').textContent=notes.join(' · ');
   document.querySelectorAll('.club').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.i===clubIdx)));
 }
@@ -2070,6 +2069,7 @@ const camPos=new V3(95,85,440),camLook=new V3(28,0,260);
 let FLY_T=4.6; // seconds for the opening flyover
 const tP=new V3(),tL=new V3(),oP=new V3(),oL=new V3();
 // Aim view: high behind the ball, ball near the bottom of the frame and the target up the screen
+const BALL_SAFE_PX=250;   // the lie caption and club row take about this much of the bottom of the screen
 function aimTarget(outP,outL){
   const c=CLUBS[clubIdx];
   const dir=new V3(Math.sin(aimYaw),0,Math.cos(aimYaw));
@@ -2082,6 +2082,11 @@ function aimTarget(outP,outL){
   for(let t=0.15;t<0.95;t+=0.15){const gx=mix(outP.x,ball.p.x,t),gz=mix(outP.z,ball.p.z,t);outP.y=Math.max(outP.y,(H(gx,gz)+0.35-ball.p.y*t)/(1-t));}  // keep the ball in sight over any rise in between
   outL.copy(ball.p).addScaledVector(dir,ahead);
   outL.y=ball.p.y+0.6*(H(outL.x,outL.z)+R-ball.p.y);   // look along the ground ahead: up the hill on an uphill shot, down into the valley on a downhill one
+  // keep the ball clear of the bottom HUD (lie caption + club row): if it would sit lower than that on screen, tilt the view down until it doesn't
+  {const dxB=Math.hypot(ball.p.x-outP.x,ball.p.z-outP.z),dxL=Math.hypot(outL.x-outP.x,outL.z-outP.z);
+   const angB=Math.atan2(ball.p.y-outP.y,dxB),angL=Math.atan2(outL.y-outP.y,dxL);
+   const maxOff=Math.atan(Math.max(0.1,1-2*BALL_SAFE_PX/vh)*Math.tan(camera.fov*D2R/2));
+   if(angL-angB>maxOff)outL.y=outP.y+Math.tan(angB+maxOff)*dxL;}
   if(zoomV<-0.001){
     // zoomed in: close over the target, looking down the line of the shot
     const close=c.putt?Math.max(4,D*0.35):Math.max(18,D*0.16);

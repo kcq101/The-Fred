@@ -59,7 +59,7 @@ All in `tests/hole-checks.js` → `augusta-13`.
 |---|---|---|
 | Pure drive left-center | rest in fairway ≤250 to pin | ✅ 242 (was 293) |
 | Drawn drive | ≤235 to pin | ✅ 228 (was 311) |
-| Second from the valley | HUD/stance says ball above feet | ✅ |
+| Second from the valley | the stance model reads ball above the feet | ✅ |
 | Pure 3-wood straight at the pin | hooks 18+ yd off | ✅ 26 yd left (was on the green) |
 | Pure 3-wood aimed right for the hook | green or fringe | ✅ fringe, 14 yd |
 | Slightly thin 3-wood (0.2) | water (lands on the bank, rolls back) | ✅ (was rough) |
