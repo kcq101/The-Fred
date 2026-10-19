@@ -132,15 +132,25 @@ test('obstacles: the collide hook runs on the roll, so a ball rolling into a wal
   assert.ok(r.ball.p.z <= wallAt + 1e-9, 'the roll never passes the wall');
 });
 
-test('features: a negative hollow is a crown, highest in the middle of its area, and a turtleback sheds a ball that lands off-center', () => {
-  const i = idx('pinehurst-5'); course.prepHole(i);
-  const gr = course.GREEN, f = course.HOLES[i].features.find(f => f.type === 'hollow');
-  assert.ok(f.depth < 0);
-  const mid = course.H(gr.x, gr.z), edge = course.H(gr.x + f.area.rx, gr.z);
-  assert.ok(mid - edge > 1.5, `crown is ${(mid - edge).toFixed(2)} yd above its edge`);
-  const swept = (x0) => { const T = course.terrain, b = { p: { x: x0, y: course.H(x0, gr.z) + 0.07, z: gr.z }, v: { x: 0, y: 0, z: 0 }, rolling: true, landed: true, resting: false, t: 0, spin: 0, club: g.CLUBS[3], lipT: -9, rollT: 0, stats: { carry: 0, bounces: 0 }, launch: { x: x0, z: gr.z } };
-    while (b.t < 12 && !b.resting) g.BallModel.step(b, g.BallModel.STEP, { terrain: T, sp: course.SP, wind: { x: 0, z: 0 } }); return Math.hypot(b.p.x - gr.x, b.p.z - gr.z); };
-  assert.ok(swept(gr.x + 9) > 12, 'a ball resting 9 yd off the heart slides off toward the collection area');
+test('features: a negative hollow is a crown; with `flat` it is a plateau, level on top with its fall at the edges', () => {
+  const i = idx('pinehurst-5'), hole = course.HOLES[i], saved = hole.features;
+  const f = saved.find(f => f.type === 'hollow' && f.depth < 0 && f.flat);
+  assert.ok(f, 'Pinehurst 5 builds its green as a plateau');
+  const A = f.area, at = t => [A.x + t * A.rx * Math.cos(A.rot), A.z + t * A.rx * Math.sin(A.rot)];   // along the long axis, t = share of the radius
+  const shape = feats => { hole.features = feats; course.prepHole(i); return [0, 0.3, 0.55, 0.8, 1.0].map(t => course.H(...at(t))); };
+  const others = saved.filter(g => g !== f);
+  const without = shape(others), plateau = shape(saved), dome = shape([...others, { ...f, flat: 0 }]);
+  hole.features = saved; course.prepHole(i);
+  const lift = k => arr => arr[k] - without[k];
+  assert.ok(Math.abs(lift(0)(plateau) - lift(2)(plateau)) < 0.02, 'level from the middle to past halfway out');
+  assert.ok(lift(0)(plateau) - lift(4)(plateau) > 0.8 * -f.depth, 'and the whole drop happens in the outer ring');
+  assert.ok(lift(0)(dome) - lift(2)(dome) > 0.25 * -f.depth, 'whereas flat:0 (the old default) is a dome, already falling by halfway');
+  // and the falloff sheds a ball: one left resting on it slides off the green
+  course.prepHole(i);
+  const [x0, z0] = at(0.85), T = course.terrain;
+  const b = { p: { x: x0, y: course.H(x0, z0) + g.R, z: z0 }, v: { x: 0, y: 0, z: 0 }, rolling: true, landed: true, resting: false, t: 0, spin: 0, club: g.CLUBS[3], lipT: -9, rollT: 0, stats: { carry: 0, bounces: 0 }, launch: { x: x0, z: z0 } };
+  while (b.t < 12 && !b.resting) g.BallModel.step(b, g.BallModel.STEP, { terrain: T, sp: course.SP, wind: { x: 0, z: 0 } });
+  assert.notEqual(course.S(b.p.x, b.p.z), g.GREENS, `a ball on the falloff rolls off the green (stopped at ${b.p.x.toFixed(1)}, ${b.p.z.toFixed(1)})`);
 });
 
 test('hole checks: a per-strategy lieAdd changes what a lie costs in the comparison (test-only knob)', () => {

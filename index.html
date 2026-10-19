@@ -367,7 +367,8 @@ function shapeSD(sh){
 //   ramp   {z0, z1, dh, area?, edge?}   the hole climbs (dh>0) or falls between z0 and z1 and stays there: uphill drives, downhill approaches
 //   tilt   {area, grade, edge}          a side slope across the hole: ground rises `grade` yards per yard toward screen-left (+x) of the centerline
 //   step   {area, a:[x,z], b:[x,z], dh, w, edge}  a tier: ground left of the line a→b sits dh higher, over a ramp w yards wide
-//   hollow {area, depth, edge}          a bowl or swale, deepest in the middle of an ellipse area
+//   hollow {area, depth, edge, flat?}   a bowl or swale, deepest in the middle of an ellipse area; depth<0 makes a crown. flat (0..1): the share of the
+//                                       radius held at full depth before it starts to fall away (0 = a dome; 0.6 = a level top with steep edges: a plateau green)
 //   cover  {area, surf, over?, edge?}   ground that would play as rough (or any surface named in `over`) plays as `surf` instead
 // area: an ellipse {x,z,rx,rz,rot}, a polygon {pts}, or a band {pts,w} along a polyline.
 // Stage: rise, ramp and tilt shape the land that the green, tee and bunkers are laid into (so an elevated green stays a flat-topped plateau);
@@ -390,7 +391,7 @@ const FEATURES={
   step:  {stage:'green', prep:f=>{const dx=f.b[0]-f.a[0],dz=f.b[1]-f.a[1],l=Math.hypot(dx,dz);f.nx=-dz/l;f.nz=dx/l;},
           // signed distance to the line, positive on its left (+x side when the line runs toward +z)
           h:(f,x,z,h,w)=>h+f.dh*smooth(-f.w/2,f.w/2,-((x-f.a[0])*f.nx+(z-f.a[1])*f.nz))*w},
-  hollow:{stage:'green', h:(f,x,z,h,w)=>h-f.depth*(1-smooth(0,1,ell(x,z,f.area)))*w},
+  hollow:{stage:'green', h:(f,x,z,h,w)=>h-f.depth*(1-smooth(f.flat||0,1,ell(x,z,f.area)))*w},
   cover: {stage:'surf'},
 };
 let FEATS={land:[],green:[],surf:[]};
@@ -533,25 +534,33 @@ const HOLES=[
          {type:'pine',n:50,zone:'sides',side:'both',d:[8,30],z:[0,150],s:[0.8,1.2]}],
   bushes:[{type:'azalea',n:90,zone:'rect',x:[-25,60],z:[165,195]},{type:'azalea',n:40,zone:'rect',x:[30,60],z:[120,150]},{type:'shrub',n:80,zone:'sides',side:'both',d:[4,14],z:[0,140]}],
   rocks:{n:0},leaf:{tallpine:'#1f5a34',pine:'#24603a'}},
- {id:'pinehurst-5',name:'Pinehurst No. 2',par:4,card:'cards/card6.jpg',note:'Turtleback · The green sheds everything',theme:'parkland',
-  // Inspired by No. 5 at Pinehurst No. 2: a dogleg to an upside-down-saucer green. Anything not struck at its crown rolls off into sandy waste.
-  // Wiregrass and sand line the fairway instead of rough. docs/holes/pinehurst-5.md
+ {id:'pinehurst-5',name:'Pinehurst No. 2',short:'Pinehurst',par:5,card:'cards/card6.jpg',note:'Go for it, or lay up to the plateau',theme:'parkland',
+  // Inspired by No. 5 at Pinehurst No. 2: a par 5 that rises and turns left to an elevated green set on a diagonal. The top of the green is gentle; every edge
+  // falls away steeply onto short, firm runoffs and then wiregrass. The fairway slants, so the second shot is played with the ball below the feet. docs/holes/pinehurst-5.md
   seed:2.2,roll:0.4,ridge:1,
-  route:[[0,0],[140,-4],[290,-6],[388,4]],
-  fw:[[40,14],[200,14],[300,13],[388,12]],fairway:[[35,372]],
-  green:{x:6,z:386,rx:15,rz:13,rot:0},pin:{x:6,z:388},tilt:{x:0,z:0.01},
+  route:[[0,0],[150,-6],[300,-8],[410,8],[500,32]],
+  fw:[[40,15],[200,16],[300,15],[410,13],[480,12]],fairway:[[35,482]],
+  green:{x:34,z:500,rx:15,rz:10,rot:0.45},pin:{x:37,z:503},tilt:{x:-0.006,z:-0.011},
   features:[
-    {type:'hollow',area:{x:6,z:386,rx:19,rz:17,rot:0},depth:-2.8,edge:3},      // the turtleback: a dome, highest at the heart of the green
-    {type:'cover',area:{pts:[[-20,200],[-22,260],[-24,320],[-22,380]],w:16},surf:'WASTE'},
-    {type:'cover',area:{pts:[[22,230],[24,290],[24,350],[26,394]],w:14},surf:'WASTE'},
-    {type:'cover',area:{x:6,z:386,rx:30,rz:27,rot:0},surf:'WASTE'},             // the collection areas ringing the green
+    {type:'tilt',area:{pts:[[-10,230],[-8,350]],w:22},grade:0.08,edge:14},        // the fairway slants: rises to the left, so the ball sits below the feet
+    {type:'ramp',z0:370,z1:490,dh:2},                                              // the hole rises to the green
+    {type:'rise',area:{x:34,z:500,rx:17,rz:12,rot:0.45},dh:1.2,edge:8},            // the green sits up above the fairway and runoffs
+    {type:'hollow',area:{x:34,z:500,rx:18.5,rz:13,rot:0.45},depth:-0.75,flat:0.62,edge:2},  // the plateau: a top that barely moves, falling away steeply at its edges
+    {type:'hollow',area:{x:35,z:500,rx:8,rz:5,rot:0.45},depth:-0.07,edge:2},    // movement on the top (see docs/holes/pinehurst-5.md): a broad, low crown in the middle...
+    {type:'hollow',area:{x:24,z:497,rx:6,rz:4.5,rot:0.45},depth:0.07,edge:2},     // ...and soft pockets back-left, back-right and front
+    {type:'hollow',area:{x:44,z:506,rx:5.5,rz:4,rot:0.45},depth:0.06,edge:2},
+    {type:'hollow',area:{x:31,z:506,rx:6,rz:3.5,rot:0.45},depth:0.06,edge:2},
+    {type:'cover',area:{x:34,z:500,rx:25,rz:19,rot:0.45},surf:'FAIRWAY'},          // short, firm runoffs off every edge
+    {type:'cover',area:{pts:[[-24,200],[-26,300],[-14,390],[4,458]],w:14},surf:'WASTE'},   // wiregrass and sand both sides
+    {type:'cover',area:{pts:[[12,180],[14,300],[30,400],[54,460],[64,520]],w:12},surf:'WASTE'},
+    {type:'cover',area:{x:34,z:500,rx:36,rz:30,rot:0.45},surf:'WASTE'},            // and beyond the runoffs
   ],
-  play:{firm:1.1,greens:{speed:1.1,firm:0.9}},
-  bunkers:[{x:-14,z:268,rx:5,rz:3.5,rot:0.1,depth:1.4,lip:0.5}],
+  play:{firm:1.1,greens:{speed:1.1,firm:1.0}},
+  bunkers:[{x:-20,z:270,rx:5,rz:3.5,rot:0.1,depth:1.4,lip:0.5}],
   water:[],
-  bbox:{x0:-110,x1:120,z0:-55,z1:460},
-  trees:[{type:'pine',n:200,zone:'sides',side:'both',d:[28,90],z:[-45,420],s:[0.9,1.3]},{type:'tallpine',n:100,zone:'sides',side:'both',d:[40,100],z:[0,430],s:[0.9,1.3]}],
-  bushes:[{type:'shrub',n:80,zone:'sides',side:'both',d:[22,44],z:[0,400]}],
+  bbox:{x0:-110,x1:150,z0:-55,z1:590},
+  trees:[{type:'pine',n:240,zone:'sides',side:'both',d:[30,95],z:[-45,560],s:[0.9,1.3]},{type:'tallpine',n:130,zone:'sides',side:'both',d:[42,105],z:[0,570],s:[0.9,1.3]}],
+  bushes:[{type:'shrub',n:90,zone:'sides',side:'both',d:[24,46],z:[0,540]}],
   rocks:{n:0},leaf:{tallpine:'#2a6a3a',pine:'#2d6e3e'}},
 ];
 HOLES.forEach(h=>{h.yards=Math.round(Math.hypot(h.pin.x,h.pin.z));});

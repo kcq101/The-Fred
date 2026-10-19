@@ -140,25 +140,27 @@ module.exports = {
     ],
   },
   'pinehurst-5': {
-    challenge: 'A par 4 to an upside-down-saucer green: the crown sheds any approach that is not struck right at its heart, and every shed ball rolls into sandy waste with a hard recovery. Sandy waste lines the fairway too, so the drive is only half the problem.',
+    challenge: 'A par 5 that rises and turns left to an elevated plateau green set on a diagonal: gentle on top, falling away steeply at every edge onto short runoffs and wiregrass. Going for it in two means a 3-wood from a slanted fairway; most players lay up and wedge onto the top.',
     shots: [
-      { name: 'a good drive finds the fairway', shot: { club: 'Hammer', at: [0, 290], offset: 0.1 }, expect: { surf: ['FAIRWAY'] } },
-      { name: 'a pushed drive is in the sandy waste, not the rough', shot: { club: 'Hammer', at: [0, 290], offset: 0.5 }, expect: { end: 'rest', surf: ['WASTE'] } },
-      { name: 'from the fairway, a well-struck approach landed just short of the pin runs up to the heart of the crown', shot: { from: [0, 290], club: 'Iron', at: [6, 384], offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'aimed at the green\'s edge, even a well-struck approach is shed off it', shot: { from: [0, 290], club: 'Iron', at: [20, 388], offset: 0.1 }, expect: { end: 'rest', surf: ['WASTE', 'ROUGH', 'FRINGE'] } },
-      { name: 'a slightly mis-hit approach (needle 0.3) does not stay on the green', shot: { from: [0, 290], club: 'Iron', offset: 0.3 }, expect: { end: 'rest', surf: ['WASTE', 'ROUGH', 'FRINGE'] } },
-      { name: 'a short approach into the front slope is turned away, not fed to the pin', shot: { from: [0, 290], club: 'Iron', at: [6, 372] }, expect: { end: 'rest', minToPin: 6 } },
-      { name: 'the waste is playable: a wedge from it gets back near the green', shot: { from: [-17, 362], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', maxToPin: 25 } },
+      { name: 'a good drive finds the fairway', shot: { club: 'Hammer', at: [-8, 288], offset: 0.1 }, expect: { surf: ['FAIRWAY'] } },
+      { name: 'a pushed drive is in the wiregrass and sand, not the rough', shot: { club: 'Hammer', at: [-8, 288], offset: 0.5 }, expect: { end: 'rest', surf: ['WASTE'] } },
+      { name: 'the second shot is played with the ball below the feet', shot: { from: [-8, 288], club: '3-Wood' }, expect: { stance: 'BALL BELOW FEET · SLICES' } },
+      { name: 'a full 3-wood aimed straight at the pin from the slanted fairway is pushed right by the lie and finishes well away', shot: { from: [-8, 288], club: '3-Wood', at: 'pin', power: 1 }, expect: { end: 'rest', minToPin: 10 } },
+      { name: 'the same 3-wood aimed left of the green, allowing for the slant, finishes close', shot: { from: [-8, 288], club: '3-Wood', at: [46, 503] }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 8 } },
+      { name: 'the lay-up with an iron finds the fairway at wedge distance', shot: { from: [-8, 288], club: 'Iron', at: [24, 432] }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 50, maxToPin: 90 } },
+      { name: 'from the lay-up, a well-struck wedge at the pin holds the top', shot: { from: [24, 432], club: 'Wedge', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'a wedge flown to the back-left edge runs off the falloff', shot: { from: [24, 432], club: 'Wedge', at: [30, 515] }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE', 'WASTE', 'ROUGH'] } },
+      { name: 'from the low runoff left of the green, a wedge back up the falloff finishes on or near the green', shot: { from: [56, 502], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', maxToPin: 10 } },
     ],
     strategies: [
-      { name: 'approach: go straight at the pin, or land it well short and hope the front slope kicks it up', plans: [
-          { name: 'pin', shot: { from: [0, 290], club: 'Iron', at: [6, 384] } },
-          { name: 'short', shot: { from: [0, 290], club: 'Iron', at: [6, 372] } } ],
+      { name: 'the second shot: go for the green with a 3-wood (aimed left of it, for the slant) or lay up with an iron to wedge distance', plans: [
+          { name: 'go', shot: { from: [-8, 288], club: '3-Wood', at: [46, 503] } },
+          { name: 'layup', shot: { from: [-8, 288], club: 'Iron', at: [24, 432] } } ],
         expect: [
-          ['a sharp player holds the green most of the time', r => (r.pin.sharp.surfs.GREENS || 0) / r.pin.sharp.n >= 0.6],
-          ['a shaky player rarely stays on it', r => (r.pin.shaky.surfs.GREENS || 0) / r.pin.shaky.n <= 0.4],
-          ['laying up short does not help: the front slope turns it away, so it scores worse than going for the heart of the green', r => r.short.sharp.score > r.pin.sharp.score + 0.5 && r.short.shaky.score > r.pin.shaky.score],
-          ['the gap between sharp and shaky is real: at least half a stroke', r => r.pin.shaky.score - r.pin.sharp.score >= 0.5] ] },
+          ['a sharp player who goes for it reaches the green most of the time', r => (r.go.sharp.surfs.GREENS || 0) / r.go.sharp.n >= 0.5],
+          ['a shaky one rarely holds it', r => (r.go.shaky.surfs.GREENS || 0) / r.go.shaky.n <= 0.35],
+          ['going for it pays a sharp player at least half a stroke', r => r.layup.sharp.score - r.go.sharp.score >= 0.5],
+          ['for a shaky player the payoff is much smaller (the tour baseline still favours going: see the spec)', r => (r.layup.shaky.score - r.go.shaky.score) < 0.75 * (r.layup.sharp.score - r.go.sharp.score)] ] },
     ],
   },
 };
