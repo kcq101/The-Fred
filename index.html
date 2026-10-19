@@ -75,7 +75,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 #carry{display:none;position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) rotate(-3deg);white-space:nowrap;font-size:13px}
 #carry b{font-size:22px}
 
-#pend{position:absolute;right:max(4px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 175px);width:min(262px,64vw);filter:drop-shadow(3px 3px 0 rgba(23,11,51,.55))}
+#pend{position:absolute;left:0;top:0;width:min(262px,64vw);pointer-events:none;filter:drop-shadow(3px 3px 0 rgba(23,11,51,.45))} /* left/top/width are set from the ball's position (pendLayout) */
 #pend svg{display:block;width:100%;height:auto;overflow:visible}
 #zoomTag{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 218px);transform:translateX(-50%);font-family:var(--display);font-size:15px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;white-space:nowrap}
 #band{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -223,11 +223,12 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
     <path id="pendGloss" fill="none" stroke="#fffaf0" stroke-opacity=".38" stroke-width="3.5" stroke-linecap="round"/>
     <path id="pendMid" fill="none" stroke="#170b33" stroke-width="8" stroke-linecap="round"/>
     <path id="pendMidIn" fill="none" stroke="#fffaf0" stroke-width="3.6" stroke-linecap="round"/>
-    <g id="pendNeedle">
-      <path d="M-9.5 0 C-8.5 -36 -5.5 -80 0 -108 C5.5 -80 8.5 -36 9.5 0 Z" fill="#fffaf0" stroke="#170b33" stroke-width="4.5" stroke-linejoin="round"/>
-      <path d="M0 -16 L0 -92" stroke="#ff2e88" stroke-width="3.6" stroke-linecap="round"/>
+    <g id="pendNeedle" opacity=".8">
+      <g transform="translate(2.5 3.5)" fill="#0a3a8f" stroke="#0a3a8f" stroke-width="5" stroke-linejoin="round"><path d="M0 -108 L21 -66 L9 -66 L9 -30 L-9 -30 L-9 -66 L-21 -66 Z"/></g>
+      <path d="M0 -108 L-21 -66 L-9 -66 L-9 -30 L0 -30 Z" fill="#8fe3ff" stroke="#8fe3ff" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M0 -108 L21 -66 L9 -66 L9 -30 L0 -30 Z" fill="#2b8cf0" stroke="#2b8cf0" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M-4.5 -50 L-4.5 -72 M-12 -72 L-2 -94" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
     </g>
-    <circle r="14" fill="#ff2e88" stroke="#170b33" stroke-width="4.5"/><circle cx="-3.5" cy="-3.5" r="4.2" fill="#fffaf0" fill-opacity=".85"/>
   </svg></div>
 
   <div id="meter" hidden>
@@ -1522,6 +1523,11 @@ function groundAt(cx,cy){
 function screenOf(p){const v=p.clone().project(camera);return{x:(v.x+1)/2*vw,y:(1-v.y)/2*vh,z:v.z};}
 let drag=null,pendPhase=0,pendOffset=0;
 const PEND_SWEEP=78; // degrees the needle swings each way (offset ±1)
+// <pend-layout>
+// The rainbow's base (the svg's 0,0) sits on the ball, so the arc fans out above it and the aim line runs through the center notch.
+const PEND_VIEW={w:224,h:134,ox:112,oy:118}; // must match the svg viewBox "-112 -118 224 134"
+function pendLayout(bx,by,vw){const W=Math.min(262,vw*0.64),H=W*PEND_VIEW.h/PEND_VIEW.w;return{W,H,left:clamp(bx-W*PEND_VIEW.ox/PEND_VIEW.w,4,vw-W-4),top:by-H*PEND_VIEW.oy/PEND_VIEW.h};}
+// </pend-layout>
 (function buildPendulum(){
   const R=78,SW=PEND_SWEEP,pt=a=>[Math.sin(a*D2R)*R,-Math.cos(a*D2R)*R];
   const arc=(a0,a1)=>{const[x0,y0]=pt(a0),[x1,y1]=pt(a1);return`M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;};
@@ -1555,6 +1561,7 @@ function updatePendulum(dt){
   // constant-speed sweep so the center is as catchable as the edges
   pendPhase+=mix(sw[0],sw[1],power)*dt;pendOffset=1-Math.abs(((pendPhase+1)%4+4)%4-2);
   const pe=$('pend');pe.hidden=power<0.02;
+  if(!pe.hidden&&drag){const L=pendLayout(drag.bx,drag.by,vw);pe.style.width=L.W+'px';pe.style.left=L.left+'px';pe.style.top=L.top+'px';}
   $('pendNeedle').setAttribute('transform',`rotate(${(pendOffset*PEND_SWEEP).toFixed(2)})`);
 }
 function endPull(fire){
