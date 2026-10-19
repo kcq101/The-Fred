@@ -32,6 +32,8 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 #holeCap b{font-size:22px;line-height:.95;margin:0}
 #strokeCap{transform:rotate(-1deg);background:var(--paper);display:flex;align-items:baseline;gap:8px;font-family:var(--display);font-weight:400;font-size:14px;letter-spacing:.05em;padding:2px 10px 1px}
 #strokeCap b{font-size:24px;line-height:1;margin:0}
+#pinCap{transform:rotate(1deg);background:var(--paper);display:flex;align-items:baseline;gap:7px;font-family:var(--display);font-weight:400;font-size:14px;letter-spacing:.05em;padding:2px 10px 1px}
+#pinCap b{font-size:24px;line-height:1;margin:0;color:var(--magenta);-webkit-text-stroke:1px var(--ink);paint-order:stroke fill}
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 #wind{display:flex;align-items:center;gap:6px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:2px 8px 2px 4px;transform:rotate(1.5deg)}
 #windArrow{width:26px;height:26px}
@@ -193,6 +195,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
     <div class="top-left">
       <div class="cap" id="holeCap"><b>HOLE 1</b><span>Pebble Beach</span><span>Par 4</span></div>
       <div class="cap" id="strokeCap"><b id="strokeN">1</b><span>STROKE</span></div>
+      <div class="cap" id="pinCap"><b id="pinN">0</b><span id="pinU">YDS TO PIN</span></div>
     </div>
     <div class="top-right">
       <div id="wind" aria-label="Wind">
@@ -1427,10 +1430,12 @@ function setupAim(){
   if(state!=='intro')state='aim';
   updateHUD();
 }
+// always-visible distance to the pin, top left under the stroke count (stays put while pulling back)
+function pinHUD(lie,d){const g=lie===GREENS||lie===FRINGE;$('pinN').textContent=g?Math.round(d*3):Math.round(d);$('pinU').textContent=g?'FT TO CUP':'YDS TO PIN';}
 function updateHUD(){
   $('strokeN').textContent=strokes+(state==='aim'||state==='intro'?1:0);
   const lie=lieNow();$('lie').textContent=SP[lie].name.toUpperCase();
-  const d=distToPin();
+  const d=distToPin();pinHUD(lie,d);
   $('dist').textContent=(lie===GREENS||lie===FRINGE)?Math.round(d*3)+' ft to cup':Math.round(d)+' yds to pin';
   const pen=CLUBS[clubIdx].putt?1:lieMult(lie,CLUBS[clubIdx]);
   $('liePen').textContent=pen<1?`−${Math.round((1-pen)*100)}% power`:'';
@@ -1874,7 +1879,7 @@ function frame(now){
     placeTag($('pinTag'),new V3(PIN.x,PIN_H+3.4,PIN.z),'PIN '+Math.round(distToPin()));
     const tt=$('targetTag'),pt=$('pinTag');if(!tt.hidden&&!pt.hidden&&Math.hypot(parseFloat(tt.style.left)-parseFloat(pt.style.left),parseFloat(tt.style.top)-parseFloat(pt.style.top))<70)pt.hidden=true;}
   else $('pinTag').hidden=true;
-  if(state==='flight'&&stepped){$('dist').textContent=Math.round(distToPin())+' yds to pin';$('lie').textContent=ball.landed?SP[lieNow()].name.toUpperCase():'IN THE AIR';$('liePen').textContent='';}
+  if(state==='flight'&&stepped){$('dist').textContent=Math.round(distToPin())+' yds to pin';pinHUD(ball.landed?lieNow():-1,distToPin());$('lie').textContent=ball.landed?SP[lieNow()].name.toUpperCase():'IN THE AIR';$('liePen').textContent='';}
 
   renderer.setRenderTarget(rt);renderer.render(scene,camera);
   renderer.setRenderTarget(null);renderer.render(postScene,postCam);
