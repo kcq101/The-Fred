@@ -163,4 +163,36 @@ module.exports = {
           ['for a shaky player the payoff is much smaller (the tour baseline still favours going: see the spec)', r => (r.layup.shaky.score - r.go.shaky.score) < 0.75 * (r.layup.sharp.score - r.go.sharp.score)] ] },
     ],
   },
+  'riviera-6': {
+    challenge: 'A par 3 whose decision is the pin, not the tee shot: a small pot bunker in the middle of the green cuts it into quadrants, a back-to-front slope and a tier separate the lower short-right pin area from the upper back-left one, and deep bunkers guard the front-left and the back. Every plan is a full iron; what matters is which quadrant you aim at.',
+    shots: [
+      { name: 'a well-struck iron at the pin holds the short-right quadrant', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 7 } },
+      { name: 'aimed at the middle of the green, a pure iron drops into the middle bunker', shot: { club: 'Iron', at: [0, 168] }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'a well-struck iron at the big back-left quadrant holds the green, across the bunker from the pin', shot: { club: 'Iron', at: [8, 174], offset: 0.1 }, expect: { surf: ['GREENS'], minToPin: 10 } },
+      { name: 'aimed at the deep front-left bunker, a pure iron finds the sand', shot: { club: 'Iron', at: [13, 152] }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'carried 18 yards long, the ball is in the back bunker', shot: { club: 'Iron', at: [0, 186] }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'from the back-left quadrant, a putt straight at the pin runs into the middle bunker', shot: { from: [8, 174], club: 'Putter', at: 'pin' }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'from there, a wedge over the bunker finishes on the green close to the pin', shot: { from: [8, 174], club: 'Wedge', at: 'pin' }, expect: { surf: ['GREENS'], maxToPin: 9 } },
+      { name: 'from the middle bunker, a wedge gets out and onto the green', shot: { from: [0, 168], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 12 } },
+    ],
+    strategies: [
+      { name: 'the pin: attack the short-right pin, play to the big back-left quadrant, or aim at the middle (every plan an iron)', plans: [
+          { name: 'pin', shot: { club: 'Iron' } },
+          { name: 'safe', shot: { club: 'Iron', at: [8, 174] } },
+          { name: 'middle', shot: { club: 'Iron', at: [0, 168] } } ],
+        expect: [
+          ['a sharp player at the pin holds the green most of the time', r => (r.pin.sharp.surfs.GREENS || 0) / r.pin.sharp.n >= 0.7],
+          ['aiming at the middle finds the sand at least half the time for a sharp player: the obvious target is gone', r => (r.middle.sharp.surfs.SAND || 0) / r.middle.sharp.n >= 0.5],
+          ['the back-left quadrant leaves a sharp player at least 6 yd more than the pin', r => r.safe.sharp.toPin >= r.pin.sharp.toPin + 6],
+          ['it is the bigger target: a shaky player holds the green at least as often there as at the pin', r => (r.safe.shaky.surfs.GREENS || 0) >= (r.pin.shaky.surfs.GREENS || 0)],
+          ['the pin saves a sharp player at least a tenth of a stroke over the bail-out (the baseline cannot see the cost of the far quadrant: see the spec)', r => r.safe.sharp.score - r.pin.sharp.score >= 0.1],
+          ['for a shaky player the baseline puts the two plans within 0.35 stroke of each other, either way', r => Math.abs(r.pin.shaky.score - r.safe.shaky.score) < 0.35] ] },
+      { name: 'the leave from the back-left quadrant: putt straight at the pin, or wedge over the bunker', plans: [
+          { name: 'putt', shot: { from: [8, 174], club: 'Putter', at: 'pin' } },
+          { name: 'wedge', shot: { from: [8, 174], club: 'Wedge', at: 'pin' } } ],
+        expect: [
+          ['a putt straight at the pin ends in the middle bunker at least half the time, for both players', r => (r.putt.sharp.surfs.SAND || 0) / r.putt.sharp.n >= 0.5 && (r.putt.shaky.surfs.SAND || 0) / r.putt.shaky.n >= 0.5],
+          ['the wedge over it holds the green at least 70% of the time for a sharp player', r => (r.wedge.sharp.surfs.GREENS || 0) / r.wedge.sharp.n >= 0.7] ] },
+    ],
+  },
 };
