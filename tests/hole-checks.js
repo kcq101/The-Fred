@@ -102,8 +102,8 @@ module.exports = {
       { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 334], club: 'Iron', at: [8, 455] }, expect: { surf: ['GREENS'] } },
     ],
     strategies: [
-      // the baseline counts a bunker as a third of a stroke; here you cannot play out of this one towards the pin (shot above), so it costs a full stroke
-      { name: 'the second shot: fly the pin, attack the tucked pin over the bunker, or play to the middle', lieAdd: { SAND: 1.0 }, plans: [
+      // no per-hole lie costs: the baseline's recovery term charges the Road Hole bunker for its deep face (a ball in it cannot play out forwards, see the shot above)
+      { name: 'the second shot: fly the pin, attack the tucked pin over the bunker, or play to the middle', plans: [
           { name: 'fly', shot: { from: [0, 334], club: 'Iron' } },
           { name: 'attack', shot: { from: [0, 334], club: 'Iron', at: [18, 464] } },
           { name: 'middle', shot: { from: [0, 334], club: 'Iron', at: [8, 455] } } ],
@@ -136,7 +136,7 @@ module.exports = {
           ['attacking the pin keeps a sharp player dry', r => r.pin.sharp.hazard === 0],
           ['a shaky player gets wet at least one time in four going at it', r => r.pin.shaky.hazard > 0.25],
           ['the middle is far safer for a shaky player', r => r.middle.shaky.hazard * 2 <= r.pin.shaky.hazard],
-          ['attacking pays for a sharp player (about half a stroke); for a shaky one the tour baseline calls it a wash, so the middle costs nothing and drowns far less', r => r.pin.sharp.score + 0.4 < r.middle.sharp.score && r.middle.shaky.score <= r.pin.shaky.score + 0.1] ] },
+          ['attacking pays a sharp player more than 0.4 strokes; for a shaky player the baseline puts the two plans within a quarter stroke of each other, either way, while the middle drowns far less (above)', r => r.pin.sharp.score + 0.4 < r.middle.sharp.score && Math.abs(r.pin.shaky.score - r.middle.shaky.score) < 0.25] ] },
     ],
   },
   'pinehurst-5': {

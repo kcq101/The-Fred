@@ -63,6 +63,8 @@
 
 Simplified: the hotel, the sheds and the out-of-bounds line are left out.
 
+**Realism bounds** (`node tests/tools/slope.js standrews-17`, `docs/maps/standrews-17-slope.png`): one gentle plane (`tilt` 2.3 %), 100 % of the surface in the 1–2.5 % band, no steep ring and not a dome; "flat pockets" reads WARN. The green's contours are mild by §3's own account; the hole is decided by the bunker, the road and the wall, not by putting, so the green is left as it is.
+
 ## 6. Validation — the contract
 
 | Shot | Expected |
@@ -79,9 +81,15 @@ Simplified: the hotel, the sheds and the out-of-bounds line are left out.
 
 | Decision | Plans | Must hold |
 |---|---|---|
-| The second shot | fly the pin / attack the tucked pin / play to the middle | Flying it is the worst plan for sharp and shaky players. Sand costs +1.0 in this comparison (a test-only `lieAdd`) because the tour baseline understates a bunker you cannot play out of forwards. |
+| The second shot | fly the pin / attack the tucked pin / play to the middle | Flying it is the worst plan for sharp and shaky players (it puts a sharp player on the road 15 times in 21); attacking puts even a sharp player in the bunker at least one time in five; the middle is the best plan for a sharp player (81 % on the green) and keeps a shaky player out of the bunker twice as often as attacking. No per-hole lie costs: the baseline's recovery term charges a ball in the Road Hole bunker for its face. |
 
 **Honest note**: this hole's geometry was tuned with scratch probes before its checks were written, contrary to the workflow. The checks were then written against the tuned hole and pass. Holes 5 and 6 had their checks written first.
+
+**Check-change log**
+
+| Check | Was | Now | Why |
+|---|---|---|---|
+| The second shot (strategy) | `lieAdd: { SAND: 1.0 }`: any sand lie costs a full stroke | no `lieAdd` | The baseline gained a recovery-difficulty term that charges a ball short of a steep face. In the Road Hole bunker (the ground rises 4.1 yd between the ball and the pin line, so the raw charge is 1.10) it reaches its 1.0 cap on top of sand's 0.35, so the bunker now costs 1.35 where the hack gave 1.0. Every expectation holds without the override. The four plans that end in sand or at the foot of the bank score 0.06–0.10 more than before (fly shaky 3.62 → 3.71, attack sharp 3.25 → 3.33, attack shaky 3.45 → 3.56, middle shaky 3.47 → 3.53); fly and middle for a sharp player are unchanged. The order is the same for a sharp player (middle < attack < fly in strokes); for a shaky player attack and middle swap by 0.03 (attack 3.45 vs middle 3.47 before, middle 3.53 vs attack 3.56 now): the middle is the better plan for both, and fly is still the worst |
 
 ## 7. Results
 
@@ -99,13 +107,13 @@ from the middle of the bunker a wedge at the pin cannot get out forwards       G
 the safe line to the wide front of the green holds it                          GREENS 11y       GREENS 10y
 
   strategy: the second shot: fly the pin, attack the tucked pin over the bunker, or play to the middle
-  plan       skill   before: wet  score     after: wet  score
-  fly        sharp             0%  2.63              0%  3.52
-  fly        shaky             0%  2.89              0%  3.62
-  attack     sharp             0%  2.45              0%  3.25
-  attack     shaky             0%  3.00              0%  3.45
-  middle     sharp             0%  3.12              0%  3.11
-  middle     shaky             0%  3.36              0%  3.47
+  plan       skill   before: wet green score   after: wet green score
+  fly        sharp           0% 100% 2.63              0%   0% 3.52
+  fly        shaky           0%  76% 2.89              0%  14% 3.71
+  attack     sharp           0%  90% 2.45              0%  24% 3.33
+  attack     shaky           0%  57% 3.00              0%  29% 3.56
+  middle     sharp           0%  81% 3.12              0%  81% 3.11
+  middle     shaky           0%  24% 3.36              0%  33% 3.53
 ```
 
-"Before" is the same land and green with no features, play profile, wall, road or bunkers.
+"Before" is the same land and green with no features, play profile, wall, road or bunkers. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.

@@ -57,11 +57,20 @@
 | Characteristic | Real | Game | Why this amount |
 |---|---|---|---|
 | Length | 576–588 yd | 504 yd | Reachable in two with a good drive and a 3-wood run up the front, which is the real hole's question for tour players |
-| Plateau | steep at the edges, gentle inside | `hollow` depth −0.75, `flat:0.62` over an 18.5 × 13 yd area, on a 1.2 yd `rise`; the green is 30 × 20 yd | On the slope map (`docs/maps/pinehurst-5-slope.png`, same colour bands as Kevin's map): 33% of the surface steeper than 4% (the edge ring), 14% at 2.5–4%, 43% at 1–2.5%, 10% under 1% |
+| Plateau | steep at the edges, gentle inside | `hollow` depth −0.75, `flat:0.62` over an 18.5 × 13 yd area, on a 1.2 yd `rise`; the green is 30 × 20 yd | On the slope map (`node tests/tools/slope.js pinehurst-5` → `docs/maps/pinehurst-5-slope.png`, same colour bands as Kevin's map): 34% of the surface steeper than 4% (the edge ring), 14% at 2.5–4%, 43% at 1–2.5%, 10% under 1% |
 | Movement on top | several flat pockets with gentle slopes between | green `tilt` about 1.3% plus a low crown (−0.07) and three soft pockets (0.06–0.07) | Earlier tries: small 0.1–0.12 pockets made steep rings inside the green; a dead-flat top (no tilt) read as a table |
 | Fairway slant | a sidehill lie | `tilt` grade 0.08 over the second-shot zone | A full 3-wood aimed at the pin finishes 11 yd away; aimed left to allow for it, 2 yd |
 
 **What changed from the first version**: the first build was a par 4 with a dome (`hollow` depth −2.8, no flat top) that Kevin rightly called a turtle shell: the whole green sloped, steepest halfway out. The plateau keeps the shedding at the edges and lets the top putt like a real green.
+
+**Realism bounds** (`node tests/tools/slope.js pinehurst-5`): the green these bounds were written from, and the only one so far inside all four.
+
+| Bound | Default | This hole | Note |
+|---|---|---|---|
+| Falloff ring: surface steeper than 4 % | ≤ ~35 % | 34 % | The edge ring, just inside the bound |
+| Top: 1–2.5 % of the non-steep surface | mostly (≥ half) | 64 % | |
+| Flat pockets: surface under 1 % | 5–40 % | 10 % | Three soft pockets, as the real green has |
+| No full-green dome | not (> 60 % steeper than 2.5 % *and* slopes every which way) | 48 % steeper than 2.5 %; tilt coherence 0.51 | The first build (`hollow` depth −2.8, no `flat`) reads 100 % over 4 % and coherence 0.03: flagged on all four bounds, which is what `tests/tools.test.js` asserts |
 
 ## 6. Validation — the contract
 
@@ -83,6 +92,8 @@
 
 **Contract revised after the first tuning run**: I first wrote "the 3-wood aimed at the pin misses the green" and "laying up is right for a shaky player". The first is false on this green: the push leaves the ball on the front-right lobe 11 yd away, so the check now asserts the distance instead. The second the tour-style baseline does not support: it scores a shaky player going for it at 3.36 against 3.75 laying up, because it treats a 20-yard recovery from beside the green as easy. The contract asserts what is true: the payoff shrinks from 0.84 to 0.39 strokes and the shaky player holds the green 5 times in 21.
 
+**Re-measured with the recovery term** (the baseline's new charge for a ball with a steep face to climb or a short-sided pin): going for it is 3.42 against 3.75 laying up for a shaky player, so the baseline still favours going, only a little less (0.33 strokes instead of 0.39; 0.84 for a sharp player, unchanged). The term does not flip it because the shaky balls that miss finish in the waste about 33 yd from the pin, with no face to climb within its 10 yd window. No check changed; the contract still asserts the rates and the gap, not that laying up is right.
+
 ## 7. Results
 
 ```
@@ -99,11 +110,12 @@ a wedge flown to the back-left edge runs off the falloff                       R
 from the low runoff left of the green, a wedge back up the falloff finishes o  GREENS 1y        GREENS 0y
 
   strategy: the second shot: go for the green with a 3-wood (aimed left of it, for the slant) or lay up with an iron to wedge distance
-  plan       skill   before: wet  score     after: wet  score
-  go         sharp             0%  3.48              0%  2.83
-  go         shaky             0%  3.50              0%  3.36
-  layup      sharp             0%  3.73              0%  3.67
-  layup      shaky             0%  3.78              0%  3.75
+  plan       skill   before: wet green score   after: wet green score
+  go         sharp           0%   0% 3.48              0%  62% 2.83
+  go         shaky           0%   5% 3.50              0%  24% 3.42
+  layup      sharp           0%   0% 3.73              0%   0% 3.67
+  layup      shaky           0%   0% 3.78              0%   0% 3.75
+  payoff of go over layup (strokes saved): sharp 0.25 → 0.84, shaky 0.28 → 0.33   (before → after)
 ```
 
-"Before" is the same land and green with no plateau, slant, waste, runoffs, bunker or play profile.
+"Before" is the same land and green with no plateau, slant, waste, runoffs, bunker or play profile. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.

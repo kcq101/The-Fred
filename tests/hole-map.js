@@ -77,4 +77,4 @@ if (require.main === module) {
   const opts = zoom.length >= 4 ? { box: { x0: zoom[0], x1: zoom[1], z0: zoom[2], z1: zoom[3] }, scale: zoom[4] || 8, suffix: '-zoom' } : {};
   course.HOLES.forEach((h, i) => { if (!want || h.id === want) console.log('wrote', draw(course, i, out, opts)); });
 }
-module.exports = { draw };
+module.exports = { draw, png };

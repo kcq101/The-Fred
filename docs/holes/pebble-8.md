@@ -53,6 +53,8 @@
 | Shaved bank | rough slope | fairway-cut slope from the green to the cliff | short-right feeds into the sea |
 | Downhill approach | moderate | ~6 yd lower than the plateau | |
 
+**Realism bounds** (`node tests/tools/slope.js pebble-8`, `docs/maps/pebble-8-slope.png`): the green is one tilted plane (`tilt` 3.6 %), so all of the putting surface is in the 2.5–4 % band: no steep ring (0 % over 4 %) and not a dome (tilt coherence 1.00), but the "gentle top" and "flat pockets" bounds read WARN. Deliberate: the design wants fast putts from above and balls that feed along the slope (§4), and the edge-shedding is done by the `rise` around the green, outside the putting surface. Written before the bounds existed; recorded here, not reshaped.
+
 ## 6. Validation
 
 All in `tests/hole-checks.js` → `pebble-8`.
@@ -71,3 +73,36 @@ All in `tests/hole-checks.js` → `pebble-8`.
 |---|---|---|
 | Tee club: driver / 3-wood / iron | driver wet more often than not; 3-wood dry and best for both skills; iron leaves 60+ yd more | driver wet 100% (sharp) / 48% (shaky); 3-wood 0% wet, best score; iron leaves 222 vs 137 |
 | Approach: pin / bail left | pin risks the chasm for a shaky player; sharp always greens it; bail is dry but costs 0.5+ strokes | pin wet 10% for shaky (0% before); bail costs ~0.9 strokes |
+
+## 7. Results
+
+```
+=== Pebble Beach (pebble-8) — Distance control off the tee (the plateau ends at a cliff), then a forced carry over an ocean chasm to a small, back-to-front green.
+shot                                                                           before           after
+a pure driver runs off the end of the plateau into the chasm                   FAIRWAY 90y      WATER 101y
+even a 90% driver still finds the chasm                                        FAIRWAY 107y     WATER 103y
+a pure 3-wood stops on the plateau, short of the cliff                         FAIRWAY 130y     FAIRWAY 130y
+from there a well-struck iron carries the chasm and holds the green            GREENS 8y        GREENS 7y
+a chunked approach comes up short in the chasm                                 ROUGH 27y        WATER 31y
+a ball short-right on the shaved bank feeds back down to the sea               ROUGH 19y        WATER 30y
+the bail-out left, around the head of the cove, stays dry                      ROUGH 35y        FAIRWAY 31y
+
+  strategy: tee club
+  plan       skill   before: wet green score   after: wet green score
+  driver     sharp           0%   0% 3.82            100%   0% 5.92
+  driver     shaky           0%   0% 3.99             48%   0% 5.02
+  3-wood     sharp           0%   0% 3.92              0%   0% 3.93
+  3-wood     shaky           0%   0% 4.07              0%   0% 4.09
+  iron       sharp           0%   0% 4.26              0%   0% 4.31
+  iron       shaky           0%   0% 4.31              0%   0% 4.37
+
+  strategy: approach line
+  plan       skill   before: wet green score   after: wet green score
+  pin        sharp           0% 100% 2.90              0% 100% 2.75
+  pin        shaky           0%  76% 3.07             10%  71% 3.13
+  bail       sharp           0%   0% 3.70              0%   0% 3.69
+  bail       shaky           0%   0% 3.71              0%   0% 3.64
+  payoff of pin over bail (strokes saved): sharp 0.80 → 0.94, shaky 0.64 → 0.51   (before → after)
+```
+
+Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`). "Before" is the original hole as it stood at commit 548d49a: the same tee and pin, none of the iconic-hole features, play profile or hazards.
