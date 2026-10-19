@@ -2,7 +2,7 @@
 
 Run from the repo root (Node 18+; no installs needed):
 
-    node --test                    # 29 checks
+    node --test                    # 30 checks
     node tests/swing-report.js     # before/after tables (legacy swing math vs SwingModel)
 
 ## What these are

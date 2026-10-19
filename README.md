@@ -17,7 +17,7 @@ It's one HTML page with no build step. Open `index.html` through any static serv
 
 ## How a swing is scored
 
-Pull back to set power; the needle then sets contact quality. The meter is a slightly see-through rainbow arc lying on the grass around the ball, with a slim translucent blue arrow swinging from the ball across it. It has no hard zones: dead center (blue) is the cleanest strike, and every bit further out costs a little more distance *and* direction. The red ends are a CHUNK (the worst contact: roughly a quarter to over a third of the carry lost, plus a big miss).
+Pull back to set power; the needle then sets contact quality. The meter is a slightly see-through rainbow arc lying on the grass around the ball, flaring wider toward the ends, with a slim translucent blue arrow swinging from the ball across it. When you pull for a draw or fade, the arc slides round to center on the line the ball will actually start on. It has no hard zones: dead center (blue) is the cleanest strike, and every bit further out costs a little more distance *and* direction. The red ends are a CHUNK (the worst contact: roughly a quarter to over a third of the carry lost, plus a big miss).
 Longer clubs are less forgiving than shorter ones. The only luck is a very small constant jitter that does not grow when you mistime. The numbers live in `SwingModel` (`index.html`) and the `dev` / `curve` / `mishit` values on each club.
 
 ## Tests

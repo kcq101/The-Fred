@@ -1417,8 +1417,8 @@ function drawGuide(power){
   if(c.putt){
     guide.count=0;guideOut.count=0;arcLine.visible=false;
     if(!(drag&&drag.kind==='pull')){puttLine.visible=false;return null;} // the putting line only shows once you start pulling back
-    land=drawPuttLine(simPutt(shotSpeed(power),aimYaw+puttYaw()));return land;
-  }else{puttLine.visible=false;const sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);land=simArc(sp,aimYaw+y,pts,spin);}
+    fanYaw=aimYaw+puttYaw();land=drawPuttLine(simPutt(shotSpeed(power),fanYaw));return land;
+  }else{puttLine.visible=false;const sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);fanYaw=aimYaw+y;land=simArc(sp,fanYaw,pts,spin);}
   guide.count=0;guideOut.count=0;
   if(land)pts.push(land.clone());drawArc(pts);
   return land;
@@ -1519,56 +1519,54 @@ function screenOf(p){const v=p.clone().project(camera);return{x:(v.x+1)/2*vw,y:(
 let drag=null,pendPhase=0,pendOffset=0;
 // <fan-geometry>
 // The accuracy meter: a rainbow arc lying on the grass around the ball, seen in the same perspective as the fairway
-// (a circle on the ground looks like a flattened ellipse), blue at dead center through green, yellow and orange to red at the ends,
-// with rounded ends and a thin ink outline. It is partly see-through so the fairway shows under it.
-// A slim translucent blue arrow lies along a ray from the ball and swings left/right with the needle, its tip just into the arc.
+// (a circle on the ground looks like a flattened ellipse), blue at dead center through green, yellow and orange to red at the ends.
+// The band flares toward the ball at the ends (1.5x as thick as the middle), has square ends and a thin ink outline,
+// and is a little see-through so the fairway shows under it. It is centered on the ball's starting direction, so a draw or fade
+// slides it round the ring to where the shot will actually start. A slim translucent arrow lies along a ray from the ball.
 // Local coordinates in pixels around the ball (0,0): +x is right, -y is toward the hole; h is the arc's half-width on screen.
+// Angles are in degrees on the ring, + = right; "shift" is where the middle of the arc sits (0 = the aim line).
 const FAN={
-  sweep:44,          // degrees either side of the aim line
+  sweep:38,          // degrees either side of the middle
   squash:0.62,       // ground-perspective flattening (height / width of the circle)
-  thick:0.21,        // band thickness as a fraction of the radius
+  thick:0.2,         // band thickness in the middle, as a fraction of the radius
+  flare:1.5,         // thickness at the ends relative to the middle (the extra goes toward the ball)
+  slices:160,
   opacity:0.8,       // the band is a little see-through
-  base:0.38, tipR:0.88, tipSweep:0.94,                 // arrow runs from 40% of the radius to just inside the band
+  base:0.38, tipR:0.9, tipSweep:0.94,                  // arrow runs from 38% of the radius to inside the band
   shaft:0.021, head:0.06, headLen:0.12,                // slim shaft, small head (fractions of h)
-  size:{w:0.36, h:0.38, top:0.12, reach:0.98}           // h = min(34% of width, 36% of height, room above the ball)
+  size:{w:0.27, h:0.3, top:0.12, reach:1.05}            // h = min(27% of width, 30% of height, room above the ball)
 };
 // one smooth gradient, no hard bands: the closer to the middle, the better the shot (t = 0 dead center .. 1 the ends)
 const stops=[[0,[26,94,240]],[0.18,[34,200,240]],[0.36,[76,216,76]],[0.56,[246,224,30]],[0.76,[255,130,30]],[1,[236,40,36]]];
 const fanColor=(t,k=1)=>{t=clamp(t,0,1);let i=1;while(i<stops.length-1&&t>stops[i][0])i++;const[t0,c0]=stops[i-1],[t1,c1]=stops[i],f=clamp((t-t0)/(t1-t0),0,1);return'rgb('+c0.map((v,j)=>Math.round(mix(v,c1[j],f)*k)).join(',')+')';};
 const fanSize=(o,vw,vh)=>Math.max(50,Math.min(vw*FAN.size.w,vh*FAN.size.h,(o.y-vh*FAN.size.top)/FAN.size.reach));
 const fx1=v=>v.toFixed(1);
-// the ellipse the arc sits on, and a point at angle deg (+ = right) and radius r (1 = outer edge)
+// the ellipse the arc sits on, and a point at ring angle deg (+ = right) and radius r (1 = outer edge)
 const fanEllipse=h=>{const a=h/Math.sin(FAN.sweep*Math.PI/180);return{a,b:a*FAN.squash};};
 function fanPt(deg,r,h){const e=fanEllipse(h),t=deg*Math.PI/180;return{x:e.a*r*Math.sin(t),y:-e.b*r*Math.cos(t)};}
-const fanMid=()=>1-FAN.thick/2;
-// the band as a filled ring sector: outer arc, square end, inner arc back, square end (ends point at the ball, like a real ring on the ground)
-function fanBandPath(h){
-  const e=fanEllipse(h),S=FAN.sweep,ri=1-FAN.thick,P=(d,r)=>{const p=fanPt(d,r,h);return fx1(p.x)+' '+fx1(p.y);};
-  return`M${P(-S,1)}A${fx1(e.a)} ${fx1(e.b)} 0 0 1 ${P(S,1)}L${P(S,ri)}A${fx1(e.a*ri)} ${fx1(e.b*ri)} 0 0 0 ${P(-S,ri)}Z`;
+// inner edge radius at k = -1..1 across the band (0 = middle): thicker toward the ends
+const fanInner=k=>1-FAN.thick*(1+(FAN.flare-1)*Math.pow(Math.abs(k),1.5));
+// the ring angle whose ray looks, on screen, psi degrees right of the aim line (inverse of the ellipse's flattening)
+const fanShiftFor=psi=>Math.atan(FAN.squash*Math.tan(clamp(psi,-80,80)*Math.PI/180))*180/Math.PI;
+const fanPts=list=>list.map(p=>fx1(p.x)+','+fx1(p.y)).join(' ');
+// a piece of the band from k0 to k1 (outer edge out, inner edge back)
+function fanPiece(h,shift,k0,k1,n){
+  const o=[],i=[];for(let j=0;j<=n;j++){const k=k0+(k1-k0)*j/n,d=shift+k*FAN.sweep;o.push(fanPt(d,1,h));i.push(fanPt(d,fanInner(k),h));}
+  return fanPts(o.concat(i.reverse()));
 }
-// the band's center line as an SVG arc, from deg0 to deg1 at radius r
-function fanArcPath(h,r=fanMid(),deg0=-FAN.sweep,deg1=FAN.sweep){
-  const e=fanEllipse(h),p=fanPt(deg0,r,h),q=fanPt(deg1,r,h);
-  return`M${fx1(p.x)} ${fx1(p.y)}A${fx1(e.a*r)} ${fx1(e.b*r)} 0 0 1 ${fx1(q.x)} ${fx1(q.y)}`;
-}
-function fanGradient(id,h){
-  let g=`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${fx1(-h)}" y1="0" x2="${fx1(h)}" y2="0">`;
-  for(let i=0;i<=20;i++)g+=`<stop offset="${(i/20).toFixed(3)}" stop-color="${fanColor(Math.abs(i/10-1))}"/>`;
-  return g+'</linearGradient>';
-}
-// the static arc: drawn once per size
-function fanStatic(h){
-  const d=fanBandPath(h),bw=FAN.thick*fanEllipse(h).b,ink=Math.max(2.5,bw*0.1);
-  return`<defs>${fanGradient('fanG',h)}</defs><g opacity="${FAN.opacity}">
-    <path d="${d}" fill="#14102a" stroke="#14102a" stroke-width="${fx1(2*ink)}" stroke-linejoin="round"/>
-    <path d="${d}" fill="url(#fanG)" stroke="url(#fanG)" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="${fanArcPath(h,1-FAN.thick*0.25,-FAN.sweep*0.92,FAN.sweep*0.92)}" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="${fx1(bw*0.14)}" stroke-linecap="round"/></g>`;
+// the static band: rebuilt when its size or its shift changes
+function fanStatic(h,shift=0){
+  const N=FAN.slices,bw=FAN.thick*fanEllipse(h).b,ink=Math.max(2.5,bw*0.1);let g='';
+  for(let j=0;j<N;j++){const k0=-1+2*j/N,k1=-1+2*(j+1)/N,c=fanColor(Math.abs((k0+k1)/2));g+=`<polygon points="${fanPiece(h,shift,k0,Math.min(1,k1+0.012),1)}" fill="${c}"/>`;}
+  const hl=[];for(let j=0;j<=40;j++){const d=shift+(-0.92+1.84*j/40)*FAN.sweep;hl.push(fanPt(d,1-FAN.thick*0.25,h));}
+  return`<g opacity="${FAN.opacity}"><polygon points="${fanPiece(h,shift,-1,1,60)}" fill="#14102a" stroke="#14102a" stroke-width="${fx1(2*ink)}" stroke-linejoin="round"/>${g}
+    <polyline points="${fanPts(hl)}" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="${fx1(bw*0.14)}" stroke-linecap="round" stroke-linejoin="round"/></g>`;
 }
 // where the arrow points for a swing offset u (-1 = far left, 0 = dead center, 1 = far right)
-const fanTip=(u,h)=>fanPt(clamp(u,-1,1)*FAN.sweep*FAN.tipSweep,FAN.tipR,h);
+const fanTip=(u,h,shift=0)=>fanPt(shift+clamp(u,-1,1)*FAN.sweep*FAN.tipSweep,FAN.tipR,h);
 // the arrow: along the ray from the ball, slim shaft and small head. Returns [left half, right half].
-function fanArrow(u,h){
-  const F=FAN,deg=clamp(u,-1,1)*F.sweep*F.tipSweep,B=fanPt(deg,F.base,h),T=fanPt(deg,F.tipR,h);
+function fanArrow(u,h,shift=0){
+  const F=FAN,deg=shift+clamp(u,-1,1)*F.sweep*F.tipSweep,B=fanPt(deg,F.base,h),T=fanPt(deg,F.tipR,h);
   const len=Math.hypot(T.x-B.x,T.y-B.y),dx=(T.x-B.x)/len,dy=(T.y-B.y)/len,lx=dy,ly=-dx; // l = the arrow's own left side
   const at=(t,w)=>fx1(B.x+dx*t+lx*w)+','+fx1(B.y+dy*t+ly*w),hs=len-F.headLen*h;
   const side=k=>[at(0,0),at(0,k*F.shaft*h),at(hs,k*F.shaft*h),at(hs,k*F.head*h),at(len,0)].join(' ');
@@ -1577,16 +1575,19 @@ function fanArrow(u,h){
 // </fan-geometry>
 const _fv=new V3();
 function fanScreen(x,z){_fv.set(x,H(x,z)+0.07,z).project(camera);return _fv.z>=1?null:{x:(_fv.x+1)/2*vw,y:(1-_fv.y)/2*vh};}
-let fanKey='',fanH=0;
+let fanKey='',fanBuilt='',fanH=0,fanShift=0,fanYaw=null; // fanYaw: the ball's starting direction, set by drawGuide()
 // <fan-draw>
 function drawFan(){
   const b=ball.p,o=fanScreen(b.x,b.z),A=fanScreen(b.x+3*Math.sin(aimYaw),b.z+3*Math.cos(aimYaw));
   if(!o||!A)return;
-  const l=Math.hypot(A.x-o.x,A.y-o.y)||1,ang=Math.atan2((A.x-o.x)/l,-(A.y-o.y)/l)*180/Math.PI,h=fanSize(o,vw,vh);
-  const tf=`translate(${fx1(o.x)} ${fx1(o.y)}) rotate(${ang.toFixed(2)})`;
-  if(Math.abs(h-fanH)>0.5){fanH=h;$('fanStatic').innerHTML=fanStatic(h);}   // rebuilt only when the size changes
+  const ux=A.x-o.x,uy=A.y-o.y,l=Math.hypot(ux,uy)||1,ang=Math.atan2(ux/l,-uy/l)*180/Math.PI,h=fanSize(o,vw,vh);
+  // how far right of the aim line the ball will start, as seen on screen, turned into a place on the ring
+  let shift=0;const sy=fanYaw==null?aimYaw:fanYaw;
+  if(Math.abs(sy-aimYaw)>1e-4){const S=fanScreen(b.x+3*Math.sin(sy),b.z+3*Math.cos(sy));if(S){const sx=S.x-o.x,syy=S.y-o.y;shift=fanShiftFor(Math.atan2(ux*syy-uy*sx,ux*sx+uy*syy)*180/Math.PI);}}
+  const tf=`translate(${fx1(o.x)} ${fx1(o.y)}) rotate(${ang.toFixed(2)})`,bk=h.toFixed(0)+'|'+shift.toFixed(1);
+  if(bk!==fanBuilt){fanBuilt=bk;fanH=h;fanShift=shift;$('fanStatic').innerHTML=fanStatic(h,shift);}   // rebuilt only when the size or the shift changes
   if(tf!==fanKey){fanKey=tf;$('fanStatic').setAttribute('transform',tf);$('fanArrow').setAttribute('transform',tf);}
-  const ar=fanArrow(pendOffset,fanH);
+  const ar=fanArrow(pendOffset,fanH,fanShift);
   ['arrL','arrSL'].forEach(id=>$(id).setAttribute('points',ar[0]));['arrR','arrSR'].forEach(id=>$(id).setAttribute('points',ar[1]));
 }
 // </fan-draw>
