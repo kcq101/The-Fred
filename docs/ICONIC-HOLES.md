@@ -34,7 +34,7 @@ Every feature does one thing inside an area with a soft edge. Areas are an ellip
 | `ramp` | `z0, z1, dh, area?, edge?` | The hole climbing or falling between two distances (uphill drive, downhill approach, valley) |
 | `tilt` | `area, grade, edge` | Side slopes across the hole: `grade` yards of rise per yard toward screen-left (negative falls left) |
 | `step` | `area, a, b, dh, w, edge` | Tiers and ridges: ground left of line a→b sits `dh` higher, over a ramp `w` wide |
-| `hollow` | `area (ellipse), depth, edge` | Swales and bowls, on a green or anywhere |
+| `hollow` | `area (ellipse), depth, edge` | Swales and bowls, on a green or anywhere; **`depth<0` makes a crown** (a turtleback green that sheds balls, Pinehurst No. 2 #5) |
 | `cover` | `area, surf, over?` | Turns rough (or the surfaces in `over`) into another surface: pine straw, a shaved bank, waste |
 
 `rise`, `ramp` and `tilt` shape the land before the green, tee and bunkers are laid into it (an elevated green stays flat on top). `step` and `hollow` act after the green is laid, so they can contour the putting surface. Adding a type is one entry in `FEATURES` in `index.html` plus a test.
@@ -44,9 +44,10 @@ Every feature does one thing inside an area with a soft edge. Areas are an ellip
 | Piece | Parameters | Notes |
 |---|---|---|
 | Water bodies | `kind` (ocean, creek, lake), `profile` (cliff, shore, wall), `shape` (outside, poly, band, ellipse), `islands` | A cliff profile drops straight to the sea; shore slopes to a creek whose level follows its banks; wall is a bulkhead |
+| Obstacles (`obstacles`) | `type:'wall'`, `pts` (polyline), `t` thickness (1.2), `h` height (1.6), `e` restitution (0.3) | **Solid, registry-based (`OBSTACLES`).** Run through the BallModel `collide` hook on both flight and roll: a ball hits it, loses speed and is thrown back; a ball above `h` flies over. Add a type with one entry |
 | Bunkers | `x,z,rx,rz,rot`, `depth` (default 0.9), `lip` (0.25) | Deep pot bunkers: depth 1.5+, lip 0.4+ |
 | Green | ellipse, `tilt:{x,z}` plane slope, `pin` | Contours from `step`/`hollow` features |
-| Surfaces | `SP` table: TEE, FAIRWAY, ROUGH, FRINGE, GREENS, SAND, WATER, PINE | A new surface is one `SP` row, one name in `SURF`, one color in `colorAt` |
+| Surfaces | `SP` table: TEE, FAIRWAY, ROUGH, FRINGE, GREENS, SAND, WATER, PINE, **ROAD** (hard and fast, lie 0.80), **WASTE** (sandy waste area, grabs the ball, lie 0.82) | A new surface is one `SP` row, one name in `SURF`, one color in `colorAt` |
 
 ### 1.3 Shared gameplay systems
 
@@ -77,16 +78,22 @@ Each step produces something checked into the repo.
 
 ### When the catalogue is not enough
 
-Add the missing capability once, generically, and give it its own test in `tests/holes.test.js`. Example — St Andrews No. 17 (the Road Hole) would need:
+Add the missing capability once, generically, and give it its own test in `tests/holes.test.js`. Phase 4 did this for St Andrews No. 17 and Pinehurst No. 2:
 
 | Real feature | Expression |
 |---|---|
-| Road Hole Bunker (deep pot eating into the green) | bunker with `depth:1.8, lip:0.6` — already supported |
-| The road and wall behind the green | **gap**: a `ROAD` surface (one `SP` row: hard, fast, lie 0.8) via `cover`; the wall needs a solid-obstacle primitive (the ball model already takes a `collide` hook, used today for trees) |
-| Blind drive over the hotel corner | **gap**: an obstacle/structure primitive (same `collide` hook) |
-| Firm links turf, wind | play profile: `firm:1.4, wind:[10,24], windPush:2` — already supported |
+| Road Hole Bunker (deep pot eating into the green) | bunker with `depth:2.8, lip:0.9` |
+| The road behind the green | `ROAD` surface (one `SP` row, `lie:0.80`) via `cover` |
+| The stone wall behind the road | `obstacles:[{type:'wall',...}]` via the `collide` hook, which now runs on the roll as well as in flight |
+| Sandy waste areas | `WASTE` surface via `cover` |
+| Turtleback green | `hollow` with negative `depth` |
+| Blind drive over the hotel corner, out of bounds along the hotel | **still a gap**: no blind-shot or side-OB primitive |
 
-## 3. The three proof-of-concept holes
+Test-only knob: a hole's strategy may set `lieAdd:{SAND:1.0}` in `hole-checks.js` to charge a lie more than the shared baseline does (a bunker you cannot play out of forwards).
+
+## 3. The holes so far
+
+The first three are the Phase 3 proofs; holes 4–6 (Phase 4) were added with this workflow.
 
 Chosen because they share almost nothing:
 
@@ -95,3 +102,6 @@ Chosen because they share almost nothing:
 | [Pebble Beach No. 8](holes/pebble-8.md) | Distance control off the tee, then a forced carry over a chasm | `ramp` ×3, `rise`, `cover`, an ocean inlet in the cliff coastline |
 | [Augusta No. 13](holes/augusta-13.md) | Risk/reward from a sidehill lie: go for it over the creek or lay up | `ramp` (speed slot), `tilt` + StanceModel, `rise` + `cover` (shaved bank), green speed |
 | [TPC Sawgrass No. 17](holes/sawgrass-17.md) | Pure distance/direction control to an island, in the wind | `rise` (crowned island), `step` (tier), deep pot bunker, `windPush` |
+| [St Andrews Old Course No. 17](holes/standrews-17.md) | Run-out to a green with a deep pot bunker, a road and a wall behind, on firm turf in wind | `ROAD`, `wall` obstacle, deep bunker, `firm`, wind |
+| [Augusta National No. 12](holes/augusta-12.md) | Distance control over a creek to a shallow, wide, angled green in swirling wind | creek + shaved bank, `rise` ×2, bunkers front and back, `windPush` |
+| [Pinehurst No. 2, No. 5](holes/pinehurst-5.md) | A crowned green that sheds everything but a precise approach into sandy waste | negative `hollow`, `WASTE`, green `firm` |

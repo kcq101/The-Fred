@@ -336,7 +336,7 @@ test('real holes, 600 random shots each (random start, club, power, aim, shaping
         assert.ok(Number.isFinite(p.x + p.y + p.z + b.v.x + b.v.y + b.v.z), `${course.HOLE.name} shot ${n}: not finite`);
         const clear = p.y - R - course.H(p.x, p.z);
         tot.minClear = Math.min(tot.minClear, clear);
-        if (b.landed) { hop = Math.max(hop, clear); if (b.rolling) tot.maxGround = Math.max(tot.maxGround, Math.hypot(b.v.x, b.v.y, b.v.z)); }
+        if (b.landed) { hop = Math.max(hop, clear); if (b.rolling) { const sv = Math.hypot(b.v.x, b.v.y, b.v.z); if (sv > tot.maxGround) { tot.maxGround = sv; tot.where = course.HOLE.id; } } }
         for (const bd of course.BODIES) if (p.y - R <= bd.level + 0.02 && bd.sd(p.x, p.z) > 0) exit = 'water';
         if (p.x < bb.x0 + 3 || p.x > bb.x1 - 3 || p.z < bb.z0 + 3 || p.z > bb.z1 - 3) exit = exit || 'oob';
       }
@@ -347,7 +347,7 @@ test('real holes, 600 random shots each (random start, club, power, aim, shaping
   }
   assert.ok(tot.shots > 1500 && tot.rest > 800, JSON.stringify(tot));
   assert.ok(tot.minClear >= -0.02, `ball went ${(-tot.minClear).toFixed(3)} yd into the ground`);
-  assert.ok(tot.maxGround <= BM.V_MAX + 1e-6, `ground speed ${tot.maxGround.toFixed(1)}`);
+  assert.ok(tot.maxGround <= BM.V_MAX + 1e-6, `ground speed ${tot.maxGround.toFixed(1)} on ${tot.where} (limit ${BM.V_MAX})`);
   assert.ok(tot.maxRestT < 12, `slowest settle ${tot.maxRestT.toFixed(1)}s (the game's own limit is ${BM.MAX_T}s)`);
   assert.ok(tot.maxDryHop < 3.5, `highest hop on dry ground ${tot.maxDryHop.toFixed(2)} yd`);
 });

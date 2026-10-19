@@ -1,0 +1,111 @@
+# Iconic hole spec: St Andrews Old Course No. 17 (the Road Hole)
+
+## 1. Inspiration
+
+| | |
+|---|---|
+| Real hole | St Andrews Old Course, hole 17, the Road Hole |
+| Par / yardage (real) | Par 4, about 495 yards (lengthened for recent Opens) |
+| Par / yardage (game) | Par 4, 470 yards tee → pin. A pure driver leaves about 138 yards on the firm fairway; reaching in two takes a driver and a long second. |
+| Sources | See below |
+
+- [golf.com — Inside the Old Course's Road Hole](https://golf.com/travel/inside-oid-course-road-hole-st-andrews/?amp=1)
+- [golfcoursearchitecture.net — Iconic Road Hole to be lengthened](https://www.golfcoursearchitecture.net/content/iconic-road-hole-to-be-lengthened)
+- [Golf Channel / AP — Open organizers give Road Hole back its danger](https://www.golfchannel.com/news/article-associated-press-open-organizers-give-road-hole-back-its-danger)
+- [European Tour — Road Hole to be lengthened ahead of the 2010 Open](https://www.europeantour.com/dpworld-tour/news/articles/detail/road-hole-to-be-lengthened-ahead-of-the-2010-open/)
+- [golf.com — St Andrews Old Course, Top 100](https://golf.com/courses/st-andrews-old-course-golf-top-100-courses/)
+
+## 2. What makes it iconic
+
+- **Signature features**: the drive over the hotel/sheds corner, the Road Hole Bunker eating into the front-left of a narrow, angled green, the tarmac road hard behind the green, and the stone wall behind the road.
+- **The strategic problem in one sentence**: the pin sits behind a deep bunker you cannot play out of forwards and the "safe" long shot runs through the green onto the road, so you either play short and take a bogey-ish par, or fly the bunker with exactly the right club.
+- **Where scores are made and lost**: the second shot. Long is dead (road, wall); short-left is the bunker. Par is often made from the front of the green with a putt or bump-and-run.
+
+## 3. Analysis — the challenge archetypes
+
+| Archetype | Applies? | Which shot | Notes |
+|---|---|---|---|
+| Distance control / run-out | Yes (primary) | Approach | Firm turf: the ball runs; long is the road |
+| Forced carry | Partly | Approach | Over the bunker to a pin behind it |
+| Dogleg / corner to cut | Left out | Drive | The hotel corner is a blind drive; see gaps |
+| Elevation change | No | | |
+| Sloping lies | No | | |
+| Narrow landing zone | Yes | Approach | The green is narrow and angled |
+| Deep or pot bunkers | Yes | Approach | The Road Hole Bunker |
+| Green contours | Mild | Approach | A gentle tilt away from the road |
+| Penal surrounds | Yes | Approach | Road and wall |
+| Wind exposure | Yes | Both | 8–20 mph, exposed links |
+| Risk/reward split | Yes | Approach | Fly it, attack the tucked pin, or play the front |
+| Firm/fast turf | Yes | Both | `firm:1.5`, fast greens |
+
+## 4. Translation — real feature → game mechanic
+
+| Real feature | Game expression | Parameters | What it does to play |
+|---|---|---|---|
+| Road Hole Bunker | bunker | `depth:2.8, lip:0.9`, front-left, overlapping the green edge | Very deep; escapes sideways but not forwards |
+| The road | **new** `ROAD` surface via a `cover` band | around the right and back of the green, `w:3.4`, `over:['ROUGH','FAIRWAY']` | Hard and fast: balls skip and roll out |
+| The wall | **new** `wall` obstacle (generic `OBSTACLES` registry) | behind the road, `t:1.2, h:2.2, e:0.3` | Stops balls in flight and on the roll; kicks them back |
+| Firm links turf and wind | play profile | `firm:1.5, wind:[8,20], windPush:1.6, greens:{speed:1.15, firm:1.3}` | Run-out everywhere |
+| Fairway pot bunkers | bunkers | two small, at (20,300) and (-14,318) | Positional |
+| Dunes | `theme:'links'` backdrop | | Golden dunes behind |
+
+**Capability gaps**: the blind drive over the hotel/sheds corner and the out-of-bounds line along the hotel are not expressed. The game has no blind shots and no OB along a side, so the drive is a plain fairway shot.
+
+## 5. Exaggeration
+
+| Characteristic | Real | Game | Why this amount |
+|---|---|---|---|
+| Length | 495 yd | 470 yd | A pure driver plus a full iron is just reachable with a long second |
+| Firmness | firm | `firm:1.5`, greens firm 1.3 | The run-out is the point: a flown pin ball runs through to the road |
+| Road Hole Bunker depth | very deep | depth 2.8, lip 0.9 | Deep enough that the forward escape fails; 3.4/1.1 was an inescapable bowl (a soft lock) so it was backed off |
+| Road | tarmac | ROAD: e .36, mu .16, dec 5.0 | A wedge rolls ~6 yd, an iron ~17 on it (fairway: 3 and 7) |
+| Wall | stone, ~1.5 m | height 2.2 yd, restitution 0.3 | Reads as solid; makes the back of the green a real penalty |
+
+Simplified: the hotel, the sheds and the out-of-bounds line are left out.
+
+## 6. Validation — the contract
+
+| Shot | Expected |
+|---|---|
+| A pure drive runs out on the firm fairway | Fairway, a full iron left |
+| An iron flown right at the pin | Runs through onto the ROAD |
+| Carrying the bunker and landing just over | Holds the green or its edge |
+| The same shot pulled a little | The Road Hole bunker |
+| Into an 18 mph headwind, the same carry | Falls short, into the bunker |
+| With an 18 mph tailwind | Flies the green into the rough behind |
+| A 3-wood run into the back | Strikes the stone wall and kicks back |
+| A wedge from the middle of the bunker at the pin | Cannot get out forwards |
+| The safe line to the wide front | Holds the green |
+
+| Decision | Plans | Must hold |
+|---|---|---|
+| The second shot | fly the pin / attack the tucked pin / play to the middle | Flying it is the worst plan for sharp and shaky players. Sand costs +1.0 in this comparison (a test-only `lieAdd`) because the tour baseline understates a bunker you cannot play out of forwards. |
+
+**Honest note**: this hole's geometry was tuned with scratch probes before its checks were written, contrary to the workflow. The checks were then written against the tuned hole and pass. Holes 5 and 6 had their checks written first.
+
+## 7. Results
+
+```
+=== St Andrews Old Course (standrews-17) — A long second into a narrow green on firm links turf: the deep Road Hole bunker eats into the front-left (a ball in it cannot play out forwards) and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and the road has it.
+shot                                                                           before           after
+a pure drive runs out on the firm fairway and leaves a full iron               FAIRWAY 181y     FAIRWAY 138y
+an iron flown right at the pin runs through the green onto the road            GREENS 0y        ROAD 11y
+carrying the bunker and landing just over it holds the green                   GREENS 1y        FRINGE 8y
+the same shot pulled a little drops into the Road Hole bunker                  ROUGH 11y        SAND 12y
+into an 18 mph headwind the same carry falls short, into the bunker            GREENS 6y        SAND 13y
+with an 18 mph tailwind it flies the green into the rough behind               GREENS 5y        ROUGH 16y
+a 3-wood run into the back of the green strikes the stone wall and kicks back  ROUGH 13y        ROAD 15y
+from the middle of the bunker a wedge at the pin cannot get out forwards       GREENS 0y        SAND 13y
+the safe line to the wide front of the green holds it                          GREENS 11y       GREENS 10y
+
+  strategy: the second shot: fly the pin, attack the tucked pin over the bunker, or play to the middle
+  plan       skill   before: wet  score     after: wet  score
+  fly        sharp             0%  2.63              0%  3.52
+  fly        shaky             0%  2.89              0%  3.62
+  attack     sharp             0%  2.45              0%  3.25
+  attack     shaky             0%  3.00              0%  3.45
+  middle     sharp             0%  3.12              0%  3.11
+  middle     shaky             0%  3.36              0%  3.47
+```
+
+"Before" is the same land and green with no features, play profile, wall, road or bunkers.

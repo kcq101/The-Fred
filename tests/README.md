@@ -2,10 +2,10 @@
 
 Run from the repo root (Node 18+; no installs needed):
 
-    node --test tests/*.test.js    # 87 checks (30 swing/wiring/fan + 24 ball physics + 33 iconic holes)
+    node --test tests/*.test.js    # 120 checks (30 swing/wiring/fan + 24 ball physics + 66 iconic holes)
     node tests/swing-report.js     # before/after tables (legacy swing math vs SwingModel)
     node tests/ball-report.js      # Phase 2 before/after tables (frozen old physics vs BallModel), real-hole fuzz, Node-only CPU timing
-    node tests/hole-report.js      # Phase 3 before/after: every hole's checks on the current holes vs commit 548d49a (or any git ref)
+    node tests/hole-report.js      # Phase 3 before/after: every hole's checks on the current holes vs commit 548d49a (or any git ref); holes added after that commit are compared with the same land stripped of its signature
     node tests/hole-map.js [id]    # top-down PNG of each hole with its check shots traced, into docs/maps/
 
 ## What these are
