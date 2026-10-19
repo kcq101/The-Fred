@@ -2,7 +2,19 @@
 
 Arcade golf in a comic-book style. Pull back from the ball to set power, release when the swinging needle is as close to the middle of the rainbow as you can get it, and pull down-left or down-right to shape a draw or fade.
 
-Three holes: Pebble Beach (par 4), Augusta National (par 5) and TPC Sawgrass (par 3).
+Three holes, each built to play like the famous hole behind it:
+
+- **Pebble Beach No. 8** (par 4) — the plateau ends at a cliff, so the driver goes in the sea; then carry the ocean chasm to a perched green.
+- **Augusta No. 13** (par 5) — a drive that finds the valley leaves a reachable second, from a ball-above-the-feet lie that hooks toward the creek. Go for it, or lay up.
+- **TPC Sawgrass No. 17** (par 3) — an island green in a gusty wind.
+
+## Iconic holes
+
+Holes are data, built from a small catalogue of terrain features (`rise`, `ramp`, `tilt`, `step`, `hollow`, `cover`) plus water, bunkers and a play profile (wind, turf firmness, green speed). Sloping ground also changes the shot everywhere: ball above the feet hooks, below slices, uphill plays short, downhill runs (the aim arc shows it). Each hole declares its intended challenge as testable shots and strategies, which run through the real physics.
+
+- `docs/ICONIC-HOLES.md` — the architecture and the workflow for adding a famous hole
+- `docs/holes/TEMPLATE.md` — the analysis and design template; `docs/holes/<id>.md` — the three filled in
+- `docs/maps/` — top-down maps of each hole with its check shots traced
 
 ## Run it
 
@@ -26,7 +38,7 @@ One model (`BallModel` in `index.html`) drives the shot, the aiming arc and the 
 
 ## Tests
 
-`node --test tests/*.test.js`, `node tests/swing-report.js` and `node tests/ball-report.js`. See `tests/README.md` for what they do and do not cover.
+`node --test tests/*.test.js`, `node tests/swing-report.js`, `node tests/ball-report.js`, `node tests/hole-report.js` (before/after for every hole's checks) and `node tests/hole-map.js` (redraws `docs/maps/`). See `tests/README.md` for what they do and do not cover.
 
 ## Controls
 

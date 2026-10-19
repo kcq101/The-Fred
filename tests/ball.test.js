@@ -290,7 +290,8 @@ test('real holes: a ball on a bunker bank slides to the bottom and rests in the 
 test('real holes: wedge shots dropped into a bunker end in that bunker, at rest, whatever part of it they hit', () => {
   course.prepHole(0);                              // Pebble Beach, the bunker short-left of the green
   const bk = course.BUNKERS[0];
-  const wedge = WEDGE, from = { x: bk.x, z: bk.z - 70 };
+  const wedge = WEDGE, from = { x: bk.x + 28, z: bk.z - 55 };   // from the dry ground left of the chasm (Phase 3 put the ocean straight in front of this green)
+  assert.notEqual(course.S(from.x, from.z), g.WATER);
   let n = 0;
   for (let k = 0; k < 16; k++) {
     const u = Math.cos(k * 0.4) * 0.85, w = Math.sin(k * 0.4) * 0.85;     // points inside the bunker's own outline

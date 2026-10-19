@@ -6,23 +6,26 @@ const fs = require('fs');
 const path = require('path');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
-function between(startMarker, endMarker) {
-  const a = SRC.indexOf(startMarker);
+function between(startMarker, endMarker, src = SRC) {
+  const a = src.indexOf(startMarker);
   if (a < 0) throw new Error('marker not found: ' + startMarker);
-  const b = SRC.indexOf(endMarker, a);
+  const b = src.indexOf(endMarker, a);
   if (b < 0) throw new Error('marker not found: ' + endMarker);
-  return SRC.slice(a, b);
+  return src.slice(a, b);
 }
 
-function loadGame() {
+// src: index.html text; defaults to the working copy. Pass an older version (e.g. from `git show`) to compare before/after.
+function loadGame(src = SRC) {
+  const between_ = (a, b) => between(a, b, src);
   const prelude = 'const D2R=Math.PI/180;const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));const mix=(a,b,t)=>a+(b-a)*t;';
-  const surfaces = between('const TEE=0,FAIRWAY=1', 'function S(x,z)');
-  const physics = between('const G=10.7,K=0.0011,R=0.05;', 'function lieMult');
-  const lieFn = between('function lieMult', '\n');
-  const swing = between('// <swing-model>', '// </swing-model>');
-  const ball = between('// <ball-model>', '// </ball-model>');
-  const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n${ball}\n` +
-    'return {G,K,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,BallModel};';
+  const surfaces = between_('const TEE=0,FAIRWAY=1', 'function S(x,z)');
+  const physics = between_('const G=10.7,K=0.0011,R=0.05;', 'function lieMult');
+  const lieFn = between_('function lieMult', '\n');
+  const swing = between_('// <swing-model>', '// </swing-model>');
+  const ball = between_('// <ball-model>', '// </ball-model>');
+  const stance = src.includes('// <stance-model>') ? between_('// <stance-model>', '// </stance-model>') : 'const StanceModel=null;';
+  const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n${stance}\n${ball}\n` +
+    'return {G,K,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
   return new Function(body)();
 }
 
@@ -34,12 +37,12 @@ class V3 {
 }
 
 // The game's real terrain code, lifted from index.html: HOLES, H(), normal(), S(), prepHole(), bunkers and water.
-function loadCourse() {
-  const region = between('// ---------------------------------------------------------------- shapes', '// ---------------------------------------------------------------- ball physics');
-  const game = loadGame();
+function loadCourse(src = SRC) {
+  const region = between('// ---------------------------------------------------------------- shapes', '// ---------------------------------------------------------------- ball physics', src);
+  const game = loadGame(src);
   const body = `const D2R=Math.PI/180;const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));const mix=(a,b,t)=>a+(b-a)*t;const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 ${region}
-return {HOLES,prepHole,H,normal,S,get HOLE(){return HOLE;},get PIN(){return PIN;},get PIN_H(){return PIN_H;},get TEE_H(){return TEE_H;},get BUNKERS(){return BUNKERS;},get BODIES(){return BODIES;},get GREEN(){return GREEN;},ell,centerX};`;
+return {HOLES,prepHole,H,normal,S,get HOLE(){return HOLE;},get PIN(){return PIN;},get PIN_H(){return PIN_H;},get TEE_H(){return TEE_H;},get BUNKERS(){return BUNKERS;},get BODIES(){return BODIES;},get GREEN(){return GREEN;},ell,centerX,inFairway,SP,get FEATS(){return typeof FEATS==='undefined'?null:FEATS;}};`;
   const course = new Function('V3', body)(V3);
   course.game = game;                                                     // (attach, don't spread: HOLE/PIN/... are live getters)
   course.terrain = { H: course.H, normal: course.normal, S: course.S };
