@@ -2,11 +2,20 @@
 
 Run from the repo root (Node 18+; no installs needed):
 
-    node --test tests/*.test.js    # 120 checks (30 swing/wiring/fan + 24 ball physics + 66 iconic holes)
+    node --test tests/*.test.js    # 134 checks (30 swing/wiring/fan + 24 ball physics + 74 iconic holes + 6 authoring tools)
     node tests/swing-report.js     # before/after tables (legacy swing math vs SwingModel)
     node tests/ball-report.js      # Phase 2 before/after tables (frozen old physics vs BallModel), real-hole fuzz, Node-only CPU timing
-    node tests/hole-report.js      # Phase 3 before/after: every hole's checks on the current holes vs commit 548d49a (or any git ref); holes added after that commit are compared with the same land stripped of its signature
+    node tests/hole-report.js [ref] [--hole=id]   # Phase 3 before/after: every hole's checks on the current holes vs commit 548d49a (or any git ref); holes added after that commit are compared with the same land stripped of its signature. Needs history: `git fetch --unshallow` in a shallow clone
     node tests/hole-map.js [id]    # top-down PNG of each hole with its check shots traced, into docs/maps/
+
+Authoring tools, in `tests/tools/` (each file opens with its full usage and flags; the workflow they belong to is `docs/ICONIC-HOLES.md` §2):
+
+    node tests/tools/validate.js <id>                                    # the Validate step in one go: the hole's checks + map + slope map and bounds + its report section, with a summary
+    node tests/tools/probe.js <id> '<json shots>'                        # single shots: end, surface, yards to pin, first bounce, stance, wall strikes
+    node tests/tools/aimscan.js <id> <from> <club> <x0,x1,z0,z1,step>    # one shot at a grid of aim points, sharp and shaky: expected strokes, green rate, wet rate
+    node tests/tools/slope.js <id>                                       # green slope map (< 1 / 1-2.5 / 2.5-4 / > 4 % bands, contours, downhill arrows) -> docs/maps/<id>-slope.png, band shares, realism bounds
+    python3 tests/tools/render.py <id> [tee bird approach green]         # real-game screenshots in headless Chromium, and the ball's screen position against the HUD
+    python3 tests/tools/card.py <n> <name> <par> <yards>                 # a placeholder hole card in the card1-3 layout -> cards/card<n>.jpg
 
 ## What these are
 
@@ -24,7 +33,11 @@ Run from the repo root (Node 18+; no installs needed):
   declared challenge from `hole-checks.js`: single shots with a required outcome, and strategies (two or more plans, each played by a
   "sharp" player, needle within ±0.2, and a "shaky" one, within ±0.55) whose hazard rates and expected scores must compare as designed.
 - `hole-checks.js` — the per-hole challenge contracts (data). `hole-play.js` plays them the way a player does: the arc is pulled to the target
-  through the real lie and stance, then the needle offset is applied. Expected score uses a simplified tour baseline; it compares plans, it does not rate players.
+  through the real lie and stance, then the needle offset is applied. Expected score uses a simplified tour baseline (distance to the pin, a lie charge, and a
+  recovery-difficulty term for balls that finish below a steep face or short-sided); it compares plans, it does not rate players. The term is unit-tested in `holes.test.js`.
+- `tools.test.js` — **automated**. The authoring tools in `tests/tools/`: `probe.js` and `aimscan.js` agree with `hole-play.js` and refuse bad input; `slope.js` writes its PNG,
+  its bands add up and its realism bounds pass Pinehurst No. 5's plateau while flagging the rejected dome; `validate.js` refuses a hole with no checks; `card.py` makes a card of the right size
+  (skipped without Python and Pillow). `render.py` needs Chromium and a three.js fetch, so only its `--help` is exercised here.
 - `legacy-ball.js` — the pre-Phase-2 ball physics (verbatim), used only as the "before" in `ball-report.js`.
 - `legacy.js` — the swing math from commit `11d2b3f`, kept only as the "before" for the report.
 
@@ -44,5 +57,6 @@ Run from the repo root (Node 18+; no installs needed):
 ## Phase 3 limits worth knowing
 
 - The hole checks have no trees (Augusta's pines would stop some hooked shots in the game) and use no random jitter.
-- "Expected score" is a rough baseline for comparing plans on the same hole, not a prediction of a real round.
+- "Expected score" is a rough baseline for comparing plans on the same hole, not a prediction of a real round. Its recovery term reads only a 10-yd window along the line to the pin and
+  charges at most one stroke: it sees a deep bunker lip or a falloff, not a false front, a tier or a long sidehill chip.
 - The in-game views were checked in headless Chromium (software WebGL); nothing has been played on a phone.
