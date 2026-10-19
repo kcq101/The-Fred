@@ -2,6 +2,7 @@
 // terrain, swing, stance and ball physics; hole-report.js runs the same shots on an older version to show what changed.
 //
 // shots:      one swing each, with the outcome the design calls for.  expect: { end: 'water'|'rest'|..., surf: [...], maxToPin, minToPin }
+// shot.expect also takes  stance: 'TAG',  wall: true|false (did the ball strike a wall on the way).
 // strategies: two or more ways to play the same moment. Each plan is played by two skill levels:
 //               sharp = needles evenly over ±0.2 of center,  shaky = over ±0.55
 //             r[plan][skill] = { hazard: share in water/OB, toPin: mean yards left (dry balls), score: expected strokes for the hole, surfs }
@@ -84,6 +85,82 @@ module.exports = {
         expect: [
           ['a sharp player always finds the island in still air', r => r.pin.sharp.hazard === 0],
           ['a shaky player gets wet at least one time in seven', r => r.pin.shaky.hazard > 1 / 7] ] },
+    ],
+  },
+
+  'standrews-17': {
+    challenge: 'A long second into a narrow green on firm links turf: the deep Road Hole bunker eats into the front-left (a ball in it cannot play out forwards) and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and the road has it.',
+    shots: [
+      { name: 'a pure drive runs out on the firm fairway and leaves a full iron', shot: { club: 'Hammer', at: [0, 300], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
+      { name: 'an iron flown right at the pin runs through the green onto the road', shot: { from: [0, 334], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD'] } },
+      { name: 'carrying the bunker and landing just over it holds the green', shot: { from: [0, 334], club: 'Iron', at: [18, 464] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
+      { name: 'the same shot pulled a little drops into the Road Hole bunker', shot: { from: [0, 334], club: 'Iron', at: [18, 464], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'into an 18 mph headwind the same carry falls short, into the bunker', shot: { from: [0, 334], club: 'Iron', at: [18, 464], wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'with an 18 mph tailwind it flies the green into the rough behind', shot: { from: [0, 334], club: 'Iron', at: [18, 464], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['ROUGH', 'ROAD'] } },
+      { name: 'a 3-wood run into the back of the green strikes the stone wall and kicks back onto the road', shot: { from: [0, 334], club: '3-Wood', at: [18, 470] }, expect: { end: 'rest', surf: ['ROAD'], wall: true } },
+      { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [22, 456], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 334], club: 'Iron', at: [8, 455] }, expect: { surf: ['GREENS'] } },
+    ],
+    strategies: [
+      // the baseline counts a bunker as a third of a stroke; here you cannot play out of this one towards the pin (shot above), so it costs a full stroke
+      { name: 'the second shot: fly the pin, attack the tucked pin over the bunker, or play to the middle', lieAdd: { SAND: 1.0 }, plans: [
+          { name: 'fly', shot: { from: [0, 334], club: 'Iron' } },
+          { name: 'attack', shot: { from: [0, 334], club: 'Iron', at: [18, 464] } },
+          { name: 'middle', shot: { from: [0, 334], club: 'Iron', at: [8, 455] } } ],
+        expect: [
+          ['flying the pin puts a sharp player on the road more often than not', r => (r.fly.sharp.surfs.ROAD || 0) > 10],
+          ['it is the worst plan for both players', r => ['sharp', 'shaky'].every(k => r.fly[k].score > r.attack[k].score && r.fly[k].score > r.middle[k].score)],
+          ['attacking the tucked pin puts even a sharp player in the bunker at least one time in five', r => (r.attack.sharp.surfs.SAND || 0) >= 4],
+          ['the middle of the green is the play: a sharp player holds it four times in five and it beats the attack', r => (r.middle.sharp.surfs.GREENS || 0) >= 17 && r.middle.sharp.score < r.attack.sharp.score],
+          ['and it keeps a shaky player out of the bunker twice as often', r => (r.middle.shaky.surfs.SAND || 0) * 2 <= (r.attack.shaky.surfs.SAND || 0)] ] },
+    ],
+  },
+
+  'augusta-12': {
+    challenge: 'A short iron over Rae\'s Creek to a shallow, wide green angled away from the tee: the creek and its steep bank short, deep bunkers long, a swirling wind over it all. The deeper left side is the safe target; the Sunday pin tucked by the creek on the right is the temptation.',
+    shots: [
+      { name: 'a well-struck iron at the pin holds the right side of the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 7 } },
+      { name: 'a well-struck iron at the middle of the green holds it', shot: { club: 'Iron', at: [10, 139], offset: 0.1 }, expect: { surf: ['GREENS'] } },
+      { name: 'a slightly thin iron lands on the steep bank and feeds back into the creek', shot: { club: 'Iron', offset: 0.3 }, expect: { end: 'water' } },
+      { name: 'a push right at the pin is wet', shot: { club: 'Iron', offset: 0.5 }, expect: { end: 'water' } },
+      { name: 'carried 15 yards long, the ball finds the deep back-right bunker', shot: { club: 'Iron', at: [-12, 156] }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'into a 14 mph headwind, a stock shot comes up short in the creek', shot: { club: 'Iron', wind: { mph: 14, dir: 'head' } }, expect: { end: 'water' } },
+      { name: 'clubbing up for the headwind (arc past the pin) finishes on the putting surface or its edge', shot: { club: 'Iron', at: [-6, 150], wind: { mph: 14, dir: 'head' } }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 9 } },
+      { name: 'with a 14 mph tailwind, a stock shot flies the green into the back bunkers or beyond', shot: { club: 'Iron', wind: { mph: 14, dir: 'tail' } }, expect: { end: 'rest', surf: ['SAND', 'ROUGH'] } },
+    ],
+    strategies: [
+      { name: 'the Sunday pin: attack it by the creek, or play to the deep middle', plans: [
+          { name: 'pin', shot: { club: 'Iron' } },
+          { name: 'middle', shot: { club: 'Iron', at: [10, 139] } } ],
+        expect: [
+          ['attacking the pin keeps a sharp player dry', r => r.pin.sharp.hazard === 0],
+          ['a shaky player gets wet at least one time in four going at it', r => r.pin.shaky.hazard > 0.25],
+          ['the middle is far safer for a shaky player', r => r.middle.shaky.hazard * 2 <= r.pin.shaky.hazard],
+          ['attacking pays for a sharp player (about half a stroke); for a shaky one the tour baseline calls it a wash, so the middle costs nothing and drowns far less', r => r.pin.sharp.score + 0.4 < r.middle.sharp.score && r.middle.shaky.score <= r.pin.shaky.score + 0.1] ] },
+    ],
+  },
+  'pinehurst-5': {
+    challenge: 'A par 5 that rises and turns left to an elevated plateau green set on a diagonal: gentle on top, falling away steeply at every edge onto short runoffs and wiregrass. Going for it in two means a 3-wood from a slanted fairway; most players lay up and wedge onto the top.',
+    shots: [
+      { name: 'a good drive finds the fairway', shot: { club: 'Hammer', at: [-8, 288], offset: 0.1 }, expect: { surf: ['FAIRWAY'] } },
+      { name: 'a pushed drive is in the wiregrass and sand, not the rough', shot: { club: 'Hammer', at: [-8, 288], offset: 0.5 }, expect: { end: 'rest', surf: ['WASTE'] } },
+      { name: 'the second shot is played with the ball below the feet', shot: { from: [-8, 288], club: '3-Wood' }, expect: { stance: 'BALL BELOW FEET · SLICES' } },
+      { name: 'a full 3-wood aimed straight at the pin from the slanted fairway is pushed right by the lie and finishes well away', shot: { from: [-8, 288], club: '3-Wood', at: 'pin', power: 1 }, expect: { end: 'rest', minToPin: 10 } },
+      { name: 'the same 3-wood aimed left of the green, allowing for the slant, finishes close', shot: { from: [-8, 288], club: '3-Wood', at: [46, 503] }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 8 } },
+      { name: 'the lay-up with an iron finds the fairway at wedge distance', shot: { from: [-8, 288], club: 'Iron', at: [24, 432] }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 50, maxToPin: 90 } },
+      { name: 'from the lay-up, a well-struck wedge at the pin holds the top', shot: { from: [24, 432], club: 'Wedge', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'a wedge flown to the back-left edge runs off the falloff', shot: { from: [24, 432], club: 'Wedge', at: [30, 515] }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE', 'WASTE', 'ROUGH'] } },
+      { name: 'from the low runoff left of the green, a wedge back up the falloff finishes on or near the green', shot: { from: [56, 502], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', maxToPin: 10 } },
+    ],
+    strategies: [
+      { name: 'the second shot: go for the green with a 3-wood (aimed left of it, for the slant) or lay up with an iron to wedge distance', plans: [
+          { name: 'go', shot: { from: [-8, 288], club: '3-Wood', at: [46, 503] } },
+          { name: 'layup', shot: { from: [-8, 288], club: 'Iron', at: [24, 432] } } ],
+        expect: [
+          ['a sharp player who goes for it reaches the green most of the time', r => (r.go.sharp.surfs.GREENS || 0) / r.go.sharp.n >= 0.5],
+          ['a shaky one rarely holds it', r => (r.go.shaky.surfs.GREENS || 0) / r.go.shaky.n <= 0.35],
+          ['going for it pays a sharp player at least half a stroke', r => r.layup.sharp.score - r.go.sharp.score >= 0.5],
+          ['for a shaky player the payoff is much smaller (the tour baseline still favours going: see the spec)', r => (r.layup.shaky.score - r.go.shaky.score) < 0.75 * (r.layup.sharp.score - r.go.sharp.score)] ] },
     ],
   },
 };

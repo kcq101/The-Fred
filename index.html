@@ -367,7 +367,8 @@ function shapeSD(sh){
 //   ramp   {z0, z1, dh, area?, edge?}   the hole climbs (dh>0) or falls between z0 and z1 and stays there: uphill drives, downhill approaches
 //   tilt   {area, grade, edge}          a side slope across the hole: ground rises `grade` yards per yard toward screen-left (+x) of the centerline
 //   step   {area, a:[x,z], b:[x,z], dh, w, edge}  a tier: ground left of the line a→b sits dh higher, over a ramp w yards wide
-//   hollow {area, depth, edge}          a bowl or swale, deepest in the middle of an ellipse area
+//   hollow {area, depth, edge, flat?}   a bowl or swale, deepest in the middle of an ellipse area; depth<0 makes a crown. flat (0..1): the share of the
+//                                       radius held at full depth before it starts to fall away (0 = a dome; 0.6 = a level top with steep edges: a plateau green)
 //   cover  {area, surf, over?, edge?}   ground that would play as rough (or any surface named in `over`) plays as `surf` instead
 // area: an ellipse {x,z,rx,rz,rot}, a polygon {pts}, or a band {pts,w} along a polyline.
 // Stage: rise, ramp and tilt shape the land that the green, tee and bunkers are laid into (so an elevated green stays a flat-topped plateau);
@@ -390,7 +391,7 @@ const FEATURES={
   step:  {stage:'green', prep:f=>{const dx=f.b[0]-f.a[0],dz=f.b[1]-f.a[1],l=Math.hypot(dx,dz);f.nx=-dz/l;f.nz=dx/l;},
           // signed distance to the line, positive on its left (+x side when the line runs toward +z)
           h:(f,x,z,h,w)=>h+f.dh*smooth(-f.w/2,f.w/2,-((x-f.a[0])*f.nx+(z-f.a[1])*f.nz))*w},
-  hollow:{stage:'green', h:(f,x,z,h,w)=>h-f.depth*(1-smooth(0,1,ell(x,z,f.area)))*w},
+  hollow:{stage:'green', h:(f,x,z,h,w)=>h-f.depth*(1-smooth(f.flat||0,1,ell(x,z,f.area)))*w},
   cover: {stage:'surf'},
 };
 let FEATS={land:[],green:[],surf:[]};
@@ -492,6 +493,75 @@ const HOLES=[
          {type:'palm',n:12,zone:'rect',x:[-70,70],z:[-45,12],s:[0.9,1.2]},{type:'pine',n:70,zone:'rect',x:[-150,150],z:[250,340],s:[1,1.4]}],
   bushes:[{type:'azalea',n:70,zone:'shore',d:[1.5,6]},{type:'shrub',n:60,zone:'rect',x:[-140,140],z:[-45,15]}],
   rocks:{n:0},leaf:{oak:'#2f7438',palm:'#3f8a3a',pine:'#24603a'}},
+ {id:'standrews-17',name:'St Andrews Old Course',short:'St Andrews',par:4,card:'cards/card4.jpg',note:'Road Hole · Bunker short, road and wall long',theme:'links',
+  // Inspired by No. 17 (the Road Hole): a long second into a narrow, angled green with the deep Road Hole bunker eating into its front-left, a hard road
+  // behind it and a stone wall behind that, on firm links turf in the wind. Land it short and let it run; fly the pin and the road has it. docs/holes/standrews-17.md
+  seed:3.3,roll:0.8,ridge:1.5,
+  route:[[0,0],[120,-4],[250,-10],[350,-4],[430,6],[467,6]],
+  fw:[[40,15],[200,15],[300,13],[400,12],[438,11],[466,12]],fairway:[[35,458]],
+  green:{x:12,z:468,rx:19,rz:8,rot:0.22},pin:{x:18,z:470},tilt:{x:0.012,z:0.02},
+  features:[
+    {type:'rise',area:{x:12,z:468,rx:21,rz:10,rot:0.22},dh:1.1,edge:9},       // a narrow plateau green: the front and sides fall away to the apron
+    {type:'cover',area:{pts:[[-26,441],[-22,463],[-12,478],[18,483],[50,481],[78,473]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road runs round the right and along the back of the green
+  ],
+  obstacles:[{type:'wall',pts:[[-30.3,441.8],[-26.1,464.6],[-14.4,481.7],[17.8,487.4],[50.7,485.3],[79.2,477.2]],t:1.2,h:2.2,e:0.3}],   // the stone wall behind the road
+  play:{firm:1.5,wind:[8,20],windPush:1.6,greens:{speed:1.15,firm:1.3}},
+  bunkers:[{x:21,z:456,rx:9,rz:4.8,rot:0.3,depth:2.8,lip:0.9},{x:20,z:300,rx:3,rz:2.4,rot:0.2,depth:1.4,lip:0.4},{x:-14,z:318,rx:3,rz:2.4,rot:-0.2,depth:1.4,lip:0.4}],
+  water:[],
+  clubhouse:{x:-95,z:120,rot:0},
+  bbox:{x0:-130,x1:130,z0:-55,z1:536},
+  trees:[],
+  bushes:[{type:'shrub',n:90,zone:'sides',side:'both',d:[8,50],z:[0,436]}],
+  rocks:{n:0}},
+ {id:'augusta-12',name:'Augusta National',par:3,card:'cards/card5.jpg',note:'Golden Bell · No safe miss over Rae\'s Creek',theme:'parkland',
+  // Inspired by No. 12 (Golden Bell): a short iron over Rae's Creek to a shallow, wide green angled away from the tee, with a steep bank in front, deep bunkers behind
+  // and a wind that swirls in the lowest spot on the property. The deeper left side is safe; the pin tucked by the creek on the right is the temptation. docs/holes/augusta-12.md
+  seed:1.1,roll:0.5,ridge:3,
+  route:[[0,0],[75,2],[142,4]],fw:[[0,12],[142,12]],fairway:[[7,118]],
+  green:{x:4,z:138,rx:19,rz:8.5,rot:-0.22},pin:{x:-6,z:140.5},tilt:{x:0.014,z:0.02},
+  features:[
+    {type:'rise',area:{x:4,z:139,rx:21,rz:10.5,rot:-0.22},dh:2.2,edge:8},          // the green sits up above the creek
+    {type:'rise',area:{x:4,z:158,rx:30,rz:6},dh:1.4,edge:8},                        // and a bank rises behind it, so a long ball stops in the bunkers
+    {type:'cover',area:{pts:[[14,116],[-8,128],[-30,134],[-44,142]],w:11},surf:'FAIRWAY'},   // where the creek swings in to the green its banks are shaved: anything short rolls back into the water
+  ],
+  play:{wind:[3,14],windPush:2,greens:{speed:1.3,firm:0.75}},
+  bunkers:[{x:14,z:131,rx:6,rz:3,rot:-0.3,depth:1.6,lip:0.5},{x:21,z:147,rx:5,rz:3.3,rot:-0.2,depth:1.6,lip:0.5},{x:-12,z:152,rx:5.5,rz:3.2,rot:-0.3,depth:1.6,lip:0.5}],
+  water:[{kind:'creek',profile:'shore',level:-2,bed:-3.3,edge:2.5,
+    shape:{type:'band',w:3.2,pts:[[110,98],[70,101],[38,105],[14,116],[-8,128],[-30,134],[-48,144],[-54,162],[-56,190]]}}],
+  bridge:{x:-34,z:134},
+  bbox:{x0:-110,x1:140,z0:-55,z1:230},
+  trees:[{type:'tallpine',n:260,zone:'rect',x:[-110,140],z:[168,230],s:[0.9,1.3]},{type:'tallpine',n:220,zone:'sides',side:'both',d:[14,90],z:[-45,170],s:[0.85,1.25]},
+         {type:'pine',n:50,zone:'sides',side:'both',d:[8,30],z:[0,150],s:[0.8,1.2]}],
+  bushes:[{type:'azalea',n:90,zone:'rect',x:[-25,60],z:[165,195]},{type:'azalea',n:40,zone:'rect',x:[30,60],z:[120,150]},{type:'shrub',n:80,zone:'sides',side:'both',d:[4,14],z:[0,140]}],
+  rocks:{n:0},leaf:{tallpine:'#1f5a34',pine:'#24603a'}},
+ {id:'pinehurst-5',name:'Pinehurst No. 2',short:'Pinehurst',par:5,card:'cards/card6.jpg',note:'Go for it, or lay up to the plateau',theme:'parkland',
+  // Inspired by No. 5 at Pinehurst No. 2: a par 5 that rises and turns left to an elevated green set on a diagonal. The top of the green is gentle; every edge
+  // falls away steeply onto short, firm runoffs and then wiregrass. The fairway slants, so the second shot is played with the ball below the feet. docs/holes/pinehurst-5.md
+  seed:2.2,roll:0.4,ridge:1,
+  route:[[0,0],[150,-6],[300,-8],[410,8],[500,32]],
+  fw:[[40,15],[200,16],[300,15],[410,13],[480,12]],fairway:[[35,482]],
+  green:{x:34,z:500,rx:15,rz:10,rot:0.45},pin:{x:37,z:503},tilt:{x:-0.006,z:-0.011},
+  features:[
+    {type:'tilt',area:{pts:[[-10,230],[-8,350]],w:22},grade:0.08,edge:14},        // the fairway slants: rises to the left, so the ball sits below the feet
+    {type:'ramp',z0:370,z1:490,dh:2},                                              // the hole rises to the green
+    {type:'rise',area:{x:34,z:500,rx:17,rz:12,rot:0.45},dh:1.2,edge:8},            // the green sits up above the fairway and runoffs
+    {type:'hollow',area:{x:34,z:500,rx:18.5,rz:13,rot:0.45},depth:-0.75,flat:0.62,edge:2},  // the plateau: a top that barely moves, falling away steeply at its edges
+    {type:'hollow',area:{x:35,z:500,rx:8,rz:5,rot:0.45},depth:-0.07,edge:2},    // movement on the top (see docs/holes/pinehurst-5.md): a broad, low crown in the middle...
+    {type:'hollow',area:{x:24,z:497,rx:6,rz:4.5,rot:0.45},depth:0.07,edge:2},     // ...and soft pockets back-left, back-right and front
+    {type:'hollow',area:{x:44,z:506,rx:5.5,rz:4,rot:0.45},depth:0.06,edge:2},
+    {type:'hollow',area:{x:31,z:506,rx:6,rz:3.5,rot:0.45},depth:0.06,edge:2},
+    {type:'cover',area:{x:34,z:500,rx:25,rz:19,rot:0.45},surf:'FAIRWAY'},          // short, firm runoffs off every edge
+    {type:'cover',area:{pts:[[-24,200],[-26,300],[-14,390],[4,458]],w:14},surf:'WASTE'},   // wiregrass and sand both sides
+    {type:'cover',area:{pts:[[12,180],[14,300],[30,400],[54,460],[64,520]],w:12},surf:'WASTE'},
+    {type:'cover',area:{x:34,z:500,rx:36,rz:30,rot:0.45},surf:'WASTE'},            // and beyond the runoffs
+  ],
+  play:{firm:1.1,greens:{speed:1.1,firm:1.0}},
+  bunkers:[{x:-20,z:270,rx:5,rz:3.5,rot:0.1,depth:1.4,lip:0.5}],
+  water:[],
+  bbox:{x0:-110,x1:150,z0:-55,z1:590},
+  trees:[{type:'pine',n:240,zone:'sides',side:'both',d:[30,95],z:[-45,560],s:[0.9,1.3]},{type:'tallpine',n:130,zone:'sides',side:'both',d:[42,105],z:[0,570],s:[0.9,1.3]}],
+  bushes:[{type:'shrub',n:90,zone:'sides',side:'both',d:[24,46],z:[0,540]}],
+  rocks:{n:0},leaf:{tallpine:'#2a6a3a',pine:'#2d6e3e'}},
 ];
 HOLES.forEach(h=>{h.yards=Math.round(Math.hypot(h.pin.x,h.pin.z));});
 
@@ -532,8 +602,42 @@ const _n=new V3();
 function normal(x,z){const e=0.2;const hx=H(x+e,z)-H(x-e,z),hz=H(x,z+e)-H(x,z-e);return _n.set(-hx/(2*e),1,-hz/(2*e)).normalize();}
 function overWater(x,z,margin=0){for(const b of BODIES)if(b.sd(x,z)>-margin)return b;return null;}
 
-const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6,PINE=7;
-const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE};   // names a hole spec can use (e.g. a cover feature's surf)
+// ---------------------------------------------------------------- solid obstacles
+// Things in the ball's way that are not the ground. A hole lists them in `obstacles`; the game hands obstacleHit to the ball model's `collide` hook
+// (next to the trees), which runs while the ball flies AND while it rolls, so a wall stops a rolling ball as well as a flying one.
+//   wall {pts:[[x,z]...], t, h, e}   a free-standing wall along a polyline: t yards thick, h yards high above the ground, e = how lively it kicks the ball back (0 dead .. 1)
+// A ball above the top flies over. Anything else is pushed out of the wall and its speed into the wall is turned around (e) with the rest of its run damped.
+function nearOnPolyline(x,z,P){
+  let best={d:1e18,x:0,z:0,tx:0,tz:1};
+  for(let i=1;i<P.length;i++){const ax=P[i-1][0],az=P[i-1][1],ex=P[i][0]-ax,ez=P[i][1]-az,l2=ex*ex+ez*ez||1e-9;
+    const t=clamp(((x-ax)*ex+(z-az)*ez)/l2,0,1),qx=ax+ex*t,qz=az+ez*t,d=Math.hypot(x-qx,z-qz);
+    if(d<best.d){const l=Math.sqrt(l2);best={d,x:qx,z:qz,tx:ex/l,tz:ez/l};}}
+  return best;
+}
+const OBSTACLES={
+  wall:{hit:(o,b,onHit)=>{
+    const p=b.p,v=b.v,bx=o.box;
+    if(p.x<bx.x0||p.x>bx.x1||p.z<bx.z0||p.z>bx.z1)return;
+    const q=nearOnPolyline(p.x,p.z,o.pts),half=o.t/2+0.07;      // 0.07: the ball's radius, with a little to spare
+    if(q.d>=half||p.y>H(q.x,q.z)+o.h)return;
+    let nx=p.x-q.x,nz=p.z-q.z;const l=Math.hypot(nx,nz);
+    if(l>1e-6){nx/=l;nz/=l;}else{const s=Math.hypot(v.x,v.z)||1;nx=-v.x/s;nz=-v.z/s;}   // away from the wall's middle (dead center: back the way it came)
+    const vn=v.x*nx+v.z*nz;
+    if(vn<0){const tx=v.x-vn*nx,tz=v.z-vn*nz;v.x=tx*0.7-o.e*vn*nx;v.z=tz*0.7-o.e*vn*nz;v.y*=0.8;if(onHit)onHit();}
+    p.x=q.x+nx*half;p.z=q.z+nz*half;
+  }},
+};
+let OBST=[];
+function prepObstacles(list){
+  OBST=(list||[]).map(def=>{
+    if(!OBSTACLES[def.type])throw new Error('unknown obstacle: '+def.type);
+    const o=Object.assign({t:1.2,h:1.6,e:0.3},def);o.box=areaBox({pts:o.pts,w:o.t},1);return o;
+  });
+}
+function obstacleHit(b,onHit){for(const o of OBST)OBSTACLES[o.type].hit(o,b,onHit);}
+
+const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6,PINE=7,ROAD=8,WASTE=9;
+const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE};   // names a hole spec can use (e.g. a cover feature's surf)
 // How each surface treats the ball (see BallModel for what these do):
 //   e      bounce: share of the speed into the ground that comes back out
 //   bite   grab on the FIRST impact (the ball still has backspin);  mu: grab on every later bounce (bigger = the run dies faster on a steep arrival)
@@ -549,6 +653,10 @@ const SP={
   [SAND]:   {e:.05,mu:.90,bite:9.0,floor:0,  dec:30, hold:.5, name:'Bunker',  lie:0.70},
   [WATER]:  {e:0,  mu:1,  bite:9.0,floor:0,  dec:99, hold:.5, name:'Water',   lie:1.00},
   [PINE]:   {e:.22,mu:.35,bite:4.4,floor:.10,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
+  // ROAD: hard and fast. Lively bounce, almost no grab, little rolling resistance: a ball that lands on it keeps going, and the lie off it is poor.
+  [ROAD]:   {e:.36,mu:.16,bite:2.6,floor:.18,dec:5.0,hold:.2, name:'Road',     lie:0.80},
+  // WASTE: sandy, scrubby native ground (not a bunker): no bounce, grabs hard so a ball dies where it lands, awkward lie.
+  [WASTE]:  {e:.08,mu:.80,bite:7.5,floor:.01,dec:24, hold:.55,name:'Waste area',lie:0.82},
 };
 const BASE_SP=JSON.parse(JSON.stringify(SP));
 // A hole's play profile tunes the shared surfaces for that hole (all optional, 1 = as above):
@@ -577,7 +685,7 @@ function S(x,z){
 function prepHole(i){
   holeIdx=i;HOLE=HOLES[i];
   GREEN=prepEll(Object.assign({},HOLE.green));PIN=HOLE.pin;GT=HOLE.tilt;
-  prepFeatures(HOLE.features);
+  prepFeatures(HOLE.features);prepObstacles(HOLE.obstacles);
   for(const f of FEATS.surf){f.surf=SURF[f.surf];f.over=(f.over||['ROUGH']).map(n=>SURF[n]);}
   applyPlay(HOLE.play);
   BUNKERS=HOLE.bunkers.map(b=>prepEll(Object.assign({depth:0.9,lip:0.25},b)));
@@ -745,7 +853,7 @@ const BallModel=(()=>{
     const k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
     const hop=e*un;
     if(hop>HOP_MIN){v.x=tx*k+nx*hop;v.y=ty*k+ny*hop;v.z=tz*k+nz*hop;b.rolling=false;b.stats.bounces++;}
-    else{v.x=tx*k;v.y=ty*k;v.z=tz*k;b.rolling=true;}
+    else{v.x=tx*k;v.y=ty*k;v.z=tz*k;b.rolling=true;const s0=Math.hypot(v.x,v.y,v.z);if(s0>V_MAX){const f=V_MAX/s0;v.x*=f;v.y*=f;v.z*=f;}}   // the cap holds from the first rolling step, even landing on a steep slope
   }
   function land(b,h,env){
     const T=env.terrain,p=b.p,n=T.normal(p.x,p.z),nx=n.x,ny=n.y,nz=n.z;
@@ -781,11 +889,11 @@ const BallModel=(()=>{
     else{p.y=h+R;const m=T.normal(p.x,p.z),vn=v.x*m.x+v.y*m.y+v.z*m.z;v.x-=vn*m.x;v.y-=vn*m.y;v.z-=vn*m.z;}
     if(s<V_STOP&&tan<=sp.hold){v.x=v.y=v.z=0;b.resting=true;}
   }
-  // env: {terrain:{H,normal,S}, sp, wind:{x,z}, collide(b) (optional, e.g. trees), onEv(type,data) (optional)}
+  // env: {terrain:{H,normal,S}, sp, wind:{x,z}, collide(b) (optional, e.g. trees and walls; called each step in flight and on the roll), onEv(type,data) (optional)}
   function step(b,dt,env){
     b.t+=dt;
     if(b.resting)return;
-    if(b.rolling)return rollStep(b,dt,env);
+    if(b.rolling){rollStep(b,dt,env);if(env.collide&&!b.resting)env.collide(b);return;}   // solid obstacles stop a rolling ball too
     flightStep(b.p,b.v,b.spin,env.wind,dt);
     if(env.collide)env.collide(b);
     const h=env.terrain.H(b.p.x,b.p.z);
@@ -1007,6 +1115,8 @@ function paintBackdrop(theme){
     treeRow(py(20),18,40,'#4a6e50',false,'pine',[[0.62,0.99]]);treeRow(py(6),16,34,'#3e6446',true,'round',[[0.6,1],[0,0.04]]);
   }else if(theme==='parkland'){
     treeRow(py(34),40,80,'#3a6448',false,'pine');treeRow(py(12),34,64,'#2c5638',true,'pine');
+  }else if(theme==='links'){   // open, treeless ground under a big sky: low gold dunes on the horizon
+    hills(0.02,0.98,py(-6),22,58,'#cdbf8c',2.2);hills(0.08,0.92,py(-6),10,32,'#b9aa74',5.1);
   }else{
     treeRow(py(26),26,50,'#4a7656',false,'round');treeRow(py(8),20,40,'#3a6848',true,'round');
   }
@@ -1016,6 +1126,7 @@ function paintBackdrop(theme){
 // ---------------------------------------------------------------- per-hole world
 const COL=Object.fromEntries(Object.entries(PAL.g).map(([k,v])=>[k,parseInt(v.slice(1),16)]));
 const PINE_C=new THREE.Color('#9a6e40');   // pine straw under the trees
+const ROAD_C=new THREE.Color('#8f887b'),WASTE_C=new THREE.Color('#d8c28c');   // the road behind a green; sandy native waste
 const ROCKFACE=['#7a4e34','#9a6440','#b88050','#6a4230'].map(h=>new THREE.Color(h));
 let world=null,TREES=[],FLAGSTICK=[],flag=null,flagG=null,flagBase=null;
 const WT={value:0};
@@ -1084,7 +1195,7 @@ function spotOK(x,z,clear){
   if(ell(x,z,GREEN)<1.9)return false;
   for(const b of BUNKERS)if(ell(x,z,b)<1.6)return false;
   for(const b of BODIES)if(b.sd(x,z)>-clear)return false;
-  if(inFairway(x,z,clear))return false;
+  if(inFairway(x,z,clear)||S(x,z)===ROAD)return false;
   return true;
 }
 function buildWorld(){
@@ -1110,6 +1221,8 @@ function buildWorld(){
       else if(s===GREENS)c.setHex(COL.green2);
       else if(s===FRINGE)c.setHex(COL.fringe);
       else if(s===PINE){c.copy(PINE_C).offsetHSL(0,0,(jagN(x*2.3,z*2.3)*0.04));}
+      else if(s===ROAD){c.copy(ROAD_C).offsetHSL(0,0,(jagN(x*3.1,z*3.1)*0.03));}
+      else if(s===WASTE){c.copy(WASTE_C).offsetHSL(0,0,(jagN(x*1.7,z*1.7)*0.06));if(jagN(x*0.9+3,z*0.9)>0.55)c.lerp(new THREE.Color(PAL.g.rough),0.55);}   // sand with tufts of wiregrass
       else if(s===SAND){let e=1;for(const b of BUNKERS)e=Math.min(e,ell(x,z,b));c.setHex(e>0.84?COL.sandRim:COL.sand);}
       else{c.setHex(dc>fairwayHalf(z)+18?COL.deep:(inFairway(x,z,3)?COL.cut:COL.rough));
         if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}}
@@ -1230,6 +1343,21 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     }
     const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));wg.setAttribute('color',new THREE.Float32BufferAttribute(col,3));wg.computeVertexNormals();
     add(new THREE.Mesh(wg,toon(0xffffff,{vertexColors:true,side:THREE.DoubleSide})));
+  }
+  // ---- free-standing walls (obstacles): a run of stone blocks with a lighter cap, standing on the ground along the wall's line
+  for(const o of OBST){
+    if(o.type!=='wall')continue;
+    const parts=[],cA=new THREE.Color('#a79b87'),cB=new THREE.Color('#b9ad97'),cT=new THREE.Color('#cdc2ab');let k=0;
+    for(let i=1;i<o.pts.length;i++){
+      const a=o.pts[i-1],c=o.pts[i],len=Math.hypot(c[0]-a[0],c[1]-a[1]),n=Math.max(1,Math.ceil(len/2.2)),ang=Math.atan2(c[0]-a[0],c[1]-a[1]);
+      for(let j=0;j<n;j++){
+        const t=(j+0.5)/n,x=mix(a[0],c[0],t),z=mix(a[1],c[1],t),gy=H(x,z),L=len/n+0.05;
+        const box=new THREE.BoxGeometry(o.t,o.h+0.4,L);box.rotateY(ang);box.translate(x,gy+(o.h-0.4)/2,z);parts.push([box,(k++%2)?cA:cB]);
+        const cap=new THREE.BoxGeometry(o.t+0.25,0.22,L);cap.rotateY(ang);cap.translate(x,gy+o.h+0.05,z);parts.push([cap,cT]);
+      }
+    }
+    const geo=mergeGeos(parts),wm=add(new THREE.Mesh(geo,toon(0xffffff,{vertexColors:true})));wm.castShadow=true;wm.receiveShadow=true;
+    add(new THREE.Mesh(geo,outlineMat(0.07)));
   }
   // ---- rocks: in the surf below cliffs, plus a few in the rough
   {
@@ -1537,10 +1665,11 @@ const SND={
 function onEv(type,data){
   const p=ball.p.clone();
   if(type==='land'){
-    const words={[FAIRWAY]:'THUD',[TEE]:'THUD',[ROUGH]:'FWUMP',[FRINGE]:'PLOP',[GREENS]:'PLOP',[SAND]:'POOF!'};
-    if(data===SAND)SND.sand();else SND.land();
+    const words={[FAIRWAY]:'THUD',[TEE]:'THUD',[ROUGH]:'FWUMP',[FRINGE]:'PLOP',[GREENS]:'PLOP',[SAND]:'POOF!',[WASTE]:'FWUMP',[ROAD]:'CLACK!'};
+    if(data===SAND||data===WASTE)SND.sand();else SND.land();
     sfx(words[data]||'THUD',p,{cls:'small',dy:-70});aberrKick=Math.max(aberrKick,3);
   }else if(type==='tree'){SND.bonk();sfx('BONK!',p,{cls:'hot',dy:-70});aberrKick=6;shakeT=0.25;}
+  else if(type==='wall'){SND.bonk();sfx('CLANK!',p,{cls:'hot',dy:-70});aberrKick=5;shakeT=0.18;}
   else if(type==='lip'){SND.lip();sfx('LIP OUT!',p,{cls:'hot',dy:-70});}
 }
 // trees are the one thing in the air the ball model does not know about: a solid sphere that kills most of the speed
@@ -1553,7 +1682,8 @@ function treeHit(b){
       b.p.set(t.x+nx*(t.r+0.02),t.cy+ny*(t.r+0.02),t.z+nz*(t.r+0.02));}
   }
 }
-const BALL_ENV={terrain:{H,normal,S},sp:SP,wind,collide:treeHit,onEv};
+const wallHit=()=>onEv('wall');
+const BALL_ENV={terrain:{H,normal,S},sp:SP,wind,collide:b=>{treeHit(b);obstacleHit(b,wallHit);},onEv};
 function physStep(b,dt){BallModel.step(b,dt,BALL_ENV);}
 // what the shot did, shown once the ball is at rest: how far it flew and how far it ran on
 function showResult(){
@@ -2002,7 +2132,7 @@ function startRound(i){
 (function buildTitle(){
   const par=HOLES.reduce((s,h)=>s+h.par,0);
   $('tCount').textContent=`${HOLES.length} HOLES · PAR ${par}`;
-  $('tCourses').textContent=HOLES.map(h=>h.name.split(' ')[0]).join(' · ');
+  $('tCourses').textContent=[...new Set(HOLES.map(h=>h.short||h.name.split(' ')[0]))].join(' · ');
   $('tHoles').innerHTML=HOLES.map((h,i)=>`<button class="tHole" data-i="${i}"><img src="${h.card}" alt=""><b>Hole ${i+1}</b><span>${h.name}<br>Par ${h.par} · ${h.yards} yds</span></button>`).join('');
   $('tHoles').addEventListener('click',e=>{const b=e.target.closest('.tHole');if(b)startRound(+b.dataset.i);});
   $('tNew').addEventListener('click',()=>startRound(0));

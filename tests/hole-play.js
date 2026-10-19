@@ -6,7 +6,8 @@
 //            offset: -1..1 (where the needle was on release; 0 = dead center), shape: -1..1 (draw .. fade pull),
 //            wind: { mph, dir: 'head'|'tail'|'left'|'right' } (blowing toward; relative to the aim line) }
 // Same as the game: the arc shows still-air flight from the real lie (lie penalty, stance pull and all), the needle then costs distance and line,
-// water ends the shot when the ball reaches the waterline, leaving the hole's box is out of bounds. Not modelled: trees (no geometry here).
+// water ends the shot when the ball reaches the waterline, leaving the hole's box is out of bounds. Walls (the hole's `obstacles`) stop the ball in
+// flight and on the roll, as in the game; the result's `hits.wall` counts the times it struck one. Not modelled: trees (no geometry here).
 const { loadCourse } = require('./harness');
 const CHECKS = require('./hole-checks');
 
@@ -27,9 +28,10 @@ function setup(course, shot) {
   const play = (course.HOLE && course.HOLE.play) || {};
   const st = g.StanceModel ? g.StanceModel.effect(club, g.StanceModel.read(course.normal(from.x, from.z), aim), play.stance ?? 1)
     : { spin: 0, yaw: 0, speed: 1, needle: 1, tag: null };
-  const env = { terrain: course.terrain, sp: SP, wind: { x: 0, z: 0 } };
+  const hits = { wall: 0 };
+  const env = { terrain: course.terrain, sp: SP, wind: { x: 0, z: 0 }, collide: b => course.obstacleHit(b, () => hits.wall++) };
   const base = club.v0 * g.lieMult(lie, club) * st.speed;              // full-pull launch speed from this lie and stance
-  return { g, SP, club, from, at, aim, lie, st, env, base };
+  return { g, SP, club, from, at, aim, lie, st, env, base, hits };
 }
 
 // still-air flight along the arc (as drawn in the game): where it first touches the ground
@@ -87,8 +89,8 @@ function playShot(course, shot, { trace = false } = {}) {
   }
   end = end || 'rest';
   const surf = course.S(b.p.x, b.p.z);
-  const names = ['TEE', 'FAIRWAY', 'ROUGH', 'FRINGE', 'GREENS', 'SAND', 'WATER', 'PINE'];
-  return { end, surf: names[surf], p: { x: b.p.x, z: b.p.z }, first, path, power, stance: s.st,
+  const names = ['TEE', 'FAIRWAY', 'ROUGH', 'FRINGE', 'GREENS', 'SAND', 'WATER', 'PINE', 'ROAD', 'WASTE'];
+  return { end, surf: names[surf], hits: s.hits, p: { x: b.p.x, z: b.p.z }, first, path, power, stance: s.st,
     toPin: Math.hypot(b.p.x - course.PIN.x, b.p.z - course.PIN.z), carry: b.stats.carry, from: s.from };
 }
 
@@ -96,16 +98,18 @@ function playShot(course, shot, { trace = false } = {}) {
 const BASE = [[0, 1], [10, 2.18], [20, 2.4], [50, 2.6], [100, 2.8], [150, 2.98], [200, 3.19], [250, 3.45], [300, 3.71], [400, 3.99], [500, 4.4], [650, 4.9]];
 const PUTT = [[0, 1], [1, 1.04], [3.3, 1.6], [6.7, 1.87], [13.3, 2.1], [30, 2.3]];   // yards on the green
 const interp = (T, d) => { for (let i = 1; i < T.length; i++) if (d <= T[i][0]) return T[i - 1][1] + (T[i][1] - T[i - 1][1]) * (d - T[i - 1][0]) / (T[i][0] - T[i - 1][0]); return T[T.length - 1][1]; };
-const LIE_ADD = { FAIRWAY: 0, TEE: 0, FRINGE: 0, ROUGH: 0.18, PINE: 0.3, SAND: 0.35 };
-function expected(course, r, start) {
+const LIE_ADD = { FAIRWAY: 0, TEE: 0, FRINGE: 0, ROUGH: 0.18, PINE: 0.3, SAND: 0.35, ROAD: 0.4, WASTE: 0.3 };
+function expected(course, r, start, add = LIE_ADD) {
   if (r.end === 'holed') return 0;
-  if (r.end === 'water' || r.end === 'oob') return 1 + expected(course, { end: 'rest', surf: 'FAIRWAY', toPin: Math.hypot(start.x - course.PIN.x, start.z - course.PIN.z) }, start);
+  if (r.end === 'water' || r.end === 'oob') return 1 + expected(course, { end: 'rest', surf: 'FAIRWAY', toPin: Math.hypot(start.x - course.PIN.x, start.z - course.PIN.z) }, start, add);
   if (r.surf === 'GREENS') return interp(PUTT, r.toPin);
-  return interp(BASE, r.toPin) + (LIE_ADD[r.surf] || 0);
+  return interp(BASE, r.toPin) + (add[r.surf] || 0);
 }
 
 // Play a plan with a spread of swings: needles evenly spaced over [-spread, spread]. Returns hazard rate, mean leave, expected score.
-function evaluate(course, shot, spread, n = 21) {
+// lieAdd: this hole's own extra strokes for a lie, over the shared defaults (LIE_ADD), for a hazard the baseline understates (a bunker you cannot play out of forwards).
+function evaluate(course, shot, spread, n = 21, lieAdd = null) {
+  const add = lieAdd ? { ...LIE_ADD, ...lieAdd } : LIE_ADD;
   const out = { n, hazard: 0, toPin: 0, score: 0, surfs: {} };
   for (let i = 0; i < n; i++) {
     const off = n === 1 ? 0 : -spread + 2 * spread * i / (n - 1);
@@ -113,7 +117,7 @@ function evaluate(course, shot, spread, n = 21) {
     const bad = r.end === 'water' || r.end === 'oob';
     if (bad) out.hazard++; else out.toPin += r.toPin;
     out.surfs[bad ? r.end : r.surf] = (out.surfs[bad ? r.end : r.surf] || 0) + 1;
-    out.score += 1 + expected(course, r, r.from);
+    out.score += 1 + expected(course, r, r.from, add);
   }
   const dry = n - out.hazard;
   out.toPin = dry ? out.toPin / dry : NaN; out.hazard /= n; out.score /= n;

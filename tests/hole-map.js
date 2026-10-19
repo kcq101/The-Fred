@@ -20,12 +20,12 @@ function png(w, h, rgb) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ih), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 const hex = s => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
-const SURF_COL = ['#6fae4a', '#7cc04f', '#3f7d34', '#8fd068', '#a6e07a', '#ecd9a0', '#3a78c0', '#a8743c'].map(hex);
+const SURF_COL = ['#6fae4a', '#7cc04f', '#3f7d34', '#8fd068', '#a6e07a', '#ecd9a0', '#3a78c0', '#a8743c', '#8f887b', '#d8c28c'].map(hex);
 
-function draw(course, hi, outDir) {
+function draw(course, hi, outDir, opts = {}) {
   course.prepHole(hi);
-  const H = course.H, S = course.S, bb = course.HOLE.bbox, g = course.game;
-  const sc = 2;                                                           // pixels per yard
+  const H = course.H, S = course.S, bb = opts.box || course.HOLE.bbox, g = course.game;
+  const sc = opts.scale || 2;                                             // pixels per yard
   const W = Math.round((bb.x1 - bb.x0) * sc), Ht = Math.round((bb.z1 - bb.z0) * sc);
   const img = Buffer.alloc(W * Ht * 3);
   // screen-left is +x, so draw x mirrored: left of the image = +x, and the hole plays up the page (+z)
@@ -59,16 +59,22 @@ function draw(course, hi, outDir) {
     if (r.first) dot(r.first.x, r.first.z, [20, 20, 20], 1);
     dot(r.p.x, r.p.z, bad ? [230, 40, 40] : [255, 225, 77], 2);
   }
+  for (const o of course.OBST) for (let i = 1; i < o.pts.length; i++) {      // walls: a thick grey line
+    const [ax, az] = o.pts[i - 1], [bx, bz] = o.pts[i], n = Math.ceil(Math.hypot(bx - ax, bz - az) * sc);
+    for (let k = 0; k <= n; k++) dot(ax + (bx - ax) * k / n, az + (bz - az) * k / n, [70, 66, 60], 1);
+  }
   dot(0, 0, [255, 255, 255], 3); dot(course.PIN.x, course.PIN.z, [255, 46, 136], 3);
   fs.mkdirSync(outDir, { recursive: true });
-  const file = path.join(outDir, `${course.HOLE.id}.png`);
+  const file = path.join(outDir, `${course.HOLE.id}${opts.suffix || ''}.png`);
   fs.writeFileSync(file, png(W, Ht, img));
   return file;
 }
 
 if (require.main === module) {
-  const course = loadCourse(), want = process.argv[2];
+  // node tests/hole-map.js <id> --zoom=x0,x1,z0,z1[,pixelsPerYard]   a close-up of part of one hole, written as <id>-zoom.png
+  const course = loadCourse(), want = process.argv[2], zoom = (process.argv.find(a => a.startsWith('--zoom=')) || '').slice(7).split(',').map(Number);
   const out = path.join(__dirname, '..', 'docs', 'maps');
-  course.HOLES.forEach((h, i) => { if (!want || h.id === want) console.log('wrote', draw(course, i, out)); });
+  const opts = zoom.length >= 4 ? { box: { x0: zoom[0], x1: zoom[1], z0: zoom[2], z1: zoom[3] }, scale: zoom[4] || 8, suffix: '-zoom' } : {};
+  course.HOLES.forEach((h, i) => { if (!want || h.id === want) console.log('wrote', draw(course, i, out, opts)); });
 }
 module.exports = { draw };
