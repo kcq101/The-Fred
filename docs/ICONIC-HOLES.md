@@ -93,6 +93,12 @@ Strategy checks compare plans using a simplified expected-strokes baseline (belo
 
 When a check changes after tuning, log it in §6 of the spec (the template has the table): what it said, what it says now, and why. "It failed" is not a reason; "the baseline now charges the back bunkers, so the middle costs a shaky player 0.10 stroke where it used to cost 0.01" is.
 
+### What the tools cannot see (found on Riviera No. 6)
+
+- **Putts.** `playShot` cannot play a Putter: it has no launch arc, so the aim-power search returns NaN. Any recovery that is a putt (around a bunker, across a tier) is neither tested nor priced. Write such a hole's checks around shots that can be played, and say so in §4's capability gaps.
+- **The green is priced by distance alone.** A ball on the putting surface pays `PUTT[distance to the pin]` whichever quadrant it is in, and the recovery term returns 0 for it. A bunker, a tier or a false front *inside* the green changes the baseline only when a ball finishes in the bunker. Count how many green finishes have a hazard on the straight line to the pin (Riviera No. 6: 20 of 21 for the bail-out plan) and write what the baseline under-charges in the spec's §6, as a bound on the gap, not as a score.
+- **A bunker's charge follows its depth, so changing a bunker for a physics reason changes the strategy numbers.** The recovery term charges 0.35 per yard of face above the 1.0 yd allowance; softening Riviera's back bunker to pass the hop guard in `tests/ball.test.js` took its charge from 0.55 to 0.46.
+
 ### The expected-strokes baseline
 
 `tests/hole-play.js` scores where a ball finishes with a tour-style table by distance to the pin, plus a lie charge (`LIE_ADD`: rough 0.18, sand 0.35, ...), plus a **recovery-difficulty term** read off the hole's real terrain, so that a hole does not need lie costs of its own:
@@ -147,7 +153,7 @@ Things that bit in the sandbox and in shallow clones:
 
 ## 3. The holes so far
 
-The first three are the Phase 3 proofs; holes 4–6 (Phase 4) were added with this workflow.
+The first three are the Phase 3 proofs; holes 4–7 (Phase 4 and after) were added with this workflow.
 
 Chosen because they share almost nothing:
 
@@ -159,3 +165,4 @@ Chosen because they share almost nothing:
 | [St Andrews Old Course No. 17](holes/standrews-17.md) | Run-out to a green with a deep pot bunker, a road and a wall behind, on firm turf in wind | `ROAD`, `wall` obstacle, deep bunker, `firm`, wind |
 | [Augusta National No. 12](holes/augusta-12.md) | Distance control over a creek to a shallow, wide, angled green in swirling wind | creek + shaved bank, `rise` ×2, bunkers front and back, `windPush` |
 | [Pinehurst No. 2, No. 5](holes/pinehurst-5.md) | Par 5: go for an elevated plateau green from a sidehill lie, or lay up and wedge onto the top | plateau `hollow` (`flat`), `tilt` + StanceModel, runoffs + `WASTE` |
+| [Riviera No. 6](holes/riviera-6.md) | Par 3: the decision is the pin, not the club: a bunker in the middle of the green, a tier between the two pin areas, deep bunkers front-left and behind | a `bunker` inside the green, `step` + `hollow` + `tilt` on the green, a softened back bunker |
