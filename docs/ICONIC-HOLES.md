@@ -143,6 +143,7 @@ Things that bit in the sandbox and in shallow clones:
 - **Open pull requests through the REST API.** The GraphQL API is blocked in the sandbox, so `gh pr create` fails. Use `gh api repos/<owner>/<repo>/pulls -f title=... -f head=<branch> -f base=main -f body=...`.
 - **`render.py`** needs Python with `playwright` and its Chromium, and fetches three.js r128 once into `tests/tools/.cache/` (sparse clone of the `r128` tag, or `npm pack three@0.128.0`). WebGL is software, so a hole takes 10–60 s to build; nothing has run on a phone. `card.py` needs Pillow.
 - **Node 18+** for everything else; no installs.
+- **Project doc mirrors.** The Claude Project "The Fred" holds read-only copies of this file (`claude/iconic-holes-design-system.md`) and `docs/holes/TEMPLATE.md` (`claude/iconic-hole-template.md`), each headed with the source commit it was copied from. The repo is the source of truth: after merging a change to either file, re-copy it into the Project (`project_write`, same path, header updated to the new commit). Never edit the copies.
 
 ## 3. The holes so far
 
