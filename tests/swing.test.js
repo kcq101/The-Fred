@@ -30,12 +30,38 @@ test('club buttons show the same yardage the physics produces (full pull, perfec
   }
 });
 
-test('meter bands on screen match the model tiers', () => {
-  // buildPendulum draws the blue and yellow bands as arc(-d,d) in degrees; the needle swings +-60 degrees for offset +-1
-  const arcs = [...SRC.matchAll(/\$\('pend(Hit|Ok)'\)\.setAttribute\('d',arc\(-(\d+),(\d+)\)\)/g)].map(m => [m[1], +m[2] / 60]);
-  assert.deepEqual(arcs.map(a => a[0]).sort(), ['Hit', 'Ok']);
-  assert.equal(arcs.find(a => a[0] === 'Hit')[1], SM.PERFECT);
-  assert.equal(arcs.find(a => a[0] === 'Ok')[1], SM.GOOD);
+test('meter is one smooth rainbow (no hard bands): wide sweep, many slices, cyan center to dark ends', () => {
+  assert.ok(!/pendHit|pendOk|pendMiss|pendChunk/.test(SRC), 'old hard-edged bands should be gone');
+  const sweep = +SRC.match(/const PEND_SWEEP=(\d+);/)[1];
+  assert.ok(sweep >= 70 && sweep <= 85, `needle sweep ${sweep} degrees each way`);
+  assert.ok(+SRC.match(/const N=(\d+);let h=/)[1] >= 90, 'enough slices to read as a gradient');
+  const stops = eval(SRC.match(/const stops=(\[\[0,.*?\]\]);/)[1]);
+  assert.equal(stops[0][0], 0); assert.equal(stops[stops.length - 1][0], 1);
+  for (let i = 1; i < stops.length; i++) assert.ok(stops[i][0] > stops[i - 1][0], 'stops increase');
+  const [r0, , b0] = stops[0][1], [r1, , b1] = stops[stops.length - 1][1];
+  assert.ok(b0 > r0, 'center is cyan-ish'); assert.ok(r1 > b1 && r1 < 200, 'ends are deep red/wine');
+});
+
+test('no flat "perfect zone": every step away from dead center costs a little more', () => {
+  for (const c of FULL) {
+    let prevLoss = -1, prevLat = -1;
+    for (let a = 0.01; a <= 1.0001; a += 0.01) {
+      const loss = SM.speedLoss(c, a), lat = SM.lateralSev(a);
+      assert.ok(loss > prevLoss && lat > prevLat, `${c.name} penalty did not grow at ${a.toFixed(2)}`);
+      prevLoss = loss; prevLat = lat;
+    }
+  }
+});
+
+test('closer to the middle is always rewarded: tighter release windows give strictly better expected shots', () => {
+  for (const c of FULL) {
+    const ref = swing(c, 0).carry;
+    const ex = [0.03, 0.06, 0.12, 0.25, 0.5, 1].map(hi => {
+      const rs = grid(0, hi).map(a => swing(c, a));
+      return { hi, loss: 1 - mean(rs.map(r => r.carry)) / ref, side: mean(rs.map(r => Math.abs(r.lateral))) };
+    });
+    for (let i = 1; i < ex.length; i++) assert.ok(ex[i].loss > ex[i - 1].loss && ex[i].side > ex[i - 1].side, `${c.name}: window ${ex[i - 1].hi} vs ${ex[i].hi}`);
+  }
 });
 
 test('lie label (-X% distance) matches the carry actually lost in the rough and the sand', () => {
@@ -71,14 +97,14 @@ test('left and right misses are mirror images', () => {
   }
 });
 
-test('tiers are graded: slight miss is modest, bad miss is large, worst contact is big but recoverable', () => {
+test('misses are graded: small miss is modest, bad miss is large, worst contact is big but recoverable', () => {
   for (const c of FULL) {
     const ref = swing(c, 0);
-    const edgeOfYellow = swing(c, SM.GOOD), worst = swing(c, 1);
+    const edgeOfYellow = swing(c, SM.GOOD), worst = swing(c, 1); // GOOD = last offset still called FADE/DRAW
     const loss = r => 1 - r.carry / ref.carry, side = r => Math.abs(r.lateral) / ref.carry;
-    assert.ok(loss(edgeOfYellow) <= 0.06 && side(edgeOfYellow) <= 0.06, `${c.name} yellow edge: -${(loss(edgeOfYellow) * 100).toFixed(1)}% carry, ${(side(edgeOfYellow) * 100).toFixed(1)}% sideways`);
-    assert.ok(loss(worst) >= 0.15 && loss(worst) <= 0.40, `${c.name} worst contact loses ${(loss(worst) * 100).toFixed(0)}% carry`);
-    assert.ok(side(worst) >= 0.12 && side(worst) <= 0.30, `${c.name} worst contact ${(side(worst) * 100).toFixed(0)}% off line`);
+    assert.ok(loss(edgeOfYellow) <= 0.08 && side(edgeOfYellow) <= 0.08, `${c.name} small-miss edge: -${(loss(edgeOfYellow) * 100).toFixed(1)}% carry, ${(side(edgeOfYellow) * 100).toFixed(1)}% sideways`);
+    assert.ok(loss(worst) >= 0.15 && loss(worst) <= 0.42, `${c.name} worst contact loses ${(loss(worst) * 100).toFixed(0)}% carry`);
+    assert.ok(side(worst) >= 0.12 && side(worst) <= 0.32, `${c.name} worst contact ${(side(worst) * 100).toFixed(0)}% off line`);
     assert.ok(worst.carry >= 0.6 * ref.carry, `${c.name} worst contact still carries 60%+ (recoverable)`);
   }
 });
@@ -123,13 +149,13 @@ test('no club dominates: expected sideways error per yard of carry stays within 
 test('randomness is small, does not depend on timing quality, and is reproducible from a seed', () => {
   for (const c of FULL) {
     const run = (a, seed) => { const rng = mulberry32(seed); return Array.from({ length: 400 }, () => swing(c, a, rng)); };
-    const perfect = run(0, 7), again = run(0, 7), bad = run(1, 7);
+    const perfect = run(0, 7), again = run(0, 7);
     assert.deepEqual(perfect.map(r => r.carry), again.map(r => r.carry), `${c.name} not reproducible`);
     assert.ok(sd(perfect.map(r => r.carry)) < 0.014 * c.carry, `${c.name} perfect-swing carry sd ${sd(perfect.map(r => r.carry)).toFixed(1)}y`);
     assert.ok(sd(perfect.map(r => r.lateral)) < 0.006 * c.carry, `${c.name} perfect-swing lateral sd`);
-    // same spread at a=1 as at a=0: the jitter does not grow when you mistime (player error is not disguised as luck)
-    const ratio = sd(bad.map(r => r.carry)) / sd(perfect.map(r => r.carry));
-    assert.ok(ratio > 0.7 && ratio < 1.15, `${c.name} carry spread ratio bad/perfect ${ratio.toFixed(2)}`);
+    // the jitter amplitude is identical at every timing quality (player error is never disguised as luck)
+    const amp = a => { const lo = SM.resolve(c, a, () => 0), hi = SM.resolve(c, a, () => 1); return [hi.speedMult / lo.speedMult, hi.yawErr - lo.yawErr]; };
+    for (const a of [0, 0.2, 0.5, 0.8, 1]) { const [sp, yw] = amp(a), [sp0, yw0] = amp(0); assert.ok(Math.abs(sp - sp0) < 1e-9 && Math.abs(yw - yw0) < 1e-9, `${c.name} jitter changes at ${a}`); }
   }
 });
 

@@ -75,7 +75,7 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 #carry{display:none;position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) rotate(-3deg);white-space:nowrap;font-size:13px}
 #carry b{font-size:22px}
 
-#pend{position:absolute;right:max(4px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 175px);width:min(210px,52vw);filter:drop-shadow(3px 3px 0 rgba(23,11,51,.55))}
+#pend{position:absolute;right:max(4px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 175px);width:min(262px,64vw);filter:drop-shadow(3px 3px 0 rgba(23,11,51,.55))}
 #pend svg{display:block;width:100%;height:auto;overflow:visible}
 #zoomTag{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 218px);transform:translateX(-50%);font-family:var(--display);font-size:15px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;white-space:nowrap}
 #band{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -217,14 +217,17 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
   <div id="pullHint" hidden>PULL BACK</div>
   <div id="zoomTag" hidden>ZOOM</div>
 
-  <div id="pend" hidden><svg viewBox="-100 -96 200 104" aria-hidden="true">
-    <path id="pendBase" fill="none" stroke="#170b33" stroke-width="20"/>
-    <path id="pendMiss" fill="none" stroke="#ff2e88" stroke-width="14"/>
-    <path id="pendChunk" fill="none" stroke="#a30f4d" stroke-width="14"/>
-    <path id="pendOk" fill="none" stroke="#ffe14d" stroke-width="14"/>
-    <path id="pendHit" fill="none" stroke="#19d3ff" stroke-width="14"/>
-    <g id="pendNeedle"><line x1="0" y1="0" x2="0" y2="-92" stroke="#170b33" stroke-width="7" stroke-linecap="round"/><line x1="0" y1="0" x2="0" y2="-90" stroke="#fffaf0" stroke-width="3.5" stroke-linecap="round"/><path d="M0 -96 L-8 -82 L8 -82 Z" fill="#fffaf0" stroke="#170b33" stroke-width="2.5" stroke-linejoin="round"/></g>
-    <circle r="7" fill="#ff2e88" stroke="#170b33" stroke-width="3"/>
+  <div id="pend" hidden><svg viewBox="-112 -118 224 134" aria-hidden="true">
+    <path id="pendBase" fill="none" stroke="#170b33" stroke-width="38" stroke-linecap="butt"/>
+    <g id="pendBands" fill="none" stroke-width="30" stroke-linecap="butt"></g>
+    <path id="pendGloss" fill="none" stroke="#fffaf0" stroke-opacity=".38" stroke-width="3.5" stroke-linecap="round"/>
+    <path id="pendMid" fill="none" stroke="#170b33" stroke-width="8" stroke-linecap="round"/>
+    <path id="pendMidIn" fill="none" stroke="#fffaf0" stroke-width="3.6" stroke-linecap="round"/>
+    <g id="pendNeedle">
+      <path d="M-9.5 0 C-8.5 -36 -5.5 -80 0 -108 C5.5 -80 8.5 -36 9.5 0 Z" fill="#fffaf0" stroke="#170b33" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M0 -16 L0 -92" stroke="#ff2e88" stroke-width="3.6" stroke-linecap="round"/>
+    </g>
+    <circle r="14" fill="#ff2e88" stroke="#170b33" stroke-width="4.5"/><circle cx="-3.5" cy="-3.5" r="4.2" fill="#fffaf0" fill-opacity=".85"/>
   </svg></div>
 
   <div id="meter" hidden>
@@ -240,7 +243,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
 
   <div id="fx"></div>
 
-  <div class="cap" id="hint" hidden>Drag the yellow target to aim. Pinch with two fingers to zoom. Then pull straight back from the ball and let go when the needle is in the blue. Off-center costs distance as well as direction.</div>
+  <div class="cap" id="hint" hidden>Drag the yellow target to aim. Pinch with two fingers to zoom. Then pull straight back from the ball and let go as close to the middle of the rainbow as you can. The closer to the middle, the straighter and longer the shot.</div>
 
   <div class="bottom">
     <div class="infoRow">
@@ -495,10 +498,10 @@ const CLUBS=[
   // dev: how far (radians) a full miss starts the ball off line; curve: sideways pull in flight; swing: needle speed at no pull and full pull
   // mishit: share of launch speed lost on the worst possible contact (see SwingModel). Long clubs punish a bad swing hardest, the wedge the least.
   // shape: sideways pull of a full draw/fade (yd/s²), set by pulling down-left or down-right
-  {name:'Hammer',carry:245,ang:13*D2R,roll:0.34,dev:0.092,curve:5.50,mishit:0.20,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
-  {name:'3-Wood',carry:215,ang:15*D2R,roll:0.32,dev:0.083,curve:4.80,mishit:0.18,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
-  {name:'Iron',  carry:155,ang:22*D2R,roll:0.14,dev:0.063,curve:3.30,mishit:0.15,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', carry:90, ang:40*D2R,roll:0.12,dev:0.048,curve:1.55,mishit:0.12,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Hammer',carry:245,ang:13*D2R,roll:0.34,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
+  {name:'3-Wood',carry:215,ang:15*D2R,roll:0.32,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
+  {name:'Iron',  carry:155,ang:22*D2R,roll:0.14,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
+  {name:'Wedge', carry:90, ang:40*D2R,roll:0.12,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 function carryFlat(v0,a){let x=0,y=0,vx=v0*Math.cos(a),vy=v0*Math.sin(a),t=0;const dt=1/240;while(t<15){const s=Math.hypot(vx,vy);vx-=K*s*vx*dt;vy-=(G+K*s*vy)*dt;x+=vx*dt;y+=vy*dt;t+=dt;if(y<0&&vy<0)return x;}return x;}
@@ -513,14 +516,14 @@ function lieMult(lie,club){if(lie===SAND&&club===CLUBS[3])return 0.9;return SP[l
 // Swing quality, kept apart from the physics so it can be tuned and tested on its own (tests/swing.test.js reads this block out of this file).
 // Input is where the needle was on release: offset -1..1, |offset| = distance from the center of the meter.
 // The pull sets the intended distance (and how fast the needle swings); the needle sets contact quality.
-// Contact quality costs distance AND direction, grows smoothly from the edge of the blue band, and is deterministic.
+// Contact quality costs distance AND direction, grows smoothly from dead center (no flat "perfect" zone: every bit closer is better), and is deterministic.
 // The only random parts are two small constant jitters that do not depend on how well the swing was timed.
 const SwingModel=(()=>{
-  const PERFECT=0.10,GOOD=0.35,CHUNK=0.70;  // tier edges on |offset|; blue band = PERFECT, yellow band = GOOD (see buildPendulum)
+  const PERFECT=0.06,GOOD=0.30,CHUNK=0.65;  // word thresholds on |offset| (PERFECT!, FADE/DRAW, SLICE!/HOOK!, CHUNK!); the penalties themselves are smooth
+  const LAT_POW=1.25,LOSS_POW=1.5;                       // how fast the penalties build as the needle leaves the center
   const JIT_SPEED=0.008,JIT_YAW=0.006;     // unavoidable randomness: ±0.8% launch speed (about ±1.6% carry), ±0.006 rad of direction
-  const bad=a=>clamp((a-PERFECT)/(1-PERFECT),0,1);       // 0 anywhere in the blue .. 1 at the very end of the swing
-  const lateralSev=a=>Math.pow(bad(a),1.3);              // share of the club's full sideways miss
-  const speedLoss=(c,a)=>c.mishit*Math.pow(bad(a),1.6);  // share of launch speed lost
+  const lateralSev=a=>Math.pow(clamp(a,0,1),LAT_POW);    // share of the club's full sideways miss: 0 at dead center .. 1 at the end of the swing
+  const speedLoss=(c,a)=>c.mishit*Math.pow(clamp(a,0,1),LOSS_POW);  // share of launch speed lost
   // still-air carry at a given launch speed, from the club's own table
   function carryAt(c,v){const t=c.table;if(v<=t[0][0])return t[0][1]*(v/t[0][0])*(v/t[0][0]);for(let i=1;i<t.length;i++)if(t[i][0]>=v)return mix(t[i-1][1],t[i][1],(v-t[i-1][0])/(t[i][0]-t[i-1][0]));return t[t.length-1][1];}
   const carryFactor=(c,speedMult)=>carryAt(c,c.v0*speedMult)/carryAt(c,c.v0);
@@ -1518,11 +1521,20 @@ function groundAt(cx,cy){
 }
 function screenOf(p){const v=p.clone().project(camera);return{x:(v.x+1)/2*vw,y:(1-v.y)/2*vh,z:v.z};}
 let drag=null,pendPhase=0,pendOffset=0;
+const PEND_SWEEP=78; // degrees the needle swings each way (offset ±1)
 (function buildPendulum(){
-  const arc=(a0,a1)=>{const r=80,p=a=>[Math.sin(a*D2R)*r,-Math.cos(a*D2R)*r];const[x0,y0]=p(a0),[x1,y1]=p(a1);return`M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;};
-  $('pendBase').setAttribute('d',arc(-62,62));$('pendMiss').setAttribute('d',arc(-60,60));
-  {const c=SwingModel.CHUNK*60;$('pendChunk').setAttribute('d',arc(-60,-c)+arc(c,60));} // the worst contact: big distance loss as well as a big miss
-  $('pendOk').setAttribute('d',arc(-21,21));$('pendHit').setAttribute('d',arc(-6,6));
+  const R=78,SW=PEND_SWEEP,pt=a=>[Math.sin(a*D2R)*R,-Math.cos(a*D2R)*R];
+  const arc=(a0,a1)=>{const[x0,y0]=pt(a0),[x1,y1]=pt(a1);return`M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;};
+  // one smooth rainbow, no hard bands: the closer to the middle, the better the shot (cyan at dead center, deep wine at the ends)
+  const stops=[[0,[45,226,255]],[0.16,[59,232,138]],[0.32,[255,225,77]],[0.50,[255,154,46]],[0.68,[255,46,136]],[1,[143,15,72]]];
+  const col=t=>{let i=1;while(i<stops.length-1&&t>stops[i][0])i++;const[t0,c0]=stops[i-1],[t1,c1]=stops[i],f=clamp((t-t0)/(t1-t0),0,1);return'rgb('+c0.map((v,k)=>Math.round(mix(v,c1[k],f))).join(',')+')';};
+  const N=120;let h='';
+  for(let i=0;i<N;i++){const a0=-SW+2*SW*i/N,a1=-SW+2*SW*(i+1)/N;h+=`<path d="${arc(a0,Math.min(SW,a1+0.6))}" stroke="${col(Math.abs((a0+a1)/2)/SW)}"/>`;}
+  $('pendBands').innerHTML=h;
+  $('pendBase').setAttribute('d',arc(-SW-1.6,SW+1.6));
+  {const r=R+10,p=a=>[Math.sin(a*D2R)*r,-Math.cos(a*D2R)*r];const[x0,y0]=p(-SW+5),[x1,y1]=p(SW-5);$('pendGloss').setAttribute('d',`M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`);}
+  // a notch across the band marks the exact middle
+  $('pendMid').setAttribute('d',`M0 ${-(R-17)} L0 ${-(R+17)}`);$('pendMidIn').setAttribute('d',`M0 ${-(R-16)} L0 ${-(R+16)}`);
 })();
 function pullPower(){const dy=drag.y-drag.y0;return dy>6?clamp(dy/(Math.min(vw,vh)*0.34),0,1):0;}
 // -1 = full draw (pulled down-left, right-to-left flight) .. 1 = full fade (pulled down-right, left-to-right)
@@ -1543,7 +1555,7 @@ function updatePendulum(dt){
   // constant-speed sweep so the center is as catchable as the edges
   pendPhase+=mix(sw[0],sw[1],power)*dt;pendOffset=1-Math.abs(((pendPhase+1)%4+4)%4-2);
   const pe=$('pend');pe.hidden=power<0.02;
-  $('pendNeedle').setAttribute('transform',`rotate(${(pendOffset*60).toFixed(2)})`);
+  $('pendNeedle').setAttribute('transform',`rotate(${(pendOffset*PEND_SWEEP).toFixed(2)})`);
 }
 function endPull(fire){
   if(!drag||drag.kind!=='pull'){drag=null;return;}
