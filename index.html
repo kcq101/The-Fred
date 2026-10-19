@@ -360,31 +360,108 @@ function shapeSD(sh){
   if(sh.type==='band')return(x,z)=>sh.w-distPolyline(x,z,sh.pts);
 }
 
+// ---------------------------------------------------------------- terrain features
+// The building blocks a hole's signature is made from. A hole lists them in `features`; nothing here knows about any particular hole.
+// Each feature does one thing inside an area with a soft edge (a smooth falloff `edge` yards wide outside the area):
+//   rise   {area, dh, edge}             lift the ground (dh<0 sinks it): plateaus, elevated greens and tees, landing shelves
+//   ramp   {z0, z1, dh, area?, edge?}   the hole climbs (dh>0) or falls between z0 and z1 and stays there: uphill drives, downhill approaches
+//   tilt   {area, grade, edge}          a side slope across the hole: ground rises `grade` yards per yard toward screen-left (+x) of the centerline
+//   step   {area, a:[x,z], b:[x,z], dh, w, edge}  a tier: ground left of the line a→b sits dh higher, over a ramp w yards wide
+//   hollow {area, depth, edge}          a bowl or swale, deepest in the middle of an ellipse area
+//   cover  {area, surf, over?, edge?}   ground that would play as rough (or any surface named in `over`) plays as `surf` instead
+// area: an ellipse {x,z,rx,rz,rot}, a polygon {pts}, or a band {pts,w} along a polyline.
+// Stage: rise, ramp and tilt shape the land that the green, tee and bunkers are laid into (so an elevated green stays a flat-topped plateau);
+//        step and hollow are applied after the green is laid, so they can contour the putting surface itself.
+function areaSD(a){
+  if(!a)return null;
+  if(a.pts&&a.w!=null)return shapeSD({type:'band',pts:a.pts,w:a.w});
+  if(a.pts)return shapeSD({type:'poly',pts:a.pts});
+  return shapeSD(Object.assign({type:'ellipse'},a));
+}
+function areaBox(a,m){
+  if(!a)return null;
+  if(a.pts){const w=(a.w||0)+m;return{x0:Math.min(...a.pts.map(p=>p[0]))-w,x1:Math.max(...a.pts.map(p=>p[0]))+w,z0:Math.min(...a.pts.map(p=>p[1]))-w,z1:Math.max(...a.pts.map(p=>p[1]))+w};}
+  const r=Math.max(a.rx,a.rz)+m;return{x0:a.x-r,x1:a.x+r,z0:a.z-r,z1:a.z+r};
+}
+const FEATURES={
+  rise:  {stage:'land',  h:(f,x,z,h,w)=>h+f.dh*w},
+  ramp:  {stage:'land',  h:(f,x,z,h,w)=>h+f.dh*smooth(f.z0,f.z1,z)*w},
+  tilt:  {stage:'land',  h:(f,x,z,h,w)=>h+f.grade*(x-centerX(z))*w},
+  step:  {stage:'green', prep:f=>{const dx=f.b[0]-f.a[0],dz=f.b[1]-f.a[1],l=Math.hypot(dx,dz);f.nx=-dz/l;f.nz=dx/l;},
+          // signed distance to the line, positive on its left (+x side when the line runs toward +z)
+          h:(f,x,z,h,w)=>h+f.dh*smooth(-f.w/2,f.w/2,-((x-f.a[0])*f.nx+(z-f.a[1])*f.nz))*w},
+  hollow:{stage:'green', h:(f,x,z,h,w)=>h-f.depth*(1-smooth(0,1,ell(x,z,f.area)))*w},
+  cover: {stage:'surf'},
+};
+let FEATS={land:[],green:[],surf:[]};
+function prepFeatures(list){
+  FEATS={land:[],green:[],surf:[]};
+  for(const def of list||[]){
+    const f=Object.assign({},def),kind=FEATURES[f.type];
+    if(!kind)throw new Error('unknown terrain feature: '+f.type);
+    if(f.area&&f.area.rx)f.area=prepEll(Object.assign({},f.area));
+    f.edge=f.edge??(f.type==='cover'?0:8);
+    f.sd=areaSD(f.area);f.box=areaBox(f.area,f.edge);
+    if(kind.prep)kind.prep(f);
+    f.fn=kind.h;FEATS[kind.stage].push(f);
+  }
+}
+// how strongly a feature applies at (x,z): 1 inside its area, falling smoothly to 0 at `edge` yards outside it
+function featW(f,x,z){
+  if(!f.sd)return 1;
+  const b=f.box;if(x<b.x0||x>b.x1||z<b.z0||z>b.z1)return 0;
+  const s=f.sd(x,z);return f.edge>0?smooth(-f.edge,0,s):(s>0?1:0);
+}
+function applyFeats(L,x,z,h){for(const f of L){const w=featW(f,x,z);if(w>0)h=f.fn(f,x,z,h,w);}return h;}
+
 // ---------------------------------------------------------------- the course
 // Each hole is data: centerline, fairway, green, bunkers, water, scenery. Real-course names are used for a private game.
 const HOLES=[
- {name:'Pebble Beach',par:4,card:'cards/card1.jpg',note:'Ocean all down the right · Green sits on the cliff',theme:'coast',
+ {id:'pebble-8',name:'Pebble Beach',par:4,card:'cards/card1.jpg',note:'The plateau ends at a cliff · Carry the chasm',theme:'coast',
+  // Inspired by No. 8: uphill blind drive to a plateau that ends at the cliffs, then an approach across an ocean chasm to a small green
+  // that tilts back to front. Spec, translation and validation: docs/holes/pebble-8.md
   seed:0.4,roll:0.8,ridge:2.5,
-  route:[[0,0],[80,1],[170,-4],[260,-12],[330,-19],[376,-22]],
-  fw:[[40,14],[200,16],[300,13],[350,11]],fairway:[[38,352]],
-  green:{x:-22,z:375,rx:14,rz:12,rot:0.25},pin:{x:-22,z:375.4},tilt:{x:0.022,z:-0.014},
-  bunkers:[{x:-6,z:362,rx:6,rz:3.5,rot:0.5},{x:-33,z:391,rx:7,rz:3,rot:-0.3},{x:16,z:244,rx:7,rz:4,rot:0.25},{x:-31,z:303,rx:5,rz:3,rot:-0.2}],
+  route:[[0,0],[100,2],[200,-1],[262,-6],[330,-14],[376,-22]],
+  fw:[[40,14],[200,16],[262,15]],fairway:[[38,262]],
+  green:{x:-22,z:375,rx:13,rz:11,rot:0.25},pin:{x:-22,z:375.4},tilt:{x:0.02,z:-0.03},
+  features:[
+    {type:'ramp',z0:30,z1:200,dh:5},                                   // the drive climbs to the plateau
+    {type:'ramp',z0:195,z1:262,dh:-2.2},                               // ...which tips toward the cliff edge, so a long drive runs out of land
+    {type:'ramp',z0:262,z1:335,dh:-6},                                 // beyond the chasm the land is lower: the approach plays downhill
+    {type:'rise',area:{x:-22,z:377,rx:19,rz:15,rot:0.25},dh:3,edge:11},  // the green is perched on a knoll above the chasm
+    {type:'cover',area:{pts:[[-2,346],[8,354],[2,366],[-20,368],[-42,365],[-42,352]]},surf:'FAIRWAY'},  // shaved bank in front: short shots roll back to the sea
+  ],
+  play:{wind:[6,18],greens:{speed:1.1}},
+  bunkers:[{x:-6,z:362,rx:6,rz:3.5,rot:0.5},{x:-33,z:391,rx:7,rz:3,rot:-0.3},{x:16,z:244,rx:7,rz:4,rot:0.25},{x:-27,z:228,rx:6,rz:3.2,rot:-0.2}],
   water:[{kind:'ocean',profile:'cliff',level:-9,bed:-15,edge:3.5,jag:1.6,
-    shape:{type:'outside',pts:[[2000,-2000],[-50,-2000],[-50,-60],[-46,0],[-48,40],[-52,110],[-41,150],[-60,195],[-71,232],[-50,268],[-47,320],[-53,355],[-46,388],[-27,402],[-4,399],[14,410],[60,421],[2000,430]]}}],
+    shape:{type:'outside',pts:[[2000,-2000],[-50,-2000],[-50,-60],[-46,0],[-48,40],[-52,110],[-41,150],[-60,195],[-62,232],[-50,262],
+      [-30,268],[-12,266],[2,272],[10,288],[11,308],[6,326],[-3,340],[-16,349],[-32,353],[-46,357],[-52,368],[-46,388],[-27,402],[-4,399],[14,410],[60,421],[2000,430]]}}],
   bbox:{x0:-120,x1:130,z0:-55,z1:450},
   trees:[{type:'cypress',n:20,zone:'sides',side:'left',d:[10,60],z:[-10,385],s:[0.95,1.4]},
          {type:'cypress',n:5,zone:'rect',x:[-42,-16],z:[-40,40],s:[1,1.3]},
          {type:'pine',n:110,zone:'rect',x:[62,130],z:[-50,425],s:[0.9,1.5]}],
   bushes:[{type:'shrub',n:90,zone:'sides',side:'left',d:[4,40],z:[-20,400]}],
-  rocks:{n:110,col:'#7d6450'},leaf:{cypress:'#2b5a3c',pine:'#24603a'},gold:true,iceplant:true},
- {name:'Augusta National',par:5,card:'cards/card2.jpg',note:'Dogleg left · A creek guards the green',theme:'parkland',
-  seed:1.7,roll:1.1,ridge:4,fall:{z0:380,z1:545,drop:3},
+  rocks:{n:140,col:'#7d6450'},leaf:{cypress:'#2b5a3c',pine:'#24603a'},gold:true,iceplant:true},
+ {id:'augusta-13',name:'Augusta National',par:5,card:'cards/card2.jpg',note:'Dogleg left · Go for it over the creek?',theme:'parkland',
+  // Inspired by No. 13 (Azalea): a dogleg left whose drive tumbles down into a valley, a second shot from a hanging lie (ball above the feet,
+  // which hooks toward the creek) and a creek in front of a green set above a shaved bank. Go for it in two, or lay up right. docs/holes/augusta-13.md
+  seed:1.7,roll:1.1,ridge:4,
   route:[[0,0],[200,0],[300,9],[400,33],[480,56],[540,70],[575,75]],
   fw:[[40,16],[250,18],[420,16],[520,14],[560,12]],fairway:[[35,523],[548,560]],
-  green:{x:75,z:570,rx:15,rz:12,rot:-0.3},pin:{x:75,z:570},tilt:{x:-0.015,z:-0.02},
+  green:{x:75,z:570,rx:15,rz:12,rot:-0.3},pin:{x:75,z:570},tilt:{x:-0.015,z:-0.028},
+  features:[
+    {type:'ramp',z0:190,z1:330,dh:-11},                                // the drive tumbles down into the valley: a well-struck tee shot runs and runs
+    {type:'ramp',z0:380,z1:545,dh:-6},                                 // ...and the land keeps falling gently to the creek
+    {type:'tilt',area:{pts:[[2,280],[12,330],[33,400],[48,455]],w:28},grade:-0.11,edge:20},  // the second-shot fairway falls left toward the creek
+    {type:'cover',area:{pts:[[26,170],[37,250],[47,330],[63,400],[75,465]],w:10},surf:'PINE'},       // pine straw under the trees left of the corner
+    {type:'rise',area:{x:102,z:492,rx:12,rz:32},dh:4,edge:12},              // the far bank of the creek stands up (keeps the creek a creek, not a ravine)
+    {type:'rise',area:{x:75,z:572,rx:19,rz:15,rot:-0.3},dh:3.2,edge:18},  // the green sits up above the creek...
+    {type:'cover',area:{pts:[[52,537],[78,529],[98,546],[100,560],[60,561],[38,550]]},surf:'FAIRWAY'},  // ...on a shaved bank: anything short rolls back into the water
+  ],
+  play:{wind:[3,12],greens:{speed:1.25}},
   bunkers:[{x:62,z:585,rx:6,rz:3.2,rot:0.3},{x:88,z:584,rx:5,rz:3,rot:-0.4},{x:95,z:561,rx:3.5,rz:5,rot:0.2},{x:-8,z:330,rx:7,rz:4,rot:0.3}],
   water:[{kind:'creek',profile:'shore',level:-4.4,bed:-5.6,edge:2.5,
-    shape:{type:'band',w:3.2,pts:[[90,370],[86,440],[86,495],[76,528],[52,539],[18,546],[-20,557],[-60,566]]}}],
+    shape:{type:'band',w:3.2,pts:[[90,370],[86,440],[86,495],[80,532],[56,544],[18,550],[-20,559],[-60,566]]}}],
   bridge:{x:40,z:541},
   bbox:{x0:-90,x1:180,z0:-55,z1:650},
   trees:[{type:'tallpine',n:520,zone:'sides',side:'both',d:[8,110],z:[-45,600],s:[0.85,1.25]},
@@ -393,11 +470,18 @@ const HOLES=[
   bushes:[{type:'azalea',n:120,zone:'rect',x:[30,140],z:[582,622]},{type:'azalea',n:70,zone:'sides',side:'left',d:[4,30],z:[360,540]},
           {type:'azalea',n:45,zone:'rect',x:[0,62],z:[540,566]},{type:'shrub',n:140,zone:'sides',side:'both',d:[4,14],z:[0,520]}],
   rocks:{n:0},leaf:{tallpine:'#1f5a34',pine:'#24603a'}},
- {name:'TPC Sawgrass',par:3,card:'cards/card3.jpg',note:'Island green · Anything short is wet',theme:'lakes',
+ {id:'sawgrass-17',name:'TPC Sawgrass',par:3,card:'cards/card3.jpg',note:'Island green · Read the wind',theme:'lakes',
+  // Inspired by No. 17: a short iron to an island green with water short, long, left and right, played in a swirling wind.
+  // Exaggerated: a firm, crowned island that sheds marginal shots toward the bulkhead, a deep pot bunker, a tier through the green. docs/holes/sawgrass-17.md
   seed:2.9,roll:0.3,ridge:1,
   route:[[0,0],[137,-4]],fw:[[0,12],[137,12]],fairway:[[7,17]],
-  green:{x:-4,z:137,rx:14,rz:11,rot:0.15},pin:{x:-4,z:137},tilt:{x:0.012,z:-0.012},
-  bunkers:[{x:-16.5,z:129,rx:2.6,rz:2.2,rot:0}],
+  green:{x:-4,z:137,rx:14,rz:11,rot:0.15},pin:{x:-4,z:137},tilt:{x:0.008,z:-0.01},
+  features:[
+    {type:'rise',area:{x:-4,z:137,rx:15,rz:12,rot:0.15},dh:0.9,edge:6},     // the island is crowned: anything that lands on its edge runs off toward the water
+    {type:'step',area:{x:-4,z:137,rx:14,rz:11,rot:0.15},a:[12,129],b:[-14,147],dh:0.45,w:3.5,edge:2},  // a tier through the green: back-left sits higher
+  ],
+  play:{wind:[7,19],windPush:3},
+  bunkers:[{x:-16.5,z:129,rx:2.6,rz:2.2,rot:0,depth:1.5,lip:0.4}],
   water:[{kind:'lake',profile:'wall',level:-1.2,bed:-3.6,edge:0.6,
     shape:{type:'poly',pts:[[-110,24],[-60,18],[-20,21],[30,17],[88,25],[118,60],[116,140],[104,190],[40,204],[-20,209],[-82,199],[-118,150],[-124,80]]},
     islands:[{type:'ellipse',x:-4,z:137,rx:19,rz:15.5,rot:0.15}]}],
@@ -428,14 +512,14 @@ const baseH=(x,z)=>{const s=HOLE.seed;return HOLE.roll*(1.6*Math.sin(x*0.045+0.5
 function rawH(x,z){
   const d=Math.abs(x-centerX(z));let h=baseH(x,z);h=mix(h,h*0.4,1-smooth(14,40,d));
   h+=HOLE.ridge*smooth(40,95,d);
-  if(HOLE.fall)h-=HOLE.fall.drop*smooth(HOLE.fall.z0,HOLE.fall.z1,z);
-  return h;
+  return applyFeats(FEATS.land,x,z,h);
 }
 function H(x,z){
   let h=rawH(x,z);
   const tq=Math.max(Math.abs(x)/4.5,Math.abs(z)/6);h=mix(h,TEE_H,1-smooth(1,1.7,tq));
   const g=ell(x,z,GREEN);if(g<1.6){const gp=GH+GT.x*(x-PIN.x)+GT.z*(z-PIN.z);h=mix(h,gp,1-smooth(1.0,1.6,g));}
-  for(const b of BUNKERS){const e=ell(x,z,b);if(e<1.3){h-=0.9*(1-smooth(0.55,1.0,e));h+=0.25*smooth(0.8,1.0,e)*(1-smooth(1.0,1.3,e));}}
+  h=applyFeats(FEATS.green,x,z,h);
+  for(const b of BUNKERS){const e=ell(x,z,b);if(e<1.3){h-=b.depth*(1-smooth(0.55,1.0,e));h+=b.lip*smooth(0.8,1.0,e)*(1-smooth(1.0,1.3,e));}}
   for(const b of BODIES){
     const s=b.sd(x,z);if(s<=-(b.profile==='shore'?b.edge+7:b.edge))continue;
     if(b.profile==='wall'){if(s>0)h=b.bed;}
@@ -448,7 +532,8 @@ const _n=new V3();
 function normal(x,z){const e=0.2;const hx=H(x+e,z)-H(x-e,z),hz=H(x,z+e)-H(x,z-e);return _n.set(-hx/(2*e),1,-hz/(2*e)).normalize();}
 function overWater(x,z,margin=0){for(const b of BODIES)if(b.sd(x,z)>-margin)return b;return null;}
 
-const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6;
+const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6,PINE=7;
+const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE};   // names a hole spec can use (e.g. a cover feature's surf)
 // How each surface treats the ball (see BallModel for what these do):
 //   e      bounce: share of the speed into the ground that comes back out
 //   bite   grab on the FIRST impact (the ball still has backspin);  mu: grab on every later bounce (bigger = the run dies faster on a steep arrival)
@@ -463,21 +548,39 @@ const SP={
   [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,name:'Green',   lie:1.00},
   [SAND]:   {e:.05,mu:.90,bite:9.0,floor:0,  dec:30, hold:.5, name:'Bunker',  lie:0.70},
   [WATER]:  {e:0,  mu:1,  bite:9.0,floor:0,  dec:99, hold:.5, name:'Water',   lie:1.00},
+  [PINE]:   {e:.22,mu:.35,bite:4.4,floor:.10,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
 };
+const BASE_SP=JSON.parse(JSON.stringify(SP));
+// A hole's play profile tunes the shared surfaces for that hole (all optional, 1 = as above):
+//   firm         fairway, rough and tee run out more (links turf, a baked summer course) or less: grab on landing is divided by it
+//   greens.speed putts roll further (rolling resistance divided by it); greens.firm  approach shots release more on landing
+//   wind         [min,max] mph the hole's wind is drawn from (default 3..14);  windPush  exposed holes: the wind moves the ball this many times harder (HUD says GUSTY)
+//   stance       how strongly sloping lies bend and shorten shots (StanceModel); 0 turns it off
+function applyPlay(p={}){
+  for(const k in BASE_SP)Object.assign(SP[k],BASE_SP[k]);
+  const f=p.firm??1;for(const k of[TEE,FAIRWAY,ROUGH,FRINGE]){SP[k].bite/=f;SP[k].mu/=f;}
+  const gs=(p.greens&&p.greens.speed)??1,gf=(p.greens&&p.greens.firm)??1;
+  SP[GREENS].dec/=gs;SP[GREENS].bite/=gf;SP[FRINGE].dec/=Math.sqrt(gs);
+  SP[GREENS].hold=Math.min(SP[GREENS].hold,SP[GREENS].dec/10.7);   // keep hold <= dec/G (G=10.7)
+}
 function S(x,z){
   let h=null;
   for(const b of BODIES)if(b.sd(x,z)>0){if(h===null)h=H(x,z);if(h<b.level)return WATER;}
   for(const b of BUNKERS)if(ell(x,z,b)<0.95)return SAND;
   const g=ell(x,z,GREEN);if(g<1)return GREENS;if(g<1.2)return FRINGE;
   if(Math.abs(x)<4.5&&Math.abs(z)<6)return TEE;
-  if(inFairway(x,z))return FAIRWAY;
-  return ROUGH;
+  const s=inFairway(x,z)?FAIRWAY:ROUGH;
+  for(const f of FEATS.surf)if(f.over.includes(s)&&featW(f,x,z)>0.5)return f.surf;
+  return s;
 }
 // make a hole current: shapes, heights and the pin
 function prepHole(i){
   holeIdx=i;HOLE=HOLES[i];
   GREEN=prepEll(Object.assign({},HOLE.green));PIN=HOLE.pin;GT=HOLE.tilt;
-  BUNKERS=HOLE.bunkers.map(b=>prepEll(Object.assign({},b)));
+  prepFeatures(HOLE.features);
+  for(const f of FEATS.surf){f.surf=SURF[f.surf];f.over=(f.over||['ROUGH']).map(n=>SURF[n]);}
+  applyPlay(HOLE.play);
+  BUNKERS=HOLE.bunkers.map(b=>prepEll(Object.assign({depth:0.9,lip:0.25},b)));
   BODIES=HOLE.water.map(def=>{
     const b=Object.assign({},def);const base=shapeSD(def.shape);const isl=(def.islands||[]).map(shapeSD);
     b.sd=(x,z)=>{let s=base(x,z);for(const f of isl)s=Math.min(s,-f(x,z));if(def.jag)s+=jagN(x,z)*def.jag;return s;};
@@ -552,6 +655,39 @@ const SwingModel=(()=>{
   return{PERFECT,GOOD,CHUNK,JIT_SPEED,JIT_YAW,lateralSev,speedLoss,carryAt,carryFactor,tier,resolve};
 })();
 // </swing-model>
+
+// <stance-model>
+// What the slope under the ball does to a full swing (putts ignore it). It is read from the terrain, so any hole with sloping ground gets it.
+//   ball above the feet  the shot starts a little left and hooks further left;  below the feet: right and slicing
+//   uphill lie           the ball climbs and comes up short;  downhill: flies lower and runs out further
+//   any slope            the needle swings faster, so clean contact is harder to time
+// The aiming arc includes all of this (the arc never lies); the player answers with aim, a draw/fade pull, or a different club.
+// read(n, yaw): n = ground normal at the ball, yaw = aim direction. Grades are rise per yard. A right-handed player stands screen-left (+x side) of the ball.
+const StanceModel=(()=>{
+  const FLAT=0.025;            // grades below this count as flat
+  const CURVE=4.0;             // sideways pull per unit of side grade, as a share of the club's full draw/fade (capped at one full shape)
+  const START=0.12;            // starting direction pulled this many radians per unit of side grade
+  const UP_LOSS=0.6,DOWN_GAIN=0.3;   // share of launch speed lost per unit uphill grade, gained per unit downhill grade
+  const NEEDLE=2.4,NEEDLE_MAX=1.7;   // needle speed x (1 + NEEDLE x grade), at most NEEDLE_MAX
+  function read(n,yaw){
+    const gx=-n.x/n.y,gz=-n.z/n.y,s=Math.sin(yaw),c=Math.cos(yaw);
+    return{up:gx*s+gz*c,above:-(gx*c-gz*s)};   // up: rise toward the target; above: rise from the player's feet to the ball
+  }
+  const dz=g=>Math.abs(g)<FLAT?0:g-Math.sign(g)*FLAT;
+  function effect(club,st,mult=1){
+    const none={spin:0,yaw:0,speed:1,needle:1,tag:null,above:0,up:0};
+    if(club.putt||!mult)return none;
+    const a=dz(st.above)*mult,u=dz(st.up)*mult;
+    if(!a&&!u)return none;
+    const spin=-clamp(a*CURVE,-1,1)*club.shape;                    // above the feet (a>0) -> hook (negative spin = left)
+    const speed=u>0?1-UP_LOSS*u:1-DOWN_GAIN*u;
+    const needle=Math.min(NEEDLE_MAX,1+NEEDLE*Math.hypot(a,u));
+    const tag=Math.abs(a)>=Math.abs(u)?(a>0?'BALL ABOVE FEET · HOOKS':'BALL BELOW FEET · SLICES'):(u>0?'UPHILL LIE · PLAYS SHORT':'DOWNHILL LIE · RUNS');
+    return{spin,yaw:a*START,speed,needle,tag,above:a,up:u};
+  }
+  return{FLAT,CURVE,START,UP_LOSS,DOWN_GAIN,NEEDLE,read,effect};
+})();
+// </stance-model>
 
 // <ball-model>
 // Everything the ball does once it has left the club, kept apart from the renderer so it can be tested on its own (tests/ball.test.js reads this block out of this file).
@@ -879,6 +1015,7 @@ function paintBackdrop(theme){
 
 // ---------------------------------------------------------------- per-hole world
 const COL=Object.fromEntries(Object.entries(PAL.g).map(([k,v])=>[k,parseInt(v.slice(1),16)]));
+const PINE_C=new THREE.Color('#9a6e40');   // pine straw under the trees
 const ROCKFACE=['#7a4e34','#9a6440','#b88050','#6a4230'].map(h=>new THREE.Color(h));
 let world=null,TREES=[],FLAGSTICK=[],flag=null,flagG=null,flagBase=null;
 const WT={value:0};
@@ -955,6 +1092,7 @@ function buildWorld(){
   const add=o=>{world.add(o);return o;};
   const bb=HOLE.bbox;
   const cliffB=BODIES.find(b=>b.profile==='cliff');
+  let lowH=0;   // lowest dry ground in the modelled area: the ground beyond it must sit below this, or it would cover a deep valley
   // ---- terrain
   {
     const w=bb.x1-bb.x0,d=bb.z1-bb.z0,step=Math.max(1,Math.sqrt(w*d/150000));
@@ -971,13 +1109,14 @@ function buildWorld(){
       else if(s===FAIRWAY){const edge=!inFairway(x,z,-1.0);c.setHex(edge?COL.cut:COL.fw1);}
       else if(s===GREENS)c.setHex(COL.green2);
       else if(s===FRINGE)c.setHex(COL.fringe);
+      else if(s===PINE){c.copy(PINE_C).offsetHSL(0,0,(jagN(x*2.3,z*2.3)*0.04));}
       else if(s===SAND){let e=1;for(const b of BUNKERS)e=Math.min(e,ell(x,z,b));c.setHex(e>0.84?COL.sandRim:COL.sand);}
       else{c.setHex(dc>fairwayHalf(z)+18?COL.deep:(inFairway(x,z,3)?COL.cut:COL.rough));
         if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}}
     };
     const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count);
     for(let i=0;i<pos.count;i++){
-      const x0=pos.getX(i),z0=pos.getZ(i);pos.setY(i,H(x0,z0));
+      const x0=pos.getX(i),z0=pos.getZ(i),y0=H(x0,z0);pos.setY(i,y0);if(y0<lowH&&!overWater(x0,z0))lowH=y0;
       acc.setRGB(0,0,0);let fw=0;
       for(const[ox,oz]of[[-0.3,-0.3],[0.3,-0.3],[-0.3,0.3],[0.3,0.3]]){const xx=x0+ox,zz=z0+oz;colorAt(xx,zz);acc.r+=c.r/4;acc.g+=c.g/4;acc.b+=c.b/4;if(S(xx,zz)===FAIRWAY&&inFairway(xx,zz,-1.0))fw+=0.25;}
       cols[i*3]=acc.r;cols[i*3+1]=acc.g;cols[i*3+2]=acc.b;
@@ -1043,10 +1182,10 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
   if(cliffB){
     const sh=new THREE.Shape(cliffB.shape.pts.map(([x,z])=>new THREE.Vector2(x,-z)));
     const lg=new THREE.ShapeGeometry(sh);lg.rotateX(-Math.PI/2);
-    const land=add(new THREE.Mesh(lg,toon(COL.deep,{opacity:0.75})));land.position.y=-8;
+    const land=add(new THREE.Mesh(lg,toon(COL.deep,{opacity:0.75})));land.position.y=Math.min(-8,lowH-4);
   }else{
     const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),toon(COL.deep,{opacity:0.75})));
-    ground.rotation.x=-Math.PI/2;ground.position.set((bb.x0+bb.x1)/2,-8,(bb.z0+bb.z1)/2);
+    ground.rotation.x=-Math.PI/2;ground.position.set((bb.x0+bb.x1)/2,Math.min(-8,lowH-4),(bb.z0+bb.z1)/2);
   }
   // ---- water surfaces: one grid per body, with distance-to-shore for foam and ripples
   for(const b of BODIES){
@@ -1491,7 +1630,7 @@ function setTarget(x,z){
   const nd=clamp(d,CLUBS[clubIdx].putt?0.5:Math.max(8,CLUBS[clubIdx].carry*0.25),maxReach());
   x=ball.p.x+dx/d*nd;z=ball.p.z+dz/d*nd;
   target.set(x,H(x,z),z);targetPinned=Math.hypot(x-PIN.x,z-PIN.z)<0.6;
-  solveShot();
+  solveShot();updateHUD();
 }
 function launchVel(speed,yaw,out){const c=CLUBS[clubIdx];return out.set(Math.sin(yaw)*Math.cos(c.ang)*speed,Math.sin(c.ang)*speed,Math.cos(yaw)*Math.cos(c.ang)*speed);}
 const simP=new V3(),simV=new V3();
@@ -1519,7 +1658,9 @@ function shapeYaw(speed,spin){
   return y1;
 }
 function shapeSpin(sh){const c=CLUBS[clubIdx];return c.putt?0:(Math.abs(sh)<0.08?0:sh*c.shape);}
-function shotSpeed(power){const c=CLUBS[clubIdx];const base=shotV*Math.sqrt(power);return c.putt?base:base*lieMult(lieNow(),c);}
+// what the slope under the ball does to this club aimed this way (StanceModel); the arc, the needle and the shot all use it
+function stanceNow(){const play=HOLE.play||{};return StanceModel.effect(CLUBS[clubIdx],StanceModel.read(normal(ball.p.x,ball.p.z),aimYaw),play.stance??1);}
+function shotSpeed(power){const c=CLUBS[clubIdx];const base=shotV*Math.sqrt(power);return c.putt?base:base*lieMult(lieNow(),c)*stanceNow().speed;}
 const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_s=new V3();
 function pxPer(d){return(vh/2)/(Math.max(d,0.1)*Math.tan(camera.fov*D2R/2));}
 function drawGuide(power){
@@ -1528,7 +1669,7 @@ function drawGuide(power){
     guide.count=0;guideOut.count=0;arcLine.visible=false;
     if(!(drag&&drag.kind==='pull')){puttLine.visible=false;return null;} // the putting line only shows once you start pulling back
     fanYaw=aimYaw+puttYaw();land=drawPuttLine(simPutt(shotSpeed(power),fanYaw));return land;
-  }else{puttLine.visible=false;const sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);fanYaw=aimYaw+y;land=simArc(sp,fanYaw,pts,spin);}
+  }else{puttLine.visible=false;const st=stanceNow(),sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);fanYaw=aimYaw+y+st.yaw;land=simArc(sp,fanYaw,pts,spin+st.spin);}
   guide.count=0;guideOut.count=0;
   if(land)pts.push(land.clone());drawArc(pts);
   return land;
@@ -1587,7 +1728,9 @@ function updateHUD(){
   const d=distToPin();pinHUD(lie,d);
   $('dist').textContent=(lie===GREENS||lie===FRINGE)?Math.round(d*3)+' ft to cup':Math.round(d)+' yds to pin';
   const pen=CLUBS[clubIdx].putt?1:lieMult(lie,CLUBS[clubIdx]);
-  $('liePen').textContent=pen<1?`−${Math.round((1-SwingModel.carryFactor(CLUBS[clubIdx],pen))*100)}% distance`:'';
+  const notes=[];
+  if(pen<1)notes.push(`−${Math.round((1-SwingModel.carryFactor(CLUBS[clubIdx],pen))*100)}% distance`);
+  $('liePen').textContent=notes.join(' · ');
   document.querySelectorAll('.club').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.i===clubIdx)));
 }
 
@@ -1597,10 +1740,10 @@ function shoot(power,offset,sh=0,py=0){
   const club=CLUBS[clubIdx];
   const sw=SwingModel.resolve(club,offset),fb=sw.feedback;
   const speed=shotSpeed(power)*sw.speedMult;
-  const sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin);
-  const yaw=aimYaw+sYaw+py+sw.yawErr;
+  const st=stanceNow(),sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin);
+  const yaw=aimYaw+sYaw+st.yaw+py+sw.yawErr;
   prevLie.copy(ball.p);strokes++;
-  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+sw.spinErr});ball.lastOut.copy(ball.p);BallModel.begin(ball);stepAcc=0;
+  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+st.spin+sw.spinErr});ball.lastOut.copy(ball.p);BallModel.begin(ball);stepAcc=0;
   if(club.putt){ball.v.set(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed);ball.rolling=true;ball.p.y=H(ball.p.x,ball.p.z)+R;SND.putt();sfx('TAP',ball.p.clone(),{cls:'small',dy:-60});}
   else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();sfx(fb.word||club.word,ball.p.clone(),{dy:-110});aberrKick=7;shakeT=0.18;}
   if(fb.tag||fb.note)setTimeout(()=>{if(fb.tag)sfx(fb.tag,null,{cls:fb.tagCls,dy:60,rot:4});if(fb.note)sfx(fb.note,null,{cls:fb.noteCls,dy:112,rot:-3});},180);
@@ -1718,7 +1861,7 @@ function showPull(){
 function updatePendulum(dt){
   const power=pullPower();const sw=CLUBS[clubIdx].swing;
   // constant-speed sweep so the center is as catchable as the edges
-  pendPhase+=mix(sw[0],sw[1],power)*dt;pendOffset=1-Math.abs(((pendPhase+1)%4+4)%4-2);
+  pendPhase+=mix(sw[0],sw[1],power)*stanceNow().needle*dt;pendOffset=1-Math.abs(((pendPhase+1)%4+4)%4-2);
   const pe=$('pend');pe.hidden=power<0.02;
   if(!pe.hidden)drawFan();
 }
@@ -1876,9 +2019,9 @@ $('againBtn').addEventListener('click',()=>{
 
 // ---------------------------------------------------------------- round flow
 function rollWind(){
-  windMph=Math.round(3+Math.random()*11);windYaw=Math.random()*Math.PI*2;
-  const s=windMph*0.4889;wind.set(Math.sin(windYaw)*s,0,Math.cos(windYaw)*s);
-  $('windTxt').innerHTML=windMph+' MPH<small>WIND</small>';$('introWind').textContent='WIND '+windMph+' MPH';
+  const play=HOLE.play||{},wr=play.wind||[3,14],push=play.windPush||1;windMph=Math.round(wr[0]+Math.random()*(wr[1]-wr[0]));windYaw=Math.random()*Math.PI*2;
+  const s=windMph*0.4889*push;wind.set(Math.sin(windYaw)*s,0,Math.cos(windYaw)*s);
+  $('windTxt').innerHTML=windMph+' MPH<small>'+(push>1.2?'GUSTY':'WIND')+'</small>';$('introWind').textContent='WIND '+windMph+' MPH';
 }
 let scores=[];
 function loadHole(i){
@@ -1926,14 +2069,24 @@ const camPos=new V3(95,85,440),camLook=new V3(28,0,260);
 let FLY_T=4.6; // seconds for the opening flyover
 const tP=new V3(),tL=new V3(),oP=new V3(),oL=new V3();
 // Aim view: high behind the ball, ball near the bottom of the frame and the target up the screen
+const BALL_SAFE_PX=250;   // the lie caption and club row take about this much of the bottom of the screen
 function aimTarget(outP,outL){
   const c=CLUBS[clubIdx];
   const dir=new V3(Math.sin(aimYaw),0,Math.cos(aimYaw));
   const D=Math.max(hdist(ball.p,target),c.putt?7:28);
   // low, golfer's-eye view standing behind the ball: camera close to the ground, looking down the line
   const back=c.putt?0.18*D+2:0.11*D+5,up=c.putt?back*0.5:back*0.3+1.2,ahead=c.putt?back*1.2:back*1.6;
-  outP.copy(ball.p).addScaledVector(dir,-back);outP.y=Math.max(ball.p.y+up,H(outP.x,outP.z)+1.4);
-  outL.copy(ball.p).addScaledVector(dir,ahead);outL.y=ball.p.y;
+  // on a downhill lie the ground behind the ball is higher: step the camera in toward the ball rather than lifting it into a straight-down view
+  let bk=back;for(let i=0;i<6&&H(ball.p.x-dir.x*bk,ball.p.z-dir.z*bk)+1.4>ball.p.y+up;i++)bk*=0.8;
+  outP.copy(ball.p).addScaledVector(dir,-bk);outP.y=Math.max(ball.p.y+up*(0.6+0.4*bk/back),H(outP.x,outP.z)+1.4);
+  for(let t=0.15;t<0.95;t+=0.15){const gx=mix(outP.x,ball.p.x,t),gz=mix(outP.z,ball.p.z,t);outP.y=Math.max(outP.y,(H(gx,gz)+0.35-ball.p.y*t)/(1-t));}  // keep the ball in sight over any rise in between
+  outL.copy(ball.p).addScaledVector(dir,ahead);
+  outL.y=ball.p.y+0.6*(H(outL.x,outL.z)+R-ball.p.y);   // look along the ground ahead: up the hill on an uphill shot, down into the valley on a downhill one
+  // keep the ball clear of the bottom HUD (lie caption + club row): if it would sit lower than that on screen, tilt the view down until it doesn't
+  {const dxB=Math.hypot(ball.p.x-outP.x,ball.p.z-outP.z),dxL=Math.hypot(outL.x-outP.x,outL.z-outP.z);
+   const angB=Math.atan2(ball.p.y-outP.y,dxB),angL=Math.atan2(outL.y-outP.y,dxL);
+   const maxOff=Math.atan(Math.max(0.1,1-2*BALL_SAFE_PX/vh)*Math.tan(camera.fov*D2R/2));
+   if(angL-angB>maxOff)outL.y=outP.y+Math.tan(angB+maxOff)*dxL;}
   if(zoomV<-0.001){
     // zoomed in: close over the target, looking down the line of the shot
     const close=c.putt?Math.max(4,D*0.35):Math.max(18,D*0.16);
