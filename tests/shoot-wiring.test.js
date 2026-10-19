@@ -16,14 +16,14 @@ function world(clubIdx0) {
   const ball = { p: vec(), v: vec(), lastOut: vec(), rolling: true, resting: true };
   const el = { textContent: '', hidden: false };
   const body = `
-    let clubIdx=${clubIdx0},aimYaw=0,strokes=0,state='aim',firstShot=true,aberrKick=0,shakeT=0;
-    const CLUBS=env.CLUBS,SwingModel=env.SwingModel,R=0.05,prevLie=env.vec(),flightDir=env.vec(),trailPts=[];
+    let clubIdx=${clubIdx0},aimYaw=0,strokes=0,state='aim',firstShot=true,aberrKick=0,shakeT=0,stepAcc=0.5;
+    const CLUBS=env.CLUBS,SwingModel=env.SwingModel,BallModel=env.BallModel,R=0.05,prevLie=env.vec(),flightDir=env.vec(),trailPts=[];
     const H=()=>0,shotSpeed=p=>CLUBS[clubIdx].putt?10*Math.sqrt(p):CLUBS[clubIdx].v0*Math.sqrt(p),shapeSpin=()=>0,shapeYaw=()=>0,setZoom=()=>{},$=()=>env.el;
     const launchVel=(s,yaw,out)=>{const c=CLUBS[clubIdx];return out.set(Math.sin(yaw)*Math.cos(c.ang)*s,Math.sin(c.ang)*s,Math.cos(yaw)*Math.cos(c.ang)*s);};
     const SND={hit(){},putt(){}},sfx=(t,w,o)=>env.popups.push({t,o}),ball=env.ball,setTimeout=f=>f();
     ${shootSrc}
-    return {shoot,setClub:i=>{clubIdx=i;},state:()=>state,strokes:()=>strokes};`;
-  const api = new Function('env', body)({ CLUBS: g.CLUBS, SwingModel: g.SwingModel, vec, ball, el, popups });
+    return {shoot,setClub:i=>{clubIdx=i;},state:()=>state,strokes:()=>strokes,stepAcc:()=>stepAcc};`;
+  const api = new Function('env', body)({ CLUBS: g.CLUBS, SwingModel: g.SwingModel, BallModel: g.BallModel, vec, ball, el, popups });
   return { ...api, ball, popups };
 }
 

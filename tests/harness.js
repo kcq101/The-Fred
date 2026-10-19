@@ -1,7 +1,7 @@
-// Test harness for The Fred's swing tuning.
-// It pulls the game's own constants, clubs and surface table straight out of index.html (no copies to drift),
-// and provides a FLAT-GROUND mirror of the airborne/rolling branches of physStep() for measuring shots.
-// The mirror is NOT the live engine: it has no terrain, trees or water. See tests/README.md for what that means.
+// Test harness for The Fred.
+// It pulls the game's own constants, clubs, surface table, SwingModel and BallModel straight out of index.html (no copies to drift),
+// and can also load the game's REAL terrain code (heights, surfaces, bunkers, water) for the three holes.
+// What it cannot do: run three.js, so nothing here renders, hits trees, or touches the HUD. See tests/README.md.
 const fs = require('fs');
 const path = require('path');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
@@ -19,12 +19,31 @@ function loadGame() {
   const surfaces = between('const TEE=0,FAIRWAY=1', 'function S(x,z)');
   const physics = between('const G=10.7,K=0.0011,R=0.05;', 'function lieMult');
   const lieFn = between('function lieMult', '\n');
-  let swing = '';
-  if (SRC.includes('// <swing-model>')) swing = between('// <swing-model>', '// </swing-model>');
-  const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n` +
-    'return {G,K,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,lieMult,carryFlat,clamp,mix,D2R,' +
-    (swing ? 'SwingModel' : 'SwingModel:null') + '};';
+  const swing = between('// <swing-model>', '// </swing-model>');
+  const ball = between('// <ball-model>', '// </ball-model>');
+  const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n${ball}\n` +
+    'return {G,K,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,BallModel};';
   return new Function(body)();
+}
+
+// minimal stand-in for THREE.Vector3 (the terrain code only needs set/normalize)
+class V3 {
+  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+  set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+  normalize() { const l = Math.hypot(this.x, this.y, this.z) || 1; this.x /= l; this.y /= l; this.z /= l; return this; }
+}
+
+// The game's real terrain code, lifted from index.html: HOLES, H(), normal(), S(), prepHole(), bunkers and water.
+function loadCourse() {
+  const region = between('// ---------------------------------------------------------------- shapes', '// ---------------------------------------------------------------- ball physics');
+  const game = loadGame();
+  const body = `const D2R=Math.PI/180;const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));const mix=(a,b,t)=>a+(b-a)*t;const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+${region}
+return {HOLES,prepHole,H,normal,S,get HOLE(){return HOLE;},get PIN(){return PIN;},get PIN_H(){return PIN_H;},get TEE_H(){return TEE_H;},get BUNKERS(){return BUNKERS;},get BODIES(){return BODIES;},get GREEN(){return GREEN;},ell,centerX};`;
+  const course = new Function('V3', body)(V3);
+  course.game = game;                                                     // (attach, don't spread: HOLE/PIN/... are live getters)
+  course.terrain = { H: course.H, normal: course.normal, S: course.S };
+  return course;
 }
 
 // small seedable PRNG so every scenario is reproducible
@@ -33,42 +52,52 @@ function mulberry32(seed) {
   return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 
-// Flat-ground mirror of physStep (airborne drag+wind+spin, first-bounce keep incl. club.roll, then roll with surface decel).
-// speed: launch speed (yd/s). yaw: radians, +yaw = screen-left (+x). spin: sideways accel (yd/s^2), same sign convention as ball.spin.
-// wind: {x,z} in yd/s. surf: surface key for bounce/roll. Returns carry, total, lateral (+x = left of the aim line) in yards.
-function flatShot(game, club, speed, yaw, spin, wind = { x: 0, z: 0 }, surf = game.FAIRWAY) {
-  const { G, K, R, SP, clamp } = game;
-  const sp = SP[surf];
-  const p = { x: 0, y: R, z: 0 };
-  const v = { x: Math.sin(yaw) * Math.cos(club.ang) * speed, y: Math.sin(club.ang) * speed, z: Math.cos(yaw) * Math.cos(club.ang) * speed };
-  let landed = false, rolling = false, carry = null, spinNow = spin, t = 0;
-  const dt = 1 / 240;
-  while (t < 30) {
-    t += dt;
-    if (!rolling) {
-      const vx = v.x - wind.x, vy = v.y, vz = v.z - wind.z, s = Math.hypot(vx, vy, vz);
-      v.x -= K * s * vx * dt; v.y -= (G + K * s * vy) * dt; v.z -= K * s * vz * dt;
-      if (spinNow) { const hv = Math.hypot(v.x, v.z); if (hv > 1) { v.x += (-v.z / hv) * spinNow * dt; v.z += (v.x / hv) * spinNow * dt; } }
-      p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
-      if (p.y - R <= 0) {
-        p.y = R; const vn = v.y;
-        if (vn < 0) {
-          let keep = 1 - sp.mu * (landed ? clamp(-vn / 8, 0, 1) : 1);
-          if (!landed && club.roll) keep *= club.roll;
-          v.x *= keep; v.z *= keep;
-          if (vn < -1.5) v.y = -vn * sp.e; else { v.y = 0; rolling = true; }
-        }
-        if (!landed) { landed = true; spinNow = 0; carry = { x: p.x, z: p.z }; }
-      }
-    } else {
-      const s = Math.hypot(v.x, v.z);
-      if (s > 0) { const k = Math.max(0, s - sp.dec * dt) / s; v.x *= k; v.z *= k; }
-      p.x += v.x * dt; p.z += v.z * dt; v.y = 0;
-      if (Math.hypot(v.x, v.z) < 0.07) break;
-    }
-  }
-  const c = carry || p;
-  return { carry: Math.hypot(c.x, c.z), carryLat: c.x, total: Math.hypot(p.x, p.z), lateral: p.x, depth: p.z };
+// A terrain from a height function and a surface function, with the same finite-difference normal the game uses.
+function makeTerrain(h, surf) {
+  const out = { x: 0, y: 1, z: 0 }, e = 0.2;
+  const H = (x, z) => h(x, z);
+  const normal = (x, z) => {
+    const hx = h(x + e, z) - h(x - e, z), hz = h(x, z + e) - h(x, z - e);
+    const nx = -hx / (2 * e), nz = -hz / (2 * e), l = Math.hypot(nx, 1, nz);
+    out.x = nx / l; out.y = 1 / l; out.z = nz / l; return out;
+  };
+  return { H, normal, S: typeof surf === 'function' ? surf : () => surf };
 }
 
-module.exports = { loadGame, mulberry32, flatShot, SRC };
+// Run one shot through the real BallModel until the ball is at rest (or the game's own time limit).
+// start: {x,z} on the terrain. v: launch velocity {x,y,z}. Returns the final state, the shot summary and invariants measured along the way.
+function runBall(game, terrain, { start = { x: 0, z: 0 }, v, spin = 0, club = null, wind = { x: 0, z: 0 }, onEv = null, collide = null, maxT = null, dive = null } = {}) {
+  const { BallModel, SP, R } = game;
+  const env = { terrain, sp: SP, wind, onEv, collide };
+  const b = { p: { x: start.x, y: terrain.H(start.x, start.z) + R + 0.02, z: start.z }, v: { ...v }, rolling: false, landed: false, resting: false, t: 0, spin, club, lipT: -9 };
+  BallModel.begin(b);
+  const lim = maxT ?? BallModel.MAX_T;
+  const inv = { minClear: Infinity, maxSpeedGround: 0, maxHopAfterLanding: 0, steps: 0, nan: false, events: [], exit: null };
+  let peakAfter = 0;
+  while (b.t < lim && !b.resting) {
+    const wasLanded = b.landed;
+    BallModel.step(b, BallModel.STEP, env);
+    inv.steps++;
+    if (!wasLanded && b.landed) inv.firstContact = { x: b.p.x, z: b.p.z };   // seen from outside, not read from the model's own record
+    if (!(Number.isFinite(b.p.x) && Number.isFinite(b.p.y) && Number.isFinite(b.p.z))) { inv.nan = true; break; }
+    const h = terrain.H(b.p.x, b.p.z), clear = b.p.y - R - h;
+    inv.minClear = Math.min(inv.minClear, clear);
+    if (b.landed) { peakAfter = Math.max(peakAfter, clear); if (b.rolling) inv.maxSpeedGround = Math.max(inv.maxSpeedGround, Math.hypot(b.v.x, b.v.y, b.v.z)); }
+    if (dive && dive(b, terrain)) { inv.exit = 'hazard'; break; }
+  }
+  inv.maxHopAfterLanding = peakAfter;
+  return { ball: b, summary: BallModel.summary(b), inv, resting: b.resting, t: b.t };
+}
+
+// Flat-ground shot through the real BallModel. Same signature the Phase 1 swing tests used.
+// speed: launch speed (yd/s). yaw: radians, +yaw = screen-left (+x). spin: sideways accel (yd/s^2). wind {x,z} in yd/s. surf: surface key.
+// Returns carry (to first contact), total, lateral (+x = left of the aim line) and depth, in yards.
+function flatShot(game, club, speed, yaw, spin, wind = { x: 0, z: 0 }, surf = game.FAIRWAY) {
+  const terrain = makeTerrain(() => 0, surf);
+  const v = { x: Math.sin(yaw) * Math.cos(club.ang) * speed, y: Math.sin(club.ang) * speed, z: Math.cos(yaw) * Math.cos(club.ang) * speed };
+  const r = runBall(game, terrain, { v, spin, club, wind, maxT: 40 });
+  const b = r.ball, a = b.landAt || b.p;
+  return { carry: Math.hypot(a.x, a.z), carryLat: a.x, total: Math.hypot(b.p.x, b.p.z), lateral: b.p.x, depth: b.p.z, roll: r.summary.roll, bounces: r.summary.bounces, t: r.t, resting: r.resting };
+}
+
+module.exports = { loadGame, loadCourse, makeTerrain, runBall, mulberry32, flatShot, SRC, between };

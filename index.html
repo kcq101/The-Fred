@@ -449,14 +449,20 @@ function normal(x,z){const e=0.2;const hx=H(x+e,z)-H(x-e,z),hz=H(x,z+e)-H(x,z-e)
 function overWater(x,z,margin=0){for(const b of BODIES)if(b.sd(x,z)>-margin)return b;return null;}
 
 const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6;
+// How each surface treats the ball (see BallModel for what these do):
+//   e      bounce: share of the speed into the ground that comes back out
+//   bite   grab on the FIRST impact (the ball still has backspin);  mu: grab on every later bounce (bigger = the run dies faster on a steep arrival)
+//   floor  share of the along-the-ground speed that always survives an impact
+//   dec    rolling resistance, yd/s² (scaled by the ground's tilt);  hold: steepest grade (rise/run) a resting ball stays on; steeper and it slides. Invariant: hold <= dec/G
+//   lie    share of launch speed this lie costs
 const SP={
-  [TEE]:    {e:.30,mu:.22,dec:6.5,  name:'Tee',     lie:1.00},
-  [FAIRWAY]:{e:.30,mu:.22,dec:6.5,  name:'Fairway', lie:1.00},
-  [ROUGH]:  {e:.15,mu:.45,dec:13, name:'Rough',   lie:0.85},
-  [FRINGE]: {e:.26,mu:.20,dec:4,  name:'Fringe',  lie:0.97},
-  [GREENS]: {e:.24,mu:.16,dec:3.2,name:'Green',   lie:1.00},
-  [SAND]:   {e:.05,mu:.90,dec:30, name:'Bunker',  lie:0.70},
-  [WATER]:  {e:0,  mu:1,  dec:99, name:'Water',   lie:1.00},
+  [TEE]:    {e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Tee',     lie:1.00},
+  [FAIRWAY]:{e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Fairway', lie:1.00},
+  [ROUGH]:  {e:.15,mu:.45,bite:5.2,floor:.06,dec:13, hold:.6, name:'Rough',   lie:0.85},
+  [FRINGE]: {e:.26,mu:.20,bite:3.6,floor:.12,dec:4,  hold:.22,name:'Fringe',  lie:0.97},
+  [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,name:'Green',   lie:1.00},
+  [SAND]:   {e:.05,mu:.90,bite:9.0,floor:0,  dec:30, hold:.5, name:'Bunker',  lie:0.70},
+  [WATER]:  {e:0,  mu:1,  bite:9.0,floor:0,  dec:99, hold:.5, name:'Water',   lie:1.00},
 };
 function S(x,z){
   let h=null;
@@ -494,10 +500,10 @@ const CLUBS=[
   // dev: how far (radians) a full miss starts the ball off line; curve: sideways pull in flight; swing: needle speed at no pull and full pull
   // mishit: share of launch speed lost on the worst possible contact (see SwingModel). Long clubs punish a bad swing hardest, the wedge the least.
   // shape: sideways pull of a full draw/fade (yd/s²), set by pulling down-left or down-right
-  {name:'Hammer',carry:245,ang:13*D2R,roll:0.34,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
-  {name:'3-Wood',carry:215,ang:15*D2R,roll:0.32,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
-  {name:'Iron',  carry:155,ang:22*D2R,roll:0.14,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', carry:90, ang:40*D2R,roll:0.12,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Hammer',carry:245,ang:13*D2R,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
+  {name:'3-Wood',carry:215,ang:15*D2R,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
+  {name:'Iron',  carry:155,ang:22*D2R,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
+  {name:'Wedge', carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 function carryFlat(v0,a){let x=0,y=0,vx=v0*Math.cos(a),vy=v0*Math.sin(a),t=0;const dt=1/240;while(t<15){const s=Math.hypot(vx,vy);vx-=K*s*vx*dt;vy-=(G+K*s*vy)*dt;x+=vx*dt;y+=vy*dt;t+=dt;if(y<0&&vy<0)return x;}return x;}
@@ -546,6 +552,131 @@ const SwingModel=(()=>{
   return{PERFECT,GOOD,CHUNK,JIT_SPEED,JIT_YAW,lateralSev,speedLoss,carryAt,carryFactor,tier,resolve};
 })();
 // </swing-model>
+
+// <ball-model>
+// Everything the ball does once it has left the club, kept apart from the renderer so it can be tested on its own (tests/ball.test.js reads this block out of this file).
+// The game hands it a terrain {H, normal, S} and the surface table SP; it moves a ball {p, v, spin, rolling, landed, resting, t, ...}. It never touches the scene.
+//   AIR     drag against the wind, gravity, and the sideways pull of a draw/fade. The aiming arc takes these same steps (with no wind), so in still air a shot lands where the arc said.
+//   IMPACT  worked out in the ground's own frame (along its slope) from how fast and how steeply the ball arrives:
+//             hop   leaves the ground at  e x (speed into the ground), a little less for hard hits; a hop too small to see just becomes a roll
+//             grab  the share of its run along the ground that survives = exp(-grip x (1+e) x tan(arrival angle)), never less than SP.floor
+//             grip  is SP.bite on the first impact (the ball still has backspin) and SP.mu on every later bounce
+//           A steep arrival (wedge, a ball dropping onto lower ground, an uphill face) therefore stops quickly and a shallow one (driver, a ball landing on a rise) keeps running, with no per-club roll factor.
+//   ROLL    rolling resistance (scaled by the ground's tilt) plus gravity along the slope. A surface holds a resting ball only up to SP.hold; steeper than that the ball slides down.
+// Elevation is not adjusted anywhere else: a ball that lands on higher ground simply lands sooner, and on lower ground later. (playsLike only reports that, it never feeds back.)
+const BallModel=(()=>{
+  const STEP=1/240;          // fixed physics step: live ball and aiming arc take identical steps, whatever the frame rate
+  const HOP_MIN=0.6;         // yd/s: a bounce that would leave the ground slower than this becomes a roll
+  const E_FALL=100;          // restitution drops for hard hits: e / (1 + speed into the ground / E_FALL)
+  const V_STOP=0.07,V_MAX=32;// slower than V_STOP on ground that can hold it = at rest; nothing on the ground goes faster than V_MAX
+  const LIFT=0.06;           // a rolling ball whose ground falls away by more than this leaves the ground
+  const ROLL_T=12;           // after this long on the ground, rolling resistance ramps up so nothing can roll forever
+  const MAX_T=22;            // the game ends a shot after this long regardless
+  const NY_MIN=0.05;         // guard against dividing by the tilt of a near-vertical bank
+  const V_REL=1.0;           // a ball slower than this on ground steeper than SP.hold is let go; so is one already heading downhill
+  const NO_WIND={x:0,z:0};
+
+  // one step of flight: drag (against the air, so wind matters), gravity, and the sideways pull of a shaped shot
+  function flightStep(p,v,spin,wind,dt){
+    const vx=v.x-wind.x,vy=v.y,vz=v.z-wind.z;const s=Math.hypot(vx,vy,vz);
+    v.x-=K*s*vx*dt;v.y-=(G+K*s*vy)*dt;v.z-=K*s*vz*dt;
+    if(spin){const hv=Math.hypot(v.x,v.z);if(hv>1){const ux=-v.z/hv,uz=v.x/hv;v.x+=ux*spin*dt;v.z+=uz*spin*dt;}}
+    p.x+=v.x*dt;p.y+=v.y*dt;p.z+=v.z*dt;
+  }
+  // fly from p/v (both are moved) until the ball meets the ground; returns that spot (a plain {x,y,z}) or null. Used by the aiming arc.
+  // Near the top of the arc the ground cannot have risen to meet the ball within a few steps, so it is only sampled every 6th step there.
+  function trace(p,v,spin,wind,H,onPoint,every){
+    let k=0,skip=0;
+    for(let t=0;t<12;t+=STEP){
+      flightStep(p,v,spin,wind,STEP);
+      if(onPoint&&(k++%every===0))onPoint(p);
+      if(skip>0){skip--;continue;}
+      const a=p.y-R-H(p.x,p.z);
+      if(t>0.05&&a<=0)return{x:p.x,y:p.y,z:p.z};
+      if(a>4)skip=5;
+    }
+    return null;
+  }
+  // a ball arriving at the ground: split its velocity along and across the slope, lose speed, and either hop or start to roll
+  function impact(b,nx,ny,nz,sp){
+    const v=b.v,vn=v.x*nx+v.y*ny+v.z*nz;
+    if(vn>=0)return;
+    const un=-vn;                                         // speed into the ground
+    const tx=v.x-vn*nx,ty=v.y-vn*ny,tz=v.z-vn*nz;         // velocity along the ground
+    const ut=Math.hypot(tx,ty,tz);
+    const e=sp.e/(1+un/E_FALL);
+    const grip=b.landed?sp.mu:sp.bite;
+    const k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
+    const hop=e*un;
+    if(hop>HOP_MIN){v.x=tx*k+nx*hop;v.y=ty*k+ny*hop;v.z=tz*k+nz*hop;b.rolling=false;b.stats.bounces++;}
+    else{v.x=tx*k;v.y=ty*k;v.z=tz*k;b.rolling=true;}
+  }
+  function land(b,h,env){
+    const T=env.terrain,p=b.p,n=T.normal(p.x,p.z),nx=n.x,ny=n.y,nz=n.z;
+    const surf=T.S(p.x,p.z);
+    p.y=h+R;
+    impact(b,nx,ny,nz,env.sp[surf]);
+    if(!b.landed){
+      b.landed=true;b.spin=0;b.landAt={x:p.x,y:p.y,z:p.z};
+      b.stats.carry=Math.hypot(p.x-b.launch.x,p.z-b.launch.z);b.stats.landSurf=surf;
+      if(env.onEv)env.onEv('land',surf);
+    }
+  }
+  // one step along the ground: gravity along the slope, rolling resistance, follow the terrain, rest when the ground can hold the ball
+  function rollStep(b,dt,env){
+    const T=env.terrain,p=b.p,v=b.v;
+    const n=T.normal(p.x,p.z),nx=n.x,ny=Math.max(n.y,NY_MIN),nz=n.z;
+    const sp=env.sp[T.S(p.x,p.z)];
+    const gx=nx*G*ny,gy=-G+ny*G*ny,gz=nz*G*ny;              // gravity along the surface
+    const tan=Math.sqrt(Math.max(0,1-ny*ny))/ny;            // grade of the ground here
+    let s=Math.hypot(v.x,v.y,v.z);
+    const down=s>1e-9?(v.x*gx+v.y*gy+v.z*gz)/(G*tan*ny+1e-9):0;   // speed downhill (negative: climbing)
+    v.x+=gx*dt;v.y+=gy*dt;v.z+=gz*dt;
+    let dec=sp.dec*ny;
+    // steeper than the surface can hold: a ball that is nearly still, or already heading downhill, is let go (friction gives way and it slides);
+    // one still climbing keeps full friction, so a steeper bank never lets a ball run further up it
+    if(tan>sp.hold&&(s<V_REL||down>0.25*s))dec=Math.min(dec,0.5*G*ny*sp.hold);
+    b.rollT+=dt;if(b.rollT>ROLL_T)dec*=1+(b.rollT-ROLL_T)*3;
+    s=Math.hypot(v.x,v.y,v.z);
+    if(s>0){const s2=Math.min(V_MAX,Math.max(0,s-dec*dt)),f=s2/s;v.x*=f;v.y*=f;v.z*=f;s=s2;}
+    p.x+=v.x*dt;p.y+=v.y*dt;p.z+=v.z*dt;
+    const h=T.H(p.x,p.z);
+    if(p.y-R>h+LIFT)b.rolling=false;
+    else{p.y=h+R;const m=T.normal(p.x,p.z),vn=v.x*m.x+v.y*m.y+v.z*m.z;v.x-=vn*m.x;v.y-=vn*m.y;v.z-=vn*m.z;}
+    if(s<V_STOP&&tan<=sp.hold){v.x=v.y=v.z=0;b.resting=true;}
+  }
+  // env: {terrain:{H,normal,S}, sp, wind:{x,z}, collide(b) (optional, e.g. trees), onEv(type,data) (optional)}
+  function step(b,dt,env){
+    b.t+=dt;
+    if(b.resting)return;
+    if(b.rolling)return rollStep(b,dt,env);
+    flightStep(b.p,b.v,b.spin,env.wind,dt);
+    if(env.collide)env.collide(b);
+    const h=env.terrain.H(b.p.x,b.p.z);
+    if(b.p.y-R<=h)land(b,h,env);
+  }
+  // call when a shot starts: remembers where it left from and clears the shot's record
+  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
+  // what the shot did, from the ball's own record: carry to first contact, roll from there to rest, and the straight-line total from where it was hit
+  function summary(b){
+    const st=b.stats||{carry:null,bounces:0},a=b.landAt;
+    return{carry:st.carry,roll:a?Math.hypot(b.p.x-a.x,b.p.z-a.z):0,total:Math.hypot(b.p.x-b.launch.x,b.p.z-b.launch.z),bounces:st.bounces,landSurf:st.landSurf};
+  }
+  // horizontal distance at which a still-air shot comes back down through a height dh above where it was hit from (dh=0: the flat carry); NaN if it never gets that high
+  function carryTo(ang,speed,dh=0){
+    const p={x:0,y:R,z:0},v={x:0,y:Math.sin(ang)*speed,z:Math.cos(ang)*speed};
+    for(let t=0;t<20;t+=STEP){flightStep(p,v,0,NO_WIND,STEP);if(v.y<0&&p.y-R<=dh)return p.z;}
+    return NaN;
+  }
+  // "plays like": the flat-ground distance that would take the same swing to reach a target dist away and dh higher (negative: lower). Information only.
+  function playsLike(ang,dist,dh){
+    let lo=1,hi=250;
+    for(let i=0;i<40;i++){const m=(lo+hi)/2,c=carryTo(ang,m,dh);(c>=dist)?hi=m:lo=m;}
+    return{speed:hi,plays:carryTo(ang,hi,0)};
+  }
+  return{STEP,MAX_T,V_MAX,NO_WIND,flightStep,trace,step,rollStep,begin,summary,carryTo,playsLike};
+})();
+// </ball-model>
 
 // ---------------------------------------------------------------- renderer + post
 const canvas=$('c');
@@ -1163,15 +1294,15 @@ const puttMat=new THREE.ShaderMaterial({side:THREE.DoubleSide,polygonOffset:true
     gl_FragColor=vec4(c,0.0);}`});
 const puttLine=new THREE.Mesh(puttGeo,puttMat);puttLine.visible=false;puttLine.frustumCulled=false;scene.add(puttLine);
 // roll a putt over the real green slope and return its path
+// (same rolling law as the live ball, just in bigger steps, so the line and the real putt agree)
 function simPutt(speed,yaw){
-  const p=ball.p.clone(),v=new V3(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed),pts=[p.clone()];const dt=1/60;
+  const g={p:ball.p.clone(),v:new V3(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed),rolling:true,resting:false,rollT:0},pts=[g.p.clone()];const dt=1/60;
   for(let i=0;i<600;i++){
-    const n=normal(p.x,p.z);const gx=n.x*G*n.y,gy=-G+n.y*G*n.y,gz=n.z*G*n.y;
-    v.x+=gx*dt;v.y+=gy*dt;v.z+=gz*dt;const dec=SP[S(p.x,p.z)].dec,sp=v.length();if(sp>0)v.multiplyScalar(Math.max(0,sp-dec*dt)/sp);
-    p.addScaledVector(v,dt);p.y=H(p.x,p.z)+R;const n2=normal(p.x,p.z);v.addScaledVector(n2,-v.dot(n2));
-    pts.push(p.clone());
-    if(v.length()<0.07&&Math.hypot(gx,gy,gz)<1.6)break;
-    if(Math.hypot(p.x-PIN.x,p.z-PIN.z)<0.12&&sp<2.6)break;
+    const sp=g.v.length();
+    BallModel.rollStep(g,dt,BALL_ENV);g.rolling=true;g.p.y=H(g.p.x,g.p.z)+R;
+    pts.push(g.p.clone());
+    if(g.resting)break;
+    if(Math.hypot(g.p.x-PIN.x,g.p.z-PIN.z)<0.12&&sp<2.6)break;
   }
   return pts;
 }
@@ -1273,46 +1404,30 @@ function onEv(type,data){
   }else if(type==='tree'){SND.bonk();sfx('BONK!',p,{cls:'hot',dy:-70});aberrKick=6;shakeT=0.25;}
   else if(type==='lip'){SND.lip();sfx('LIP OUT!',p,{cls:'hot',dy:-70});}
 }
-function physStep(b,dt){
-  b.t+=dt;
-  if(!b.rolling){
-    const vx=b.v.x-wind.x,vy=b.v.y,vz=b.v.z-wind.z;const s=Math.hypot(vx,vy,vz);
-    b.v.x-=K*s*vx*dt;b.v.y-=(G+K*s*vy)*dt;b.v.z-=K*s*vz*dt;
-    if(b.spin){const hv=Math.hypot(b.v.x,b.v.z);if(hv>1){const ux=-b.v.z/hv,uz=b.v.x/hv;b.v.x+=ux*b.spin*dt;b.v.z+=uz*b.spin*dt;}}
-    b.p.addScaledVector(b.v,dt);
-    for(const t of TREES){
-      const dx=b.p.x-t.x;if(dx>t.r||dx<-t.r)continue;const dz=b.p.z-t.z;if(dz>t.r||dz<-t.r)continue;
-      const dy=b.p.y-t.cy;const d2=dx*dx+dy*dy+dz*dz;
-      if(d2<t.r*t.r){const d=Math.sqrt(d2)||1;const nx=dx/d,ny=dy/d,nz=dz/d;const vn=b.v.x*nx+b.v.y*ny+b.v.z*nz;
-        if(vn<0){b.v.x-=1.5*vn*nx;b.v.y-=1.5*vn*ny;b.v.z-=1.5*vn*nz;b.v.multiplyScalar(0.4);onEv('tree');}
-        b.p.set(t.x+nx*(t.r+0.02),t.cy+ny*(t.r+0.02),t.z+nz*(t.r+0.02));}
-    }
-    const h=H(b.p.x,b.p.z);
-    if(b.p.y-R<=h){
-      const n=normal(b.p.x,b.p.z).clone();const surf=S(b.p.x,b.p.z);const sp=SP[surf];
-      b.p.y=h+R;const vn=b.v.dot(n);
-      if(vn<0){
-        const vt=b.v.clone().addScaledVector(n,-vn);let keep=1-sp.mu*(b.landed?clamp(-vn/8,0,1):1);if(!b.landed&&b.club.roll)keep*=b.club.roll;vt.multiplyScalar(keep);
-        if(vn<-1.5)b.v.copy(vt).addScaledVector(n,-vn*sp.e);else{b.v.copy(vt);b.rolling=true;}
-      }
-      if(!b.landed){b.landed=true;b.spin=0;b.landAt=b.p.clone();onEv('land',surf);}
-    }
-  }else{
-    const n=normal(b.p.x,b.p.z);
-    const gx=n.x*G*n.y,gy=-G+n.y*G*n.y,gz=n.z*G*n.y;
-    b.v.x+=gx*dt;b.v.y+=gy*dt;b.v.z+=gz*dt;
-    const dec=SP[S(b.p.x,b.p.z)].dec;const sp=b.v.length();
-    if(sp>0)b.v.multiplyScalar(Math.max(0,sp-dec*dt)/sp);
-    b.p.addScaledVector(b.v,dt);
-    const h=H(b.p.x,b.p.z);
-    if(b.p.y-R>h+0.06)b.rolling=false;
-    else{b.p.y=h+R;const n2=normal(b.p.x,b.p.z);const vn=b.v.dot(n2);b.v.addScaledVector(n2,-vn);}
-    if(b.v.length()<0.07&&Math.hypot(gx,gy,gz)<1.6){b.v.set(0,0,0);b.resting=true;}
+// trees are the one thing in the air the ball model does not know about: a solid sphere that kills most of the speed
+function treeHit(b){
+  for(const t of TREES){
+    const dx=b.p.x-t.x;if(dx>t.r||dx<-t.r)continue;const dz=b.p.z-t.z;if(dz>t.r||dz<-t.r)continue;
+    const dy=b.p.y-t.cy;const d2=dx*dx+dy*dy+dz*dz;
+    if(d2<t.r*t.r){const d=Math.sqrt(d2)||1;const nx=dx/d,ny=dy/d,nz=dz/d;const vn=b.v.x*nx+b.v.y*ny+b.v.z*nz;
+      if(vn<0){b.v.x-=1.5*vn*nx;b.v.y-=1.5*vn*ny;b.v.z-=1.5*vn*nz;b.v.multiplyScalar(0.4);onEv('tree');}
+      b.p.set(t.x+nx*(t.r+0.02),t.cy+ny*(t.r+0.02),t.z+nz*(t.r+0.02));}
   }
 }
+const BALL_ENV={terrain:{H,normal,S},sp:SP,wind,collide:treeHit,onEv};
+function physStep(b,dt){BallModel.step(b,dt,BALL_ENV);}
+// what the shot did, shown once the ball is at rest: how far it flew and how far it ran on
+function showResult(){
+  const r=BallModel.summary(ball);
+  if(ball.club.putt||r.carry==null)return;
+  sfx(Math.round(r.carry)+' CARRY · '+Math.round(r.roll)+' ROLL',ball.p.clone(),{cls:'small',dy:-60,rot:-3});
+}
+let stepAcc=0;
 function simulateFlight(dt){
-  const n=Math.max(1,Math.ceil(dt*240));const h=dt/n;
-  for(let i=0;i<n&&state==='flight';i++){
+  // fixed steps (not one-size-fits-the-frame) so the same shot plays out the same on any frame rate, and matches the aiming arc
+  stepAcc+=dt;const h=BallModel.STEP;
+  while(stepAcc>=h&&state==='flight'){
+    stepAcc-=h;
     physStep(ball,h);const p=ball.p;
     if(!overWater(p.x,p.z,0.5))ball.lastOut.copy(p);
     for(const b of BODIES)if(p.y-R<=b.level+0.02&&b.sd(p.x,p.z)>0)return water();
@@ -1326,7 +1441,7 @@ function simulateFlight(dt){
         if(hs<9&&ball.t-ball.lipT>0.3){const a=(Math.random()<.5?-1:1)*(0.7+Math.random()*0.6);const c=Math.cos(a),s=Math.sin(a);const vx=ball.v.x,vz=ball.v.z;ball.v.x=(vx*c-vz*s)*0.55;ball.v.z=(vx*s+vz*c)*0.55;ball.lipT=ball.t;onEv('lip');}
       }
     }
-    if(ball.resting||ball.t>22){state='settle';ball.resting=true;later(0.9,setupAim);return;}
+    if(ball.resting||ball.t>BallModel.MAX_T){state='settle';ball.resting=true;ball.v.set(0,0,0);showResult();later(0.9,setupAim);return;}
   }
 }
 function water(){
@@ -1381,16 +1496,11 @@ function setTarget(x,z){
 function launchVel(speed,yaw,out){const c=CLUBS[clubIdx];return out.set(Math.sin(yaw)*Math.cos(c.ang)*speed,Math.sin(c.ang)*speed,Math.cos(yaw)*Math.cos(c.ang)*speed);}
 const simP=new V3(),simV=new V3();
 // still-air flight from the ball; returns sampled points and the landing spot
+// (no wind here on purpose: the arc and ring show where the swing sends the ball in still air, the wind arrow tells you what the air will do to it)
 function simArc(speed,yaw,pts,spin=0){
-  simP.copy(ball.p);launchVel(speed,yaw,simV);const dt=1/120;let land=null;let k=0;
-  for(let t=0;t<12;t+=dt){
-    const s=simV.length();simV.x-=K*s*simV.x*dt;simV.y-=(G+K*s*simV.y)*dt;simV.z-=K*s*simV.z*dt;
-    if(spin){const hv=Math.hypot(simV.x,simV.z);if(hv>1){const ux=-simV.z/hv,uz=simV.x/hv;simV.x+=ux*spin*dt;simV.z+=uz*spin*dt;}}
-    simP.addScaledVector(simV,dt);
-    if(pts&&(k++%3===0))pts.push(simP.clone());
-    if(t>0.05&&simP.y-R<=H(simP.x,simP.z)){land=simP.clone();break;}
-  }
-  return land;
+  simP.copy(ball.p);launchVel(speed,yaw,simV);
+  const l=BallModel.trace(simP,simV,spin,BallModel.NO_WIND,H,pts?p=>pts.push(p.clone()):null,6);
+  return l&&new V3(l.x,l.y,l.z);
 }
 // full pull lands on the target in still air (before lie penalties)
 function solveShot(){
@@ -1490,7 +1600,7 @@ function shoot(power,offset,sh=0,py=0){
   const sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin);
   const yaw=aimYaw+sYaw+py+sw.yawErr;
   prevLie.copy(ball.p);strokes++;
-  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+sw.spinErr});ball.lastOut.copy(ball.p);
+  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+sw.spinErr});ball.lastOut.copy(ball.p);BallModel.begin(ball);stepAcc=0;
   if(club.putt){ball.v.set(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed);ball.rolling=true;ball.p.y=H(ball.p.x,ball.p.z)+R;SND.putt();sfx('TAP',ball.p.clone(),{cls:'small',dy:-60});}
   else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();sfx(fb.word||club.word,ball.p.clone(),{dy:-110});aberrKick=7;shakeT=0.18;}
   if(fb.tag||fb.note)setTimeout(()=>{if(fb.tag)sfx(fb.tag,null,{cls:fb.tagCls,dy:60,rot:4});if(fb.note)sfx(fb.note,null,{cls:fb.noteCls,dy:112,rot:-3});},180);

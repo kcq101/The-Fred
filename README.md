@@ -20,9 +20,13 @@ It's one HTML page with no build step. Open `index.html` through any static serv
 Pull back to set power; the needle then sets contact quality. The meter is a slightly see-through rainbow arc lying on the grass around the ball, flaring wider toward the ends, with a slim translucent blue arrow swinging from the ball across it. When you pull for a draw or fade, the arc slides round to center on the line the ball will actually start on. It has no hard zones: dead center (blue) is the cleanest strike, and every bit further out costs a little more distance *and* direction. The red ends are a CHUNK (the worst contact: roughly a quarter to over a third of the carry lost, plus a big miss).
 Longer clubs are less forgiving than shorter ones. The only luck is a very small constant jitter that does not grow when you mistime. The numbers live in `SwingModel` (`index.html`) and the `dev` / `curve` / `mishit` values on each club.
 
+## How the ball flies, bounces and rolls
+
+One model (`BallModel` in `index.html`) drives the shot, the aiming arc and the putt preview. In the air: gravity, drag against the wind-relative velocity, and sideways spin, at a fixed 1/240 s step. The club's printed carry is where the ball first touches down on flat ground. On touchdown the impact is resolved against the ground's slope: a shallow arrival keeps most of its forward run, a steep one keeps little, softer surfaces (rough, sand) keep less, and the hop is small and dies out in one or two bounces. Then it rolls under friction plus gravity along the slope; a slope steeper than the surface can hold lets the ball slide to flatter ground. Uphill and downhill are not corrected for separately: the ball simply lands sooner or later. The popup after a shot shows `CARRY · ROLL`; the per-surface numbers are the `SP` table.
+
 ## Tests
 
-`node --test` and `node tests/swing-report.js`. See `tests/README.md` for what they do and do not cover.
+`node --test tests/*.test.js`, `node tests/swing-report.js` and `node tests/ball-report.js`. See `tests/README.md` for what they do and do not cover.
 
 ## Controls
 
