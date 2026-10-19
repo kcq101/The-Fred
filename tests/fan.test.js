@@ -17,10 +17,10 @@ test('the old flat HUD meter is gone', () => {
   assert.match(SRC, /<div id="pend" hidden><svg aria-hidden="true">/);
 });
 
-test('band shape: thin at dead center, thick at the ends, ends pushed downrange, symmetric', () => {
-  assert.ok(fanThick(0) < 0.5 && fanThick(1) > 4 * fanThick(0), 'thin middle, thick ends');
-  for (let u = 0; u < 1; u += 0.05) { assert.ok(fanThick(u + 0.05) > fanThick(u)); assert.ok(fanCenter(u + 0.05) >= fanCenter(u)); }
-  assert.ok(fanCenter(1) > fanCenter(0) + 1, 'chevron: ends are farther toward the hole than the middle');
+test('band shape (Golf Clash crescent): thickest at dead center, tapering to points at the ends, ends flare downrange, symmetric', () => {
+  assert.ok(fanThick(1) < 0.3 && fanThick(0) > 8 * fanThick(1), 'thick middle, pointed ends');
+  for (let u = 0; u < 1; u += 0.05) { assert.ok(fanThick(u + 0.05) < fanThick(u)); assert.ok(fanCenter(u + 0.05) >= fanCenter(u)); }
+  assert.ok(fanCenter(1) > fanCenter(0) + 1, 'crescent: ends are farther toward the hole than the middle');
   assert.ok(Math.abs(fanEdge(0.6).far - fanEdge(-0.6).far) < 1e-9 && fanEdge(0.6).lat === -fanEdge(-0.6).lat);
   assert.ok(fanEdge(0).near > FAN.tail + 2, 'band sits out in front of the ball, not on it');
 });
@@ -34,7 +34,8 @@ test('the rainbow is smooth and the arrow is slim, small-headed and clear of the
   let worst = 0; for (let t = 0; t < 0.999; t += 0.005) worst = Math.max(worst, ...rgb(t).map((v, k) => Math.abs(v - rgb(t + 0.005)[k])));
   assert.ok(worst <= 8, `neighbouring slices differ by at most 8/255 (got ${worst})`);
   assert.ok(FAN.shaft * 2 <= 0.3 && FAN.head * 2 <= 0.6 && FAN.head / FAN.shaft < 2.5, 'slim shaft, modest head');
-  assert.ok(FAN.tail >= 1 && FAN.tail < fanEdge(0).near, 'arrow starts clear of the ball and ends in the band');
+  assert.ok(FAN.tail >= 1 && FAN.tail < fanEdge(0).near, 'arrow starts clear of the ball, inside the band\'s near edge');
+  assert.ok(FAN.arrowLen > fanEdge(0).near && FAN.arrowLen <= fanEdge(0).far + 0.5, 'arrow reaches the band');
 });
 
 const flat = (x, z) => ({ x, y: -z });                       // simplest camera: aim line is straight up the screen
@@ -68,7 +69,9 @@ test('seen through stand-in cameras (phone/desktop, near/far, any aim): in front
   }
 });
 
-test('arrow: runs from near the ball to the band, swings left/right with the offset', () => {
+test('arrow: constant length, runs from near the ball to the band, swings left/right with the offset', () => {
+  const gm = (lat, fwd) => ({ x: lat, y: fwd }), tipLen = u => { const p = px(fanArrow(gm, u)[0]).concat(px(fanArrow(gm, u)[1])); return Math.max(...p.map(q => Math.hypot(q[0], q[1]))); };
+  for (const u of [-1, -0.5, 0, 0.7, 1]) assert.ok(Math.abs(tipLen(u) - FAN.arrowLen) < 0.05, `arrow length at u=${u}`);
   const m = (lat, fwd) => ({ x: 300 + lat * 50, y: 800 - fwd * 40 });
   const tip = u => { const [l, r] = fanArrow(m, u).map(px), p = l.concat(r); return p.reduce((a, q) => (q[1] < a[1] ? q : a)); };
   assert.ok(tip(1)[0] > 300 + 100 && tip(-1)[0] < 300 - 100 && Math.abs(tip(0)[0] - 300) < 1e-6, 'tip lands right / left / dead center');
