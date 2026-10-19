@@ -75,8 +75,8 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 #carry{display:none;position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) rotate(-3deg);white-space:nowrap;font-size:13px}
 #carry b{font-size:22px}
 
-#pend{position:absolute;left:0;top:0;width:min(262px,64vw);pointer-events:none;filter:drop-shadow(3px 3px 0 rgba(23,11,51,.45))} /* left/top/width are set from the ball's position (pendLayout) */
-#pend svg{display:block;width:100%;height:auto;overflow:visible}
+#pend{position:absolute;inset:0;pointer-events:none}
+#pend svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #zoomTag{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 218px);transform:translateX(-50%);font-family:var(--display);font-size:15px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;white-space:nowrap}
 #band{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #hint{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 150px);transform:translateX(-50%) rotate(-1deg);width:min(330px,calc(100% - 32px));text-align:center;font-size:14px}
@@ -217,17 +217,12 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
   <div id="pullHint" hidden>PULL BACK</div>
   <div id="zoomTag" hidden>ZOOM</div>
 
-  <div id="pend" hidden><svg viewBox="-112 -118 224 134" aria-hidden="true">
-    <path id="pendBase" fill="none" stroke="#170b33" stroke-width="38" stroke-linecap="butt"/>
-    <g id="pendBands" fill="none" stroke-width="30" stroke-linecap="butt"></g>
-    <path id="pendGloss" fill="none" stroke="#fffaf0" stroke-opacity=".38" stroke-width="3.5" stroke-linecap="round"/>
-    <path id="pendMid" fill="none" stroke="#170b33" stroke-width="8" stroke-linecap="round"/>
-    <path id="pendMidIn" fill="none" stroke="#fffaf0" stroke-width="3.6" stroke-linecap="round"/>
-    <g id="pendNeedle" opacity=".8">
-      <g transform="translate(2.5 3.5)" fill="#0a3a8f" stroke="#0a3a8f" stroke-width="5" stroke-linejoin="round"><path d="M0 -108 L21 -66 L9 -66 L9 -30 L-9 -30 L-9 -66 L-21 -66 Z"/></g>
-      <path d="M0 -108 L-21 -66 L-9 -66 L-9 -30 L0 -30 Z" fill="#8fe3ff" stroke="#8fe3ff" stroke-width="5" stroke-linejoin="round"/>
-      <path d="M0 -108 L21 -66 L9 -66 L9 -30 L0 -30 Z" fill="#2b8cf0" stroke="#2b8cf0" stroke-width="5" stroke-linejoin="round"/>
-      <path d="M-4.5 -50 L-4.5 -72 M-12 -72 L-2 -94" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
+  <div id="pend" hidden><svg aria-hidden="true">
+    <g id="fanStatic"></g>
+    <g id="fanArrow" opacity=".8">
+      <g transform="translate(3 5)" fill="#0a3a8f" stroke="#0a3a8f" stroke-width="3" stroke-linejoin="round"><polygon id="arrSL"/><polygon id="arrSR"/></g>
+      <polygon id="arrL" fill="#8fe3ff" stroke="#8fe3ff" stroke-width="3" stroke-linejoin="round"/>
+      <polygon id="arrR" fill="#2b8cf0" stroke="#2b8cf0" stroke-width="3" stroke-linejoin="round"/>
     </g>
   </svg></div>
 
@@ -1522,26 +1517,53 @@ function groundAt(cx,cy){
 }
 function screenOf(p){const v=p.clone().project(camera);return{x:(v.x+1)/2*vw,y:(1-v.y)/2*vh,z:v.z};}
 let drag=null,pendPhase=0,pendOffset=0;
-const PEND_SWEEP=78; // degrees the needle swings each way (offset ±1)
-// <pend-layout>
-// The rainbow's base (the svg's 0,0) sits on the ball, so the arc fans out above it and the aim line runs through the center notch.
-const PEND_VIEW={w:224,h:134,ox:112,oy:118}; // must match the svg viewBox "-112 -118 224 134"
-function pendLayout(bx,by,vw){const W=Math.min(262,vw*0.64),H=W*PEND_VIEW.h/PEND_VIEW.w;return{W,H,left:clamp(bx-W*PEND_VIEW.ox/PEND_VIEW.w,4,vw-W-4),top:by-H*PEND_VIEW.oy/PEND_VIEW.h};}
-// </pend-layout>
-(function buildPendulum(){
-  const R=78,SW=PEND_SWEEP,pt=a=>[Math.sin(a*D2R)*R,-Math.cos(a*D2R)*R];
-  const arc=(a0,a1)=>{const[x0,y0]=pt(a0),[x1,y1]=pt(a1);return`M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;};
-  // one smooth rainbow, no hard bands: the closer to the middle, the better the shot (cyan at dead center, deep wine at the ends)
-  const stops=[[0,[45,226,255]],[0.16,[59,232,138]],[0.32,[255,225,77]],[0.50,[255,154,46]],[0.68,[255,46,136]],[1,[143,15,72]]];
-  const col=t=>{let i=1;while(i<stops.length-1&&t>stops[i][0])i++;const[t0,c0]=stops[i-1],[t1,c1]=stops[i],f=clamp((t-t0)/(t1-t0),0,1);return'rgb('+c0.map((v,k)=>Math.round(mix(v,c1[k],f))).join(',')+')';};
-  const N=120;let h='';
-  for(let i=0;i<N;i++){const a0=-SW+2*SW*i/N,a1=-SW+2*SW*(i+1)/N;h+=`<path d="${arc(a0,Math.min(SW,a1+0.6))}" stroke="${col(Math.abs((a0+a1)/2)/SW)}"/>`;}
-  $('pendBands').innerHTML=h;
-  $('pendBase').setAttribute('d',arc(-SW-1.6,SW+1.6));
-  {const r=R+10,p=a=>[Math.sin(a*D2R)*r,-Math.cos(a*D2R)*r];const[x0,y0]=p(-SW+5),[x1,y1]=p(SW-5);$('pendGloss').setAttribute('d',`M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`);}
-  // a notch across the band marks the exact middle
-  $('pendMid').setAttribute('d',`M0 ${-(R-17)} L0 ${-(R+17)}`);$('pendMidIn').setAttribute('d',`M0 ${-(R-16)} L0 ${-(R+16)}`);
-})();
+// <fan-geometry>
+// The accuracy rainbow lies flat on the ground in front of the ball, fanned out toward the target and drawn in the game camera's own perspective.
+// Geometry is in ground terms (yards from the ball, degrees off the aim line, + = right) so it can be tested without a camera.
+// Sizes are for a camera FAN.refDist yards from the ball and scale with the real distance, so the fan keeps the same size on screen.
+const FAN={r0:2.4,r1:5.0,sweep:72,slices:84,tail:1.5,headAt:4.4,tip:5.2,shaft:0.11,head:0.24,refDist:29,depth:3.2}; // depth: how much the fan's distance-from-the-ball is stretched on screen (a golfer's-eye camera is so low that a true ground projection is a thin sliver)
+const fanDims=s=>({r0:FAN.r0*s,r1:FAN.r1*s,tail:FAN.tail*s,headAt:FAN.headAt*s,tip:FAN.tip*s,shaft:FAN.shaft*s,head:FAN.head*s});
+// one smooth rainbow, no hard bands: the closer to the middle, the better the shot (cyan at dead center, deep wine at the ends)
+const stops=[[0,[45,226,255]],[0.16,[59,232,138]],[0.32,[255,225,77]],[0.50,[255,154,46]],[0.68,[255,46,136]],[1,[143,15,72]]];
+const fanColor=t=>{let i=1;while(i<stops.length-1&&t>stops[i][0])i++;const[t0,c0]=stops[i-1],[t1,c1]=stops[i],f=clamp((t-t0)/(t1-t0),0,1);return'rgb('+c0.map((v,k)=>Math.round(mix(v,c1[k],f))).join(',')+')';};
+// a ground point rho yards out along the ray deg off the aim line (+ = right), lat yards to the right of that ray
+function fanPoint(b,yaw,rho,deg,lat=0){
+  const t=deg*D2R,fx=Math.sin(yaw),fz=Math.cos(yaw),rx=-fz,rz=fx,c=Math.cos(t),n=Math.sin(t);
+  return{x:b.x+rho*(c*fx+n*rx)+lat*(-n*fx+c*rx),z:b.z+rho*(c*fz+n*rz)+lat*(-n*fz+c*rz)};
+}
+const fanPts=(toScreen,list)=>{const o=[];for(const p of list){const q=toScreen(p.x,p.z);if(!q)return null;o.push(q.x.toFixed(1)+','+q.y.toFixed(1));}return o.join(' ');};
+const fanWedge=(toScreen,b,yaw,r0,r1,d0,d1)=>fanPts(toScreen,[fanPoint(b,yaw,r0,d0),fanPoint(b,yaw,r1,d0),fanPoint(b,yaw,r1,d1),fanPoint(b,yaw,r0,d1)]);
+// the arrow lies on the ground too: a slim shaft and a small head, pointing out along deg. Returns [left half, right half] as screen points.
+function fanArrow(toScreen,b,yaw,deg,s){
+  const d=fanDims(s),P=(rho,lat)=>fanPoint(b,yaw,rho,deg,lat);
+  return[fanPts(toScreen,[P(d.tail,0),P(d.tail,-d.shaft),P(d.headAt,-d.shaft),P(d.headAt,-d.head),P(d.tip,0)]),
+         fanPts(toScreen,[P(d.tail,0),P(d.tail,d.shaft),P(d.headAt,d.shaft),P(d.headAt,d.head),P(d.tip,0)])];
+}
+// </fan-geometry>
+const _fv=new V3();
+function fanScreen(x,z){_fv.set(x,H(x,z)+0.07,z).project(camera);return _fv.z>=1?null:{x:(_fv.x+1)/2*vw,y:(1-_fv.y)/2*vh};}
+let fanKey='';
+// <fan-draw>
+function drawFan(){
+  const b=ball.p,yaw=aimYaw,s=camera.position.distanceTo(b)/FAN.refDist,d=fanDims(s);
+  const o=fanScreen(b.x,b.z);if(!o)return;                 // the ball's own screen spot is the pivot of the stretch
+  const scr=(x,z)=>{const q=fanScreen(x,z);return q&&{x:q.x,y:o.y+(q.y-o.y)*FAN.depth};};
+  const key=[b.x.toFixed(2),b.z.toFixed(2),yaw.toFixed(4),s.toFixed(3),vw,vh,camera.matrixWorld.elements.map(v=>v.toFixed(3)).join()].join('|');
+  if(key!==fanKey){ // the rainbow only moves when the ball, the aim or the camera does; the arrow is redrawn every frame below
+    fanKey=key;const SW=FAN.sweep,N=FAN.slices;let h='';
+    const ring=[];for(let i=0;i<=N;i++)ring.push(fanPoint(b,yaw,d.r1+0.22*s,-SW-1.5+(2*SW+3)*i/N));for(let i=N;i>=0;i--)ring.push(fanPoint(b,yaw,d.r0-0.22*s,-SW-1.5+(2*SW+3)*i/N));
+    const ro=fanPts(scr,ring);if(ro)h+=`<polygon points="${ro}" fill="#170b33"/>`;
+    for(let i=0;i<N;i++){const a0=-SW+2*SW*i/N,a1=-SW+2*SW*(i+1)/N,pl=fanWedge(scr,b,yaw,d.r0,d.r1,a0,Math.min(SW,a1+0.8));if(pl)h+=`<polygon points="${pl}" fill="${fanColor(Math.abs((a0+a1)/2)/SW)}"/>`;}
+    const gl=[];for(let a=-SW+5;a<=SW-5;a+=4)gl.push(fanPoint(b,yaw,d.r1-0.32*s,a));const gp=fanPts(scr,gl);
+    if(gp)h+=`<polyline points="${gp}" fill="none" stroke="#fffaf0" stroke-opacity=".4" stroke-width="3" stroke-linecap="round"/>`;
+    const n0=fanWedge(scr,b,yaw,d.r0-0.3*s,d.r1+0.3*s,-1.5,1.5),n1=fanWedge(scr,b,yaw,d.r0-0.2*s,d.r1+0.2*s,-0.8,0.8); // notch = the exact middle
+    if(n0)h+=`<polygon points="${n0}" fill="#170b33"/>`;if(n1)h+=`<polygon points="${n1}" fill="#fffaf0"/>`;
+    $('fanStatic').innerHTML=h;
+  }
+  const ar=fanArrow(scr,b,yaw,pendOffset*FAN.sweep,s);
+  if(ar[0]&&ar[1])['arrL','arrSL'].forEach(id=>$(id).setAttribute('points',ar[0])),['arrR','arrSR'].forEach(id=>$(id).setAttribute('points',ar[1]));
+}
+// </fan-draw>
 function pullPower(){const dy=drag.y-drag.y0;return dy>6?clamp(dy/(Math.min(vw,vh)*0.34),0,1):0;}
 // -1 = full draw (pulled down-left, right-to-left flight) .. 1 = full fade (pulled down-right, left-to-right)
 let shapeNow=0;
@@ -1561,8 +1583,7 @@ function updatePendulum(dt){
   // constant-speed sweep so the center is as catchable as the edges
   pendPhase+=mix(sw[0],sw[1],power)*dt;pendOffset=1-Math.abs(((pendPhase+1)%4+4)%4-2);
   const pe=$('pend');pe.hidden=power<0.02;
-  if(!pe.hidden&&drag){const L=pendLayout(drag.bx,drag.by,vw);pe.style.width=L.W+'px';pe.style.left=L.left+'px';pe.style.top=L.top+'px';}
-  $('pendNeedle').setAttribute('transform',`rotate(${(pendOffset*PEND_SWEEP).toFixed(2)})`);
+  if(!pe.hidden)drawFan();
 }
 function endPull(fire){
   if(!drag||drag.kind!=='pull'){drag=null;return;}

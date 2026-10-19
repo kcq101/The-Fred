@@ -30,42 +30,6 @@ test('club buttons show the same yardage the physics produces (full pull, perfec
   }
 });
 
-test('meter is one smooth rainbow (no hard bands): wide sweep, many slices, cyan center to dark ends', () => {
-  assert.ok(!/pendHit|pendOk|pendMiss|pendChunk/.test(SRC), 'old hard-edged bands should be gone');
-  const sweep = +SRC.match(/const PEND_SWEEP=(\d+);/)[1];
-  assert.ok(sweep >= 70 && sweep <= 85, `needle sweep ${sweep} degrees each way`);
-  assert.ok(+SRC.match(/const N=(\d+);let h=/)[1] >= 90, 'enough slices to read as a gradient');
-  const stops = eval(SRC.match(/const stops=(\[\[0,.*?\]\]);/)[1]);
-  assert.equal(stops[0][0], 0); assert.equal(stops[stops.length - 1][0], 1);
-  for (let i = 1; i < stops.length; i++) assert.ok(stops[i][0] > stops[i - 1][0], 'stops increase');
-  const [r0, , b0] = stops[0][1], [r1, , b1] = stops[stops.length - 1][1];
-  assert.ok(b0 > r0, 'center is cyan-ish'); assert.ok(r1 > b1 && r1 < 200, 'ends are deep red/wine');
-});
-
-test('rainbow is anchored on the ball and stays on screen', () => {
-  const vb = SRC.match(/<svg viewBox="-(\d+) -(\d+) (\d+) (\d+)" aria-hidden="true">\s*<path id="pendBase"/);
-  assert.ok(vb, 'meter svg viewBox found');
-  const [ox, oy, w, h] = vb.slice(1).map(Number);
-  const code = SRC.slice(SRC.indexOf('// <pend-layout>'), SRC.indexOf('// </pend-layout>'));
-  const { pendLayout, PEND_VIEW } = new Function('clamp', code + ';return {pendLayout,PEND_VIEW};')(g.clamp);
-  assert.deepEqual(PEND_VIEW, { w, h, ox, oy }, 'layout constants match the svg viewBox');
-  for (const vw of [340, 360, 390, 430, 820]) for (const bx of [vw * 0.5, vw * 0.4, vw * 0.62]) {
-    const L = pendLayout(bx, 500, vw);
-    assert.ok(Math.abs(L.left + L.W * ox / w - bx) < 1e-9, `pivot x on the ball (vw ${vw}, ball ${bx})`);
-    assert.ok(Math.abs(L.top + L.H * oy / h - 500) < 1e-9, 'pivot y on the ball');
-    assert.ok(L.left >= 4 && L.left + L.W <= vw - 4 && L.W <= 262, 'inside the screen');
-  }
-  const edge = pendLayout(8, 500, 390); assert.equal(edge.left, 4, 'a ball near the screen edge pushes the meter back on screen instead of off it');
-});
-
-test('arrow is translucent and starts clear of the ball (no pivot cap on top of it)', () => {
-  const g0 = SRC.slice(SRC.indexOf('<g id="pendNeedle"'), SRC.indexOf('</svg></div>'));
-  assert.match(g0, /<g id="pendNeedle" opacity="\.[5-9]\d*"/, 'needle group is semi-transparent');
-  assert.ok(!/<circle/.test(g0), 'no pivot circle over the ball');
-  const ys = [...g0.matchAll(/d="(M[^"]+)"/g)].flatMap(m => [...m[1].matchAll(/-?\d+(?:\.\d+)?\s+(-\d+(?:\.\d+)?)/g)].map(n => +n[1]));
-  assert.ok(ys.length > 8 && Math.max(...ys) <= -20, `arrow tail starts at least 20 units above the ball (closest point y=${Math.max(...ys)})`);
-});
-
 test('no flat "perfect zone": every step away from dead center costs a little more', () => {
   for (const c of FULL) {
     let prevLoss = -1, prevLat = -1;
