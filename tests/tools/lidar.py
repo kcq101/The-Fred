@@ -26,6 +26,13 @@ records where it came from.
         trace file (the hand-written fields there are kept); --png draws it -> tests/tools/out/<id>-lidar.png (shaded relief, not the photo:
         safe to look at, but it is derived from the tile, so it stays out of the repo too).
 
+    python3 tests/tools/lidar.py build <id> [--corridor 40] [--bunker-max 1.2] [--lip 0.25] [--profile shore|wall] [--json]
+        The hole's lidar half as code for its entry in index.html, from the same read as `outlines`: `bunkers` (each closed hollow
+        within --corridor yd of the line tee -> pin and on, depth from the lidar capped at --bunker-max yd), `water` (each lake that
+        reaches the corridor, its islands, its level against the tee), the heights along the line as `ramp` features (the profile
+        simplified to 0.25 yd, from the tee's height), and the green's `tilt`. Paste, then run validate.js: a hollow that belongs to a
+        neighbouring hole, or a depth the hop guard refuses, is decided there. The frame's grid must reach the tee (z 0).
+
     python3 tests/tools/lidar.py fit <id> [--write]
         Riviera's `lidar.fit`: matches the trace file's traced bunker outlines (their `hole` points with `exaggerate` and `rescale` undone,
         so as the photos measured them) to the lidar's sand, solving centre, bearing and scale. The scale it finds is the trace file's
@@ -93,7 +100,7 @@ def flags(argv):
         a = argv[i]
         if a.startswith('--'):
             k, eq, v = a[2:].partition('=')
-            if not eq and i + 1 < len(argv) and not argv[i + 1].startswith('--') and k in ('pin', 'tee', 'r', 'rings', 'view', 'outline', 'clip'):
+            if not eq and i + 1 < len(argv) and not argv[i + 1].startswith('--') and k in ('pin', 'tee', 'r', 'rings', 'view', 'outline', 'clip', 'corridor', 'bunker-max', 'lip', 'profile'):
                 v = argv[i + 1]; i += 1
             fl[k] = v if (eq or v) else True
         else:
@@ -405,12 +412,15 @@ def read_hole(hid, T, f, compare=True):
     hp = float(ndimage.map_coordinates(Hs, [[(pin[1] - zs[0]) / st], [(pin[0] - xs[0]) / st]], order=1)[0])
     L = math.hypot(*pin)
     prof = []
+    sand_wide = ndimage.binary_dilation(sand, iterations=max(1, int(round(cfg['smooth'] * fr.s / st))))   # the profile is smoothed: its dip spreads past the sand
     for d in np.arange(0, L * 1.3 + 1e-9, max(2.0, round(L / 40))):
         x, z = pin[0] * d / L, pin[1] * d / L
         if g['x'][0] <= x <= g['x'][1] and g['z'][0] <= z <= g['z'][1]:
             h = float(ndimage.map_coordinates(Hs, [[(z - zs[0]) / st], [(x - xs[0]) / st]], order=1)[0])
-            on = bool(wet[int(round((z - zs[0]) / st)), int(round((x - xs[0]) / st))])
-            prof.append({'along': round(float(d), 1), 'x': round(x, 1), 'z': round(z, 1), 'h': round((h - hp) * fr.s, 2), 'water': on})
+            ij = (int(round((z - zs[0]) / st)), int(round((x - xs[0]) / st)))
+            on, insand = bool(wet[ij]), bool(sand_wide[ij])
+            prof.append({'along': round(float(d), 1), 'x': round(x, 1), 'z': round(z, 1), 'h': round((h - hp) * fr.s, 2), 'water': on, 'sand': insand})
+    res['pin_h_m'] = round(hp, 3)
     res['profile'] = {'note': 'heights along the line tee -> pin and on, relative to the pin, in game yards (metres x yd_per_m), '
                               f"{cfg['smooth']} m gaussian; water rows are the hydro-flattened surface, not the bed", 'pin': pin, 'rows': prof}
     # the green's plane
@@ -657,6 +667,102 @@ def match(hid, T, f, view, oname, clip=26.0):
     return out, cons, P
 
 
+# ---------------------------------------------------------------- build (the lidar half of a hole's entry)
+def rdp(P, tol):
+    """Douglas-Peucker on (z, h) points"""
+    if len(P) < 3:
+        return P
+    (z0, h0), (z1, h1) = P[0], P[-1]
+    dz = z1 - z0 or 1e-9
+    d = [abs(h - (h0 + (h1 - h0) * (z - z0) / dz)) for z, h in P]
+    i = max(range(len(P)), key=lambda k: d[k])
+    if d[i] <= tol:
+        return [P[0], P[-1]]
+    return rdp(P[:i + 1], tol)[:-1] + rdp(P[i:], tol)
+
+
+def seg_dist(p, a, b):
+    ax, az = a; bx, bz = b; px, pz = p
+    L2 = (bx - ax) ** 2 + (bz - az) ** 2 or 1e-9
+    t = max(0, min(1, ((px - ax) * (bx - ax) + (pz - az) * (bz - az)) / L2))
+    return math.hypot(px - ax - t * (bx - ax), pz - az - t * (bz - az))
+
+
+def build(hid, T, f, corridor=40.0, bunker_max=1.2, lip=0.25, profile='shore'):
+    res = read_hole(hid, T, f, compare=False)
+    fr = res['_frame']
+    pin = res['profile']['pin']
+    end = (pin[0] * 1.3, pin[1] * 1.3)
+    near = lambda c: seg_dist(c, (0, 0), end) <= corridor  # noqa: E731
+    rows = [r for r in res['profile']['rows'] if not r['water'] and not r.get('sand')]   # a bunker is dug by its own entry, not by the land
+    if not rows or rows[0]['along'] > 5:
+        die('the frame\'s grid does not reach the tee (z 0): widen lidar.frame.grid so the heights start there')
+    h_tee = rows[0]['h']
+    pts = rdp([(r['z'], r['h'] - h_tee) for r in rows], 0.25)
+    ramps = [{'type': 'ramp', 'z0': round(a[0], 1), 'z1': round(b[0], 1), 'dh': round(b[1] - a[1], 2)}
+             for a, b in zip(pts, pts[1:]) if abs(b[1] - a[1]) >= 0.15]
+    sands = [o for o in res['outlines'] if o['kind'] == 'sand' and near(o['centroid'])]
+    bunkers = [{'pts': o['pts'], 'depth': round(min(bunker_max, max(0.4, o['depth_m'] * fr.s)), 2), 'lip': lip,
+                '_note': f"{o['name']} at ({o['centroid'][0]}, {o['centroid'][1]}): {o['width']} x {o['depth']} yd, {o['depth_m']} m deep in the lidar"} for o in sands]
+    water = []
+    if res['water_level_m'] is not None:
+        level = round((res['water_level_m'] - res['pin_h_m']) * fr.s - h_tee, 2)
+        isl = [o for o in res['outlines'] if o['kind'] == 'island']
+        for o in res['outlines']:
+            if o['kind'] != 'water' or not any(near(p) for p in o['pts'][::3]):
+                continue
+            from matplotlib.path import Path
+            inside = [i for i in isl if Path(o['pts']).contains_point(i['centroid'])]
+            water.append({'kind': 'lake', 'profile': profile, 'level': level, 'bed': round(level - 2.4, 2), 'edge': 0.6,
+                          'shape': {'type': 'poly', 'pts': o['pts']}, 'islands': [{'type': 'poly', 'pts': i['pts']} for i in inside],
+                          '_note': f"{o['width']} x {o['depth']} yd"})
+    tilt = None
+    if 'plane' in res:
+        tilt = {'x': round(res['plane']['x_pct'] / 100, 4), 'z': round(res['plane']['z_pct'] / 100, 4), '_note': f"over {res['plane']['over']}"}
+    return {'ramps': ramps, 'bunkers': bunkers, 'water': water, 'tilt': tilt, 'h_tee_rel_pin': h_tee,
+            'skipped_sand': [o['name'] for o in res['outlines'] if o['kind'] == 'sand' and not near(o['centroid'])]}
+
+
+def js(v):
+    """a value as compact JS (object keys unquoted), notes dropped"""
+    if isinstance(v, dict):
+        return '{' + ','.join(f'{k}:{js(x)}' for k, x in v.items() if not k.startswith('_')) + '}'
+    if isinstance(v, list):
+        return '[' + ','.join(js(x) for x in v) + ']'
+    if isinstance(v, str):
+        return "'" + v + "'"
+    if isinstance(v, float):
+        return f'{v:g}'
+    return json.dumps(v)
+
+
+def cmd_build(pos, fl):
+    if not pos:
+        die('build needs a hole id')
+    T, f = load_trace(pos[0])
+    B = build(pos[0], T, f, float(fl.get('corridor', 40)), float(fl.get('bunker-max', 1.2)), float(fl.get('lip', 0.25)), fl.get('profile', 'shore'))
+    if fl.get('json'):
+        print(json.dumps(B))
+        return
+    print(f"// {pos[0]}: generated by tests/tools/lidar.py build from docs/holes/trace/{pos[0]}.json; heights from the tee, game yards")
+    if B['tilt']:
+        print(f"  tilt:{js(B['tilt'])},   // the green's plane, {B['tilt']['_note']}")
+    print('  features:[   // the heights along the line (lidar profile, simplified to 0.25 yd)')
+    for r in B['ramps']:
+        print(f'    {js(r)},')
+    print('  ],')
+    print('  bunkers:[')
+    for b in B['bunkers']:
+        print(f"    {js(b)},   // {b['_note']}")
+    print('  ],')
+    print('  water:[')
+    for w in B['water']:
+        print(f"    {js(w)},   // {w['_note']}")
+    print('  ],')
+    if B['skipped_sand']:
+        print(f"// hollows outside the corridor, left out: {', '.join(B['skipped_sand'])}")
+
+
 # ---------------------------------------------------------------- commands
 def cmd_fetch(fl):
     if 'pin' not in fl:
@@ -809,7 +915,7 @@ def cmd_selftest():
     tifffile.imwrite(tif, z.astype(np.float32), extratags=[(33550, 'd', 3, (1.0, 1.0, 0.0)), (33922, 'd', 6, (0, 0, 0, pE - 200, pN + 200, 0)), (34735, 'H', len(gk), gk)])
     # the hole plays due north, 1 yd per metre (scale 0.914), the pin on the island's middle at (0, 120)
     T = {'id': 'selftest', 'lidar': {'frame': {'tile': [tif], 'anchor': {'latlon': [lat, lon], 'at': [0, 120]}, 'bearing_deg': 0, 'yd_per_m': 1.0,
-                                               'grid': {'x': [-60, 60], 'z': [40, 220], 'step': 0.5}}}}
+                                               'grid': {'x': [-60, 60], 'z': [-10, 220], 'step': 0.5}}}}
     res = read_hole('selftest', T, tif, compare=False)
     bad = []
     by = {o['name']: o for o in res['outlines']}
@@ -836,7 +942,16 @@ def cmd_selftest():
     ex, en = fr.to_utm(hx, hz)
     if not (near(ex, fr.A[0] - 10, 1e-6) and near(en, fr.A[1] + 10, 1e-6)):
         bad.append('frame inverse')
-    print(json.dumps({'ok': not bad, 'bad': bad, 'outlines': [{k: o[k] for k in ('name', 'width', 'depth', 'area', 'centroid')} for o in res['outlines']],
+    # build: both bunkers in the corridor, the lake with its island, the land rising 0.4 m per 100 m north (the tee's side to beyond the lake)
+    B = build('selftest', T, tif, corridor=60)
+    if len(B['bunkers']) != 2 or len(B['water']) != 1 or len(B['water'][0]['islands']) != 1:
+        bad.append(f"build: {len(B['bunkers'])} bunkers, {len(B['water'])} lakes, islands {[len(w['islands']) for w in B['water']]}")
+    rise = sum(r['dh'] for r in B['ramps'])
+    if not B['water'] or not near(B['water'][0]['level'], -(1.5 - 0.48), 0.15):   # water at 0 m, the tee at 1.5 - 0.004 x 120 m
+        bad.append(f"build: water level {B['water'][0]['level'] if B['water'] else None} against the tee")
+    if not near(B['tilt']['x'], -0.03, 0.004):
+        bad.append(f"build: tilt {B['tilt']}")
+    print(json.dumps({'ok': not bad, 'bad': bad, 'build': {'ramps': B['ramps'], 'bunker_depths': [b['depth'] for b in B['bunkers']]}, 'outlines': [{k: o[k] for k in ('name', 'width', 'depth', 'area', 'centroid')} for o in res['outlines']],
                       'plane': p, 'water_level_m': res['water_level_m']}))
     sys.exit(1 if bad else 0)
 
@@ -853,8 +968,9 @@ def main(argv):
     elif cmd == 'outlines': cmd_outlines(pos, fl)
     elif cmd == 'fit': cmd_fit(pos, fl)
     elif cmd == 'match': cmd_match(pos, fl)
+    elif cmd == 'build': cmd_build(pos, fl)
     elif cmd == 'selftest': cmd_selftest()
-    else: die(f"unknown command '{cmd}': fetch, look, outlines, fit, match or selftest (--help)")
+    else: die(f"unknown command '{cmd}': fetch, look, outlines, build, fit, match or selftest (--help)")
 
 
 if __name__ == '__main__':
