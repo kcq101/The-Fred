@@ -96,3 +96,30 @@ a ball that runs off the front of the green feeds into the creek               F
 ```
 
 Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`). "Before" is the original hole as it stood at commit 548d49a: the same tee and pin, none of the iconic-hole features, play profile or hazards.
+
+## 8. Visual review — does it look like the hole?
+
+**Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py augusta-13 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/augusta-13-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Photos to get**: an aerial of the green complex from the fairway short of the creek (where the go-or-lay-up decision is made), and one from the tee down the corner.
+
+| Area | Item | Verdict | Evidence (render against sources) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | **close** | A tee set back in the trees, the fairway turning left; from the game's tee the turn is out of sight beyond the landing area | — |
+| | Elevation: tee, landing area, green | **close** | The drive kicks down into the corner (−11 yd) and the land keeps falling to the creek (−6 yd): the spec's design; no heights in the sources | Heights from a topographic source |
+| | Ground between | **close** | A sidehill second shot (`tilt`), falling toward the creek on the left | — |
+| Fairway and fairway bunkers | Fairway outline and width | **close** | Bends left round the tributary | — |
+| | Fairway bunkers: count, place, shape | **no reference** | One, right of the landing area | A photo down the fairway |
+| | Rough, waste, paths | **close** | Pine straw left of the corner | — |
+| Green and greenside bunkers | Green outline and size | **differs: fix** | A round-ish 30 × 24 yd ellipse; the real green is wide and shallow with a swale through it | Trace from the aerial (expressible now) and a `hollow` for the swale |
+| | Green contours as seen | **no reference** | One tilt toward the creek | — |
+| | Greenside bunkers: count, place, shape, depth | **no reference** | Three ellipses, two behind and one front-left; the real number behind the green should be checked | Trace from the aerial |
+| | Collar, banks and falloffs | **close** | The shaved bank between creek and green | — |
+| Surroundings and landmarks | Trees: kind and where | **close** | Tall pines both sides, and in the corner | — |
+| | Water, cliffs, structures, backdrop | **close** | The tributary along the left and the creek across the front | Trace the creek's line from the aerial |
+| | Landmarks a player would name | **close** | Azaleas in bloom round the green and the corner, as the hole's name says; a stone `bridge` crosses the tributary right of the fairway short of the green | Check the bridge's place against a photo |
+
+**Open items**, most important first:
+1. Trace the green (wide and shallow, with its swale) and the bunkers behind it.
+2. The creek's line in front of the green, from the same aerial: what the second shot carries.
+3. Heights for the corner and the fall to the creek.

@@ -94,3 +94,29 @@ into the same headwind, aiming the arc 11 yards past the pin finds the green   F
 ```
 
 Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`). "Before" is the original hole as it stood at commit 548d49a: the same tee and pin, none of the iconic-hole features, play profile or hazards.
+
+## 8. Visual review — does it look like the hole?
+
+**Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py sawgrass-17 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/sawgrass-17-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Photos to get**: an aerial of the island from the tee side, and the tee shot itself (the whole hole is one picture).
+
+| Area | Item | Verdict | Evidence (render against sources) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | **close** | Straight at the island over water | — |
+| | Elevation: tee, landing area, green | **close** | Level, the island's crown a yard above the water line | — |
+| | Ground between | **matches** | Water | — |
+| Fairway and fairway bunkers | Fairway outline and width | **matches** | None | — |
+| | Fairway bunkers: count, place, shape | **matches** | None | — |
+| | Rough, waste, paths | **differs: fix** | No walkway from the island to the shore | A thin `band` island in the water body (`islands` accepts the same shapes as the water): expressible, cosmetic |
+| Green and greenside bunkers | Green outline and size | **close** | 28 × 22 yd, the spec's real size (78 × 81 ft), as an ellipse | A trace would give its true outline |
+| | Green contours as seen | **no reference** | A tier, back-left higher | — |
+| | Greenside bunkers: count, place, shape, depth | **close** | The one pot bunker, short-right, deep | Trace from the aerial |
+| | Collar, banks and falloffs | **matches** | A strip of fringe and a crown falling to the timber bulkhead | — |
+| Surroundings and landmarks | Trees: kind and where | **close** | Palms and oaks round the lake | — |
+| | Water, cliffs, structures, backdrop | **close** | The lake and the bulkhead; a red-roofed clubhouse behind (the one building the game has) | — |
+| | Landmarks a player would name | **close** | The island and its bulkhead are the landmark, and are there | — |
+
+**Open items**, most important first:
+1. The walkway: expressible now as a band of land through the water.
+2. A trace of the island, the green and the pot bunker from one aerial, to replace the ellipses with the real shapes.

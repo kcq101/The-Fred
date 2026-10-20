@@ -153,6 +153,59 @@ test('features: a negative hollow is a crown; with `flat` it is a plateau, level
   assert.notEqual(course.S(b.p.x, b.p.z), g.GREENS, `a ball on the falloff rolls off the green (stopped at ${b.p.x.toFixed(1)}, ${b.p.z.toFixed(1)})`);
 });
 
+// ---------------------------------------------------------------- traced outlines (greens and bunkers with their real shape)
+test('outlines: a traced polygon reads like an ellipse of the same shape: 1 on the edge, 0 at the deepest point, growing outside by 1 per ro yards', () => {
+  const E = { x: 3, z: 40, rx: 9, rz: 5, rot: 0.4 }, c = Math.cos(E.rot), s = Math.sin(E.rot);
+  const pts = Array.from({ length: 96 }, (_, i) => { const a = i / 96 * 2 * Math.PI, u = Math.cos(a) * E.rx, v = Math.sin(a) * E.rz; return [E.x + u * c - v * s, E.z + u * s + v * c]; });
+  const P = course.prepShape({ pts }), Q = course.prepShape({ ...E });
+  assert.ok(Math.hypot(P.x - E.x, P.z - E.z) < 0.05, 'centroid at the middle');
+  assert.ok(Math.abs(P.ri - E.rz) < 0.3, `deepest point ${P.ri.toFixed(2)} yd in: the short radius`);
+  assert.ok(Math.abs(P.ro - Math.sqrt(E.rx * E.rz)) < 0.1, 'ro: the radius of a circle of the same area');
+  for (const [x, z] of pts) assert.ok(Math.abs(course.ell(x, z, P) - 1) < 1e-6, 'exactly 1 on the outline');
+  assert.ok(course.ell(E.x, E.z, P) < 0.05, '~0 at the middle');
+  for (let k = 0; k < 24; k++) {              // inside and outside agree with the ellipse on which side of 0.55, 1, 1.2 and 1.6 a point is (the thresholds the rules use)
+    const a = k / 24 * 2 * Math.PI;
+    for (const t of [0.3, 0.8, 0.97, 1.03, 1.1, 1.4, 2]) {
+      const u = Math.cos(a) * E.rx * t, v = Math.sin(a) * E.rz * t, x = E.x + u * c - v * s, z = E.z + u * s + v * c, e = course.ell(x, z, Q), p = course.ell(x, z, P);
+      assert.equal(p < 1, e < 1, `inside/outside at t=${t}`);
+      if (t >= 1.03) assert.ok(p > 1, 'outside is > 1');
+    }
+  }
+  assert.ok(course.ell(E.x + 60, E.z, P) > 2.5, 'far away is far (the quick box test)');
+  assert.throws(() => course.prepShape({ pts: [[0, 0], [1, 1]] }), /at least 3 points/);
+});
+
+test('outlines: on Riviera No. 6 the traced green and bunkers are what S() and H() play: sand inside each outline, the green inside its own, fringe in a ring, bunkers dug in', () => {
+  const i = idx('riviera-6'), hole = course.HOLES[i]; course.prepHole(i);
+  assert.ok(hole.green.pts && hole.bunkers.every(b => b.pts), 'the hole uses traced outlines (docs/holes/trace/riviera-6.json)');
+  const inward = (P, j, d) => {                     // a point d yards inside the outline, off vertex j (outlines are counter-clockwise in x,z)
+    const a = P[(j - 1 + P.length) % P.length], b = P[(j + 1) % P.length], tx = b[0] - a[0], tz = b[1] - a[1], l = Math.hypot(tx, tz);
+    return [P[j][0] - tz / l * d, P[j][1] + tx / l * d];
+  };
+  for (const [k, b] of course.BUNKERS.entries()) {
+    let n = 0;
+    for (let x = b.box.x0 - 1; x <= b.box.x1 + 1; x += 0.2) for (let z = b.box.z0 - 1; z <= b.box.z1 + 1; z += 0.2) {
+      const sd = course.sdPoly(x, z, b.pts);            // yards inside (+) or outside (-) the traced outline
+      if (sd > 0.1 * b.ri + 0.05) { assert.equal(course.S(x, z), g.SAND, `bunker ${k}: (${x.toFixed(1)}, ${z.toFixed(1)}) inside the outline is sand`); n++; }
+      else if (sd < -0.05 && !course.BUNKERS.some(o => o !== b && course.ell(x, z, o) < 1)) assert.notEqual(course.S(x, z), g.SAND, `bunker ${k}: (${x.toFixed(1)}, ${z.toFixed(1)}) outside it is not`);
+    }
+    assert.ok(n >= 50, `bunker ${k}: ${n} sand points`);
+    let floor = Infinity; for (let x = b.box.x0; x <= b.box.x1; x += 0.25) for (let z = b.box.z0; z <= b.box.z1; z += 0.25) if (course.S(x, z) === g.SAND) floor = Math.min(floor, course.H(x, z));
+    const rim = b.pts.reduce((a, [x, z]) => a + course.H(x, z), 0) / b.pts.length;
+    assert.ok(rim - floor > 0.8 * b.depth, `bunker ${k} is dug in: its floor sits ${(rim - floor).toFixed(2)} yd below its rim (depth ${b.depth})`);
+  }
+  const G = course.GREEN;
+  let greens = 0, fringe = 0;
+  for (let j = 0; j < G.pts.length; j += 3) {
+    const [xi, zi] = inward(G.pts, j, 0.4), [xf, zf] = inward(G.pts, j, -0.1 * G.ro);
+    if (course.BUNKERS.some(b => course.ell(xi, zi, b) < 1.05 || course.ell(xf, zf, b) < 1.05)) continue;      // a bunker owns that spot
+    assert.equal(course.S(xi, zi), g.GREENS, `inside the green at vertex ${j}`); greens++;
+    assert.equal(course.S(xf, zf), g.FRINGE, `a collar ${(0.1 * G.ro).toFixed(1)} yd outside it`); fringe++;
+  }
+  assert.ok(greens > 15 && fringe > 15, `${greens} green and ${fringe} fringe points checked`);
+  assert.equal(course.S(course.PIN.x, course.PIN.z), g.GREENS, 'the pin is on the putting surface');
+});
+
 test('hole checks: a per-strategy lieAdd changes what a lie costs in the comparison (test-only knob)', () => {
   const i = idx('standrews-17'); course.prepHole(i);
   const shot = { club: 'Iron', at: [8, 455] };

@@ -117,3 +117,30 @@ the safe line to the wide front of the green holds it                          G
 ```
 
 "Before" is the same land and green with no features, play profile, wall, road or bunkers. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.
+
+## 8. Visual review — does it look like the hole?
+
+**Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py standrews-17 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/standrews-17-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Photos to get**: an aerial of the green from short-left (the Road Hole Bunker, the green, the road and the wall in one frame), and the drive over the sheds from the tee.
+
+| Area | Item | Verdict | Evidence (render against sources) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | **can't express yet** | The real drive is blind, over the replica railway sheds at the corner of the Old Course Hotel, with out of bounds along the hotel; the game's drive is a plain open fairway (spec §4) | A blind-shot primitive and a side out-of-bounds line |
+| | Elevation: tee, landing area, green | **close** | Flat links; the green on a slight plateau | — |
+| | Ground between | **close** | Gentle links roll | — |
+| Fairway and fairway bunkers | Fairway outline and width | **close** | One fairway bending right toward the green | — |
+| | Fairway bunkers: count, place, shape | **close** | Two small pot bunkers short of the green, as the spec has them | Trace from an aerial |
+| | Rough, waste, paths | **close** | Gorse-like scrub along the sides | — |
+| Green and greenside bunkers | Green outline and size | **close** | Long, narrow and angled away to the right: an ellipse rotated 0.22 rad; the real one is longer and its front edge bends round the bunker | Trace from the aerial (expressible now) |
+| | Green contours as seen | **no reference** | — | — |
+| | Greenside bunkers: count, place, shape, depth | **close** | The Road Hole Bunker eats into the front-left of the green, very deep (2.8 + 0.9 yd) | Its round shape from the aerial; at that depth a traced outline must be checked against the hop guard (Riviera No. 6 §5) |
+| | Collar, banks and falloffs | **close** | — | — |
+| Surroundings and landmarks | Trees: kind and where | **matches** | None, as on the real links | — |
+| | Water, cliffs, structures, backdrop | **close** | The road behind the green and the stone wall behind the road, both playing; golden dunes beyond | — |
+| | Landmarks a player would name | **differs: fix** and **can't express yet** | The hotel is one small red-roofed `clubhouse` to the right of the drive; the real hotel is a long block and the sheds a black barn-like front | A building prop with size, colour and count (shared with Riviera No. 6) |
+
+**Open items**, most important first:
+1. The blind drive over the sheds, and OB along the hotel: the hole's first shot is not the real one (needs a blind-shot primitive and side OB).
+2. The hotel and sheds as buildings of the right size: a building prop.
+3. Trace the green and the Road Hole Bunker from an aerial.

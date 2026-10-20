@@ -106,3 +106,30 @@ the bail-out left, around the head of the cove, stays dry                      R
 ```
 
 Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`). "Before" is the original hole as it stood at commit 548d49a: the same tee and pin, none of the iconic-hole features, play profile or hazards.
+
+## 8. Visual review — does it look like the hole?
+
+**Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py pebble-8 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/pebble-8-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Photos to get**: an aerial of the green across the chasm from the end of the fairway (the shot that decides the hole), and one from the tee up the hill.
+
+| Area | Item | Verdict | Evidence (render against sources) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | **close** | The drive climbs to a plateau that ends at the cliff, as the spec says; the game's tee box faces straight up the hole | — |
+| | Elevation: tee, landing area, green | **close** | Uphill to the plateau (+5 yd), down across the chasm (−6 yd) to a green raised on its own knoll (+3 yd); the sources give no heights, so the sizes are guesses | Heights from a topographic source |
+| | Ground between | **close** | The plateau tips toward the edge; in the render the fairway runs out at the rock face | — |
+| Fairway and fairway bunkers | Fairway outline and width | **close** | One strip ending at the cliff | — |
+| | Fairway bunkers: count, place, shape | **no reference** | Two in the game short of the plateau's end, one each side | A photo up the fairway |
+| | Rough, waste, paths | **close** | Cypress-and-ice-plant coast rough | — |
+| Green and greenside bunkers | Green outline and size | **differs: fix** | A 26 × 22 yd ellipse; the real green is small and not an ellipse | Trace it from the aerial: expressible now (`green:{pts}`) |
+| | Green contours as seen | **no reference** | One back-to-front tilt | — |
+| | Greenside bunkers: count, place, shape, depth | **no reference** | Two ellipses, front-left and back-right of the green | Trace from the aerial |
+| | Collar, banks and falloffs | **close** | A shaved bank in front of the green runs short balls back to the sea; the knoll falls away on every side | — |
+| Surroundings and landmarks | Trees: kind and where | **close** | Cypress and pines along the sides | — |
+| | Water, cliffs, structures, backdrop | **matches** in kind | The ocean inlet cut into the cliff line, rock faces in bands, rocks in the surf: the hole's look | Measure the inlet's shape from the aerial |
+| | Landmarks a player would name | **can't express yet** | The blind tee shot's aiming rock (spec §4) | A scenery prop that also marks a line (an aiming post or rock), or a blind-shot primitive |
+
+**Open items**, most important first:
+1. Trace the green and its bunkers from an aerial: the outline is expressible now, and it is the shot the hole is about.
+2. The aiming rock on the blind drive: needs a prop (and blind shots, shared with St Andrews No. 17).
+3. Heights for the climb, the chasm and the green's knoll.

@@ -268,12 +268,27 @@ test('the end of a shot still flows into scoring and the next shot: rest, water 
 const course = loadCourse();
 const NAMES = ['tee', 'fairway', 'rough', 'fringe', 'green', 'sand', 'water'];
 
+// eight spots on a bunker's bank: 0.9 of the way out on an ellipse; on a traced outline, points 10-35 % of its depth in from the edge, spread round it
+function bankPoints(bk) {
+  if (!bk.pts) return Array.from({ length: 8 }, (_, k) => [bk.x + Math.cos(k * Math.PI / 4) * bk.rx * 0.9, bk.z + Math.sin(k * Math.PI / 4) * bk.rz * 0.9]);
+  const out = [], n = bk.pts.length;
+  for (let k = 0; k < 8; k++) {
+    const [px, pz] = bk.pts[Math.floor(k * n / 8)];
+    let best = null;
+    for (let dx = -1.5; dx <= 1.5; dx += 0.1) for (let dz = -1.5; dz <= 1.5; dz += 0.1) {
+      const sd = course.sdPoly(px + dx, pz + dz, bk.pts);
+      if (sd > 0.1 * bk.ri && sd < 0.35 * bk.ri && (!best || Math.hypot(dx, dz) < best.d)) best = { d: Math.hypot(dx, dz), x: px + dx, z: pz + dz };
+    }
+    if (best) out.push([best.x, best.z]);
+  }
+  return out;
+}
+
 test('real holes: a ball on a bunker bank slides to the bottom and rests in the sand within seconds (was: never, until the 22 s time-out)', () => {
   let tested = 0;
   for (let hi = 0; hi < course.HOLES.length; hi++) {
     course.prepHole(hi);
-    for (const bk of course.BUNKERS) for (let k = 0; k < 8; k++) {
-      const x = bk.x + Math.cos(k * Math.PI / 4) * bk.rx * 0.9, z = bk.z + Math.sin(k * Math.PI / 4) * bk.rz * 0.9;
+    for (const bk of course.BUNKERS) for (const [k, [x, z]] of bankPoints(bk).entries()) {
       if (course.S(x, z) !== g.SAND) continue;
       const b = { p: { x, y: course.H(x, z) + R, z }, v: { x: 0, y: 0, z: 0 }, rolling: true, landed: true, resting: false, t: 0, lipT: -9, club: WEDGE };
       BM.begin(b); const env = { terrain: course.terrain, sp: SP, wind: { x: 0, z: 0 } };

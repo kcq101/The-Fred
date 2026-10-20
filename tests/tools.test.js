@@ -86,6 +86,49 @@ test('validate: refuses a hole that has no checks yet, and says what to do', () 
   assert.equal(node('validate.js', []).status, 2);
 });
 
+test('trace: the camera fit finds a known camera, and the landmarks two views share, from their pixels alone', () => {
+  const { makeCam, fitAll } = require('./tools/trace');
+  const D = Math.PI / 180, ground = () => 0;
+  const truth = [{ x: 6, y: 25, z: 60, yaw: -6 * D, pitch: -14 * D, roll: 0, vfov: 30 }, { x: 0, y: 12, z: -10, yaw: 1 * D, pitch: -5 * D, roll: 0, vfov: 25 }];
+  const cams = truth.map(p => makeCam(p, 400, 500));
+  const anchor = [0, 0, 144], marks = { a: [10, 140], b: [-8, 120], c: [4, 118], d: [-5, 155], e: [12, 150] };
+  const px = (cam, [x, z]) => cam.project([x, 0, z]);
+  const T = {
+    views: truth.map((p, i) => ({
+      name: `v${i}`, image: { w: 400, h: 500 },
+      camera: { fix: i ? { roll: 0, x: 0, z: -10 } : { roll: 0 }, start: i ? { pos: [0, 8, -10], look: [0, 0, 144], vfov: 20 } : { pos: [0, 20, 90], look: [0, 0, 144], vfov: 40 },
+        constraints: [{ type: 'point', name: 'anchor', px: cams[i].project(anchor), at: [0, 144] },
+          ...(i ? [] : [{ type: 'vertical', name: 'stick', base: px(cams[i], [-3, 138]), top: cams[i].project([-3, 1.7, 138]), height: 1.7 }]),
+          ...Object.entries(marks).map(([n, q]) => ({ type: 'point', landmark: n, px: px(cams[i], q) }))] },
+    })),
+    landmarks: Object.fromEntries(Object.keys(marks).map(n => [n, { start: [0, 140] }])),
+  };
+  const f = fitAll(T, ground);
+  assert.ok(f.rms < 0.05, `exact pixels fit to ${f.rms.toFixed(3)} px`);
+  assert.ok(f.equations > f.unknowns, `${f.equations} equations for ${f.unknowns} unknowns`);
+  for (const [n, q] of Object.entries(marks)) assert.ok(Math.hypot(f.L[n][0] - q[0], f.L[n][1] - q[1]) < 0.2, `landmark ${n} at (${f.L[n].map(v => v.toFixed(2))}), truly (${q})`);
+  for (const k of ['x', 'y', 'z', 'vfov']) assert.ok(Math.abs(f.views[0].p[k] - truth[0][k]) < 0.3, `view 0 ${k} ${f.views[0].p[k].toFixed(2)} vs ${truth[0][k]}`);
+  assert.ok(Math.abs(f.views[0].p.yaw - truth[0].yaw) < 0.3 * D, 'and its yaw');
+  // a pixel back-projects onto the ground where it came from
+  const cam = f.views[0].cam, g = require('./tools/trace').hitGround(cam, cam.project([7, 0, 130]), ground);
+  assert.ok(Math.hypot(g[0] - 7, g[2] - 130) < 0.05);
+});
+
+test('trace: Riviera No. 6 is traced from two photos to within a few pixels, and the hole plays the traced shapes', () => {
+  const r = node('trace.js', ['riviera-6', '--json']);
+  assert.equal(r.status, 0, r.stderr);
+  const R = JSON.parse(r.stdout);
+  assert.equal(R.views.length, 2, 'the aerial and the tee photo');
+  assert.ok(R.rms < 3 && R.views.every(v => v.rms < 3), `rms ${R.rms.toFixed(2)} px`);
+  assert.ok(R.equations - R.unknowns >= 5, 'over-determined, so the residual is a check');
+  for (const o of R.outlines) assert.ok(o.iou > 0.95, `${o.name}: the hole's shape is the traced one (IoU ${o.iou.toFixed(2)})`);
+  const mid = R.outlines.find(o => o.name === 'middle');
+  assert.ok(Math.abs(mid.traced.area / mid.raw.area - 4) < 0.6, 'the middle bunker is the one outline exaggerated (x2 across, x4 in area)');
+  const txt = node('trace.js', ['riviera-6']).stdout;
+  assert.match(txt, /sensitivity/); assert.match(txt, /to spare: the residual is a real check/);
+  assert.notEqual(node('trace.js', ['nowhere-1']).status, 0, 'no trace file: refused');
+});
+
 const py = spawnSync('python3', ['-c', 'import PIL'], { encoding: 'utf8' });
 test('card.py: a placeholder card of the right size, not blank; render.py parses', { skip: py.status !== 0 && 'python3 with Pillow not available' }, () => {
   const out = path.join(tmp, 'card99.jpg');
@@ -97,6 +140,20 @@ test('card.py: a placeholder card of the right size, not blank; render.py parses
   assert.equal(dims, '474 592 True');
   assert.notEqual(spawnSync('python3', ['tests/tools/card.py', 'x', 'y', '4', '1'], { cwd: root }).status, 0, 'bad arguments are refused');
   assert.equal(spawnSync('python3', ['tests/tools/render.py', '--help'], { cwd: root }).status, 0, 'render.py parses and prints its help without needing a browser');
+  assert.match(spawnSync('python3', ['tests/tools/render.py', '--help'], { cwd: root, encoding: 'utf8' }).stdout, /ref\s+every reference photo's matched camera/);
+});
+
+test('trace_photo: fill traces a bright bunker on a synthetic photo to within a few per cent of its area; hash reports size and sha256', { skip: py.status !== 0 && 'python3 with Pillow not available' }, () => {
+  const img = path.join(tmp, 'synthetic.png');
+  const mk = spawnSync('python3', ['-c', `from PIL import Image, ImageDraw; im=Image.new('RGB',(200,160),(60,110,40)); d=ImageDraw.Draw(im); d.ellipse((40,50,160,110),fill=(205,190,170)); im.save(${JSON.stringify(img)})`], { encoding: 'utf8' });
+  assert.equal(mk.status, 0, mk.stderr);
+  const r = spawnSync('python3', ['tests/tools/trace_photo.py', 'fill', img, '100,80', '--eps', '0.5'], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const P = JSON.parse(r.stdout); let a = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += P[j][0] * P[i][1] - P[i][0] * P[j][1];
+  const want = Math.PI * 60 * 30;
+  assert.ok(Math.abs(Math.abs(a / 2) - want) / want < 0.05, `outline area ${Math.abs(a / 2).toFixed(0)} vs ${want.toFixed(0)} px²`);
+  const h = JSON.parse(spawnSync('python3', ['tests/tools/trace_photo.py', 'hash', img], { cwd: root, encoding: 'utf8' }).stdout);
+  assert.equal(h.w, 200); assert.equal(h.h, 160); assert.match(h.sha256, /^[0-9a-f]{64}$/);
 });
 
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
