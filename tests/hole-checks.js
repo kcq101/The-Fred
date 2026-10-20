@@ -122,10 +122,10 @@ module.exports = {
     shots: [
       { name: 'a well-struck iron at the pin holds the right side of the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 7 } },
       { name: 'a well-struck iron at the middle of the green holds it', shot: { club: 'Iron', at: [10, 139], offset: 0.1 }, expect: { surf: ['GREENS'] } },
-      { name: 'a slightly thin iron lands on the steep bank and feeds back into the creek', shot: { club: 'Iron', offset: 0.3 }, expect: { end: 'water' } },
+      { name: 'a thin iron at the pin comes up short in the creek', shot: { club: 'Iron', offset: 0.4 }, expect: { end: 'water' } },
       { name: 'a push right at the pin is wet', shot: { club: 'Iron', offset: 0.5 }, expect: { end: 'water' } },
-      { name: 'carried 15 yards long, the ball finds the deep back-right bunker', shot: { club: 'Iron', at: [-12, 156] }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'into a 14 mph headwind, a stock shot comes up short in the creek', shot: { club: 'Iron', wind: { mph: 14, dir: 'head' } }, expect: { end: 'water' } },
+      { name: 'carried long over the left half of the green, the ball finds a back bunker', shot: { club: 'Iron', at: [2, 152] }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'an iron flown a club short of the pin (the wind misjudged) finds the creek', shot: { club: 'Iron', at: [-8, 128] }, expect: { end: 'water' } },
       { name: 'clubbing up for the headwind (arc past the pin) finishes on the putting surface or its edge', shot: { club: 'Iron', at: [-6, 150], wind: { mph: 14, dir: 'head' } }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 9 } },
       { name: 'with a 14 mph tailwind, a stock shot flies the green into the back bunkers or beyond', shot: { club: 'Iron', wind: { mph: 14, dir: 'tail' } }, expect: { end: 'rest', surf: ['SAND', 'ROUGH'] } },
     ],

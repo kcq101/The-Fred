@@ -1,0 +1,50 @@
+{
+ "id": "augusta-12",
+ "lidar": {
+  "source": "USGS 3DEP 1 m DEM, project GA_Statewide_2018_B18_DRRA (flown 2018, published 2022), tile USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif (public domain), from prd-tnm.s3.amazonaws.com. Not in the repo (351 MB): python3 tests/tools/lidar.py fetch --pin 33.494520,-82.023134 --download",
+  "crs": "EPSG:26917 (UTM 17N, NAD83), heights NAVD88 m",
+  "located_by": "a map pin from the project owner on the green (33.494520, -82.023134), placed at (8, 134) so the green the lidar shows (between its front bunker and the two behind) lands on the game green's centre (4, 138)",
+  "frame": {
+   "tile": [
+    "USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif"
+   ],
+   "anchor": {
+    "latlon": [
+     33.49452,
+     -82.023134
+    ],
+    "at": [
+     8,
+     134
+    ]
+   },
+   "bearing_deg": 207.1,
+   "yd_per_m": 1.012,
+   "pin": [
+    -6,
+    140.5
+   ],
+   "grid": {
+    "x": [
+     -70,
+     70
+    ],
+    "z": [
+     -15,
+     180
+    ],
+    "step": 0.5
+   },
+   "sand": {
+    "sigma": 2,
+    "below": 0.15,
+    "why": "the two back bunkers are small (5-7 yd) and sit at the foot of the bank behind the green: at the default 6 m smoothing they merge with the bank's toe into one 43 x 60 yd hollow; even at 2 m they stay joined to it, so they are placed by hand from the 2 m hollows (\u00a78)"
+   },
+   "water": {
+    "level": 48.93,
+    "tol": 0.1,
+    "why": "Rae's Creek is hydro-flattened at 48.93-49.0 m but too narrow for the automatic level; within 0.1 m it reads as a band 12-17 yd wide, its green-side shore 13 yd short of the pin, which is what the bridge photo shows"
+   }
+  }
+ }
+}
