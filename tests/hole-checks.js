@@ -15,10 +15,10 @@ module.exports = {
       { name: 'a pure driver runs off the end of the plateau into the chasm', shot: { club: 'Hammer', at: [-5, 250], power: 1 }, expect: { end: 'water' } },
       { name: 'even a 90% driver still finds the chasm', shot: { club: 'Hammer', at: [-5, 250], power: 0.9 }, expect: { end: 'water' } },
       { name: 'a pure 3-wood stops on the plateau, short of the cliff', shot: { club: '3-Wood', at: [-5, 250], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
-      { name: 'from there a well-struck iron carries the chasm and holds the green', shot: { from: [-5, 247], club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'a chunked approach comes up short in the chasm', shot: { from: [-5, 247], club: 'Iron', offset: 0.7 }, expect: { end: 'water' } },
-      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 247], club: 'Iron', offset: 0.55 }, expect: { end: 'water' } },
-      { name: 'the bail-out left, around the head of the cove, stays dry', shot: { from: [-5, 247], club: 'Iron', at: [10, 356], offset: 0.5 }, expect: { end: 'rest' } },
+      { name: 'from there a well-struck iron carries the chasm and holds the green', shot: { from: [-5, 215], club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
+      { name: 'a chunked approach comes up short in the chasm', shot: { from: [-5, 215], club: 'Iron', offset: 0.7 }, expect: { end: 'water' } },
+      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 215], club: 'Iron', offset: 0.55 }, expect: { end: 'water' } },
+      { name: 'the bail-out left, around the head of the cove, stays dry', shot: { from: [-5, 215], club: 'Iron', at: [10, 356], offset: 0.5 }, expect: { end: 'rest' } },
     ],
     strategies: [
       { name: 'tee club', plans: [
@@ -30,8 +30,8 @@ module.exports = {
           ['the 3-wood is the play: dry and the best score for both players', r => r['3-wood'].sharp.hazard === 0 && r['3-wood'].sharp.score < r.driver.sharp.score && r['3-wood'].sharp.score < r.iron.sharp.score && r['3-wood'].shaky.score < r.driver.shaky.score],
           ['laying back with an iron is safe but leaves a long approach', r => r.iron.sharp.toPin > r['3-wood'].sharp.toPin + 60] ] },
       { name: 'approach line', plans: [
-          { name: 'pin', shot: { from: [-5, 247], club: 'Iron' } },
-          { name: 'bail', shot: { from: [-5, 247], club: 'Iron', at: [10, 356] } } ],
+          { name: 'pin', shot: { from: [-5, 215], club: 'Iron' } },
+          { name: 'bail', shot: { from: [-5, 215], club: 'Iron', at: [10, 356] } } ],
         expect: [
           ['going at the pin risks the chasm for a shaky player', r => r.pin.shaky.hazard > 0.05 && r.bail.shaky.hazard === 0],
           ['a sharp player hits the green every time', r => r.pin.sharp.hazard === 0 && r.pin.sharp.surfs.GREENS === r.pin.sharp.n],

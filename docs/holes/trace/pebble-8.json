@@ -1,0 +1,45 @@
+{
+ "id": "pebble-8",
+ "lidar": {
+  "source": "USGS 3DEP 1 m DEM, project CA_AZ_FEMA_R9_Lidar_2017_D18 (flown 2017-18, published 2021), tile USGS_1M_10_x59y405_CA_AZ_FEMA_R9_Lidar_2017_D18.tif (public domain), from prd-tnm.s3.amazonaws.com. Not in the repo (229 MB): python3 tests/tools/lidar.py fetch --pin 36.563057,-121.936526 --download",
+  "crs": "EPSG:26910 (UTM 10N, NAD83), heights NAVD88 m",
+  "located_by": "a map pin from the project owner on the green (36.563057, -121.936526), placed at the game pin (-22, 375.4)",
+  "frame": {
+   "tile": [
+    "USGS_1M_10_x59y405_CA_AZ_FEMA_R9_Lidar_2017_D18.tif"
+   ],
+   "anchor": {
+    "latlon": [
+     36.563057,
+     -121.936526
+    ],
+    "at": [
+     -22,
+     375.4
+    ]
+   },
+   "bearing_deg": 56.5,
+   "yd_per_m": 0.9736,
+   "pin": [
+    -22,
+    375.4
+   ],
+   "grid": {
+    "x": [
+     -120,
+     130
+    ],
+    "z": [
+     -55,
+     450
+    ],
+    "step": 0.5
+   },
+   "why": "the tee is the pad at the south-west tip of the point beside the 7th green (36.56134, -121.94028; 10.0 m), 386.2 m from the pin at 59.9 degrees (422 yd; the card's 428). The game's tee -> pin is 376 yd with the pin 22 yd right, so +z is 3.4 degrees left of that line and yd_per_m = 376 / 386.2. The drive climbs the point to 21.3 m, the plateau ends in a cliff 248 m out, the green is 18.8 m up on the far side of the cove",
+   "water": {
+    "tol": 6,
+    "why": "the coast is cliffs 10-20 m high; the game's `cliff` profile drops at its shoreline, so the shoreline is read at about 7 m (6 m above the 1.15 m water), on the cliff face, not at its foot: at the water's own level the green's front-right bank (17 m down to the sea over 16 m) read as 10-12 yd of dry land"
+   }
+  }
+ }
+}

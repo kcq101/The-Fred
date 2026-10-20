@@ -135,7 +135,7 @@ with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  R
 | Front bunker | ellipse 12 × 6 yd at (14, 131), 1.6 deep | lidar outline 9.5 × 8.5 yd at (4.7, 127.2), 0.41 deep |
 | Back bunkers | two ellipses, back-left (21, 147) and back-right (-12, 152), 1.6 deep | both behind the left half, at (7.6, 148) and (1, 151.8), 0.54 and 0.50 deep |
 | Hogan Bridge | (-34, 134): right | (30, 93): left |
-| Highest hop, ten seeds (`tests/ball.test.js` loop) | 5.34 yd | 3.29 yd |
+| Highest hop, ten seeds (`tests/ball.test.js` loop, from the first touchdown) | 5.34 yd | 3.05 yd |
 
 **Renders**: `docs/maps/augusta-12-tee.png`, `docs/maps/augusta-12-aerial.png`.
 
