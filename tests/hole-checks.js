@@ -172,6 +172,7 @@ module.exports = {
       { name: 'aimed at the big front bunker, short of the pin, a pure iron finds the sand', shot: { club: 'Iron', at: [-3.5, 120.2] }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'aimed at the small bunker off the left end of the green, a pure iron finds the sand', shot: { club: 'Iron', at: [12.3, 144.1] }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'aimed past the green, a pure iron runs through it into the back bunker', shot: { club: 'Iron', at: [0, 160] }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'a full Hammer flown well past the green is stopped by the bank behind it, in the rough above the green', shot: { club: 'Hammer', at: [0, 200] }, expect: { end: 'rest', surf: ['ROUGH'], maxToPin: 35 } },
       { name: 'from the back-left quadrant, a wedge over the bunker finishes on the green close to the pin', shot: { from: [8, 149.5], club: 'Wedge', at: 'pin', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 9 } },
       { name: 'from the middle bunker, a wedge gets out and onto the green', shot: { from: [0, 144], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 12 } },
     ],

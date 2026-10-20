@@ -16,6 +16,10 @@
 //      declared exaggeration (scale about its centroid, shift), smooths it (closed Catmull-Rom) and resamples it every `step` yards (default 1).
 //   3. compares each outline with the shape the hole has now (`game`: "green", "bunker:<i>" or omitted for a feature the hole lacks):
 //      centroid offset, width (x span), depth (z span), area, and the overlap (IoU). After the traced shapes are in the hole, IoU should be ~1.
+//      A file-level `rescale` {factor, about:[x,z], why} scales every outline about one point first: a size the photos get wrong and a better source
+//      measures (Riviera No. 6: the 2025 lidar puts the bunkers at 0.906 of the flagstick-scaled tracing). `ground` is "land" (rawH, the default),
+//      {land: "<commit>"} (rawH as it was at that commit: the land the photos were fitted on, so the fit does not move when the hole later gets its
+//      real heights, e.g. from lidar) or a number (flat ground at that height).
 //   4. sensitivity: refits with the field of view 15° narrower and wider (when it is fixed) and prints how much each outline's size moves, so the
 //      cost of the camera assumption is a number.
 // --write   stores the fitted camera (camera.fit: what render.py's `ref` view uses) and each outline's hole points (`hole`) in the trace file
@@ -198,8 +202,9 @@ function smoothResample(P, step) {
   }
   return area(out) < 0 ? out.reverse() : out;     // one winding for every outline (counter-clockwise in x,z)
 }
-function toHole(cam, o, ground) {
-  const raw = o.px.map(px => { const g = hitGround(cam, px, ground); if (!g) throw new Error(`${o.name}: pixel ${px} does not reach the ground with this camera`); return [g[0], g[2]]; });
+function toHole(cam, o, ground, rescale) {
+  let raw = o.px.map(px => { const g = hitGround(cam, px, ground); if (!g) throw new Error(`${o.name}: pixel ${px} does not reach the ground with this camera`); return [g[0], g[2]]; });
+  if (rescale) { const k = rescale.factor, [ax, az] = rescale.about; raw = raw.map(([x, z]) => [ax + (x - ax) * k, az + (z - az) * k]); }   // a measured size correction (e.g. from lidar): the photos' own scale is off
   let P = raw;
   const ex = o.exaggerate || {};
   if (ex.scale || ex.shift) {
@@ -254,11 +259,11 @@ function run(id, { ref } = {}) {
   const { T, file } = loadTrace(id);
   const C = course(id, null), cmp = ref ? course(id, ref) : C;
   if (!C.rawH || !C.sdPoly) die('this index.html has no rawH/sdPoly: trace.js needs the terrain code from the visual-review change');
-  const ground = T.ground === undefined || T.ground === 'land' ? C.rawH : (x, z) => +T.ground;
+  const ground = T.ground === undefined || T.ground === 'land' ? C.rawH : T.ground && T.ground.land ? course(id, T.ground.land).rawH : (x, z) => +T.ground;
   const fit = fitAll(T, ground); fit.groundAt = ground;
   const camOf = name => { const v = fit.views.find(w => w.name === (name || T.views[0].name)); if (!v) throw new Error(`no view '${name}'`); return v.cam; };
   const outlines = (T.outlines || []).map(o => {
-    const h = toHole(camOf(o.view), o, ground), shape = gameShape(cmp, o.game);
+    const h = toHole(camOf(o.view), o, ground, T.rescale), shape = gameShape(cmp, o.game);
     return { name: o.name, view: o.view || T.views[0].name, kind: o.kind, game: o.game || null, exaggerate: o.exaggerate || null, pts: h.pts, raw: describe(h.raw), traced: describe(h.pts), vs: shape ? compare(C, h.pts, shape) : null };
   });
   // sensitivity: refit under each alternative the trace file lists (a held parameter set differently, an assumption dropped) and see how far the
@@ -268,7 +273,7 @@ function run(id, { ref } = {}) {
     const f2 = fitAll(T, ground, a);
     const cam2 = name => f2.views.find(w => w.name === (name || T.views[0].name)).cam;
     const label = [...Object.entries(a.fix || {}).map(([v, o]) => `${v} ${Object.entries(o).map(([k, x]) => `${k} ${x}`).join(', ')}`), ...(a.drop || []).map(d => `without "${d}"`), ...Object.values(a.add || {}).flat().map(c => `with "${c.name}"`)].join('; ');
-    return { label, rms: f2.rms, outlines: (T.outlines || []).map(o => describe(toHole(cam2(o.view), o, ground).raw)) };
+    return { label, rms: f2.rms, outlines: (T.outlines || []).map(o => describe(toHole(cam2(o.view), o, ground, T.rescale).raw)) };
   });
   return { T, file, course: C, fit, outlines, sens, ref };
 }
