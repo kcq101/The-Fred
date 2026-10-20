@@ -3,6 +3,17 @@
 Copy this file to `docs/holes/<id>.md` (id = `course-number`, e.g. `oldcourse-17`) and fill it in before touching code.
 Sections 1–3 are research and analysis; 4–5 are the design; 6 is the contract the hole must pass; 7 is the evidence; 8 is the visual review, the sign-off that the hole looks like the real one. See `docs/ICONIC-HOLES.md` for the workflow, the feature catalogue and the tools (`node tests/tools/validate.js <id>` runs the checks, maps and report).
 
+## 0. References (the gate before building: `docs/ICONIC-HOLES.md` §2.1)
+
+| Reference | Required? | Have it? | Source / note (never commit photos or lidar tiles) |
+|---|---|---|---|
+| Map pin on the green (lat, lon) | yes | | |
+| Lidar tile (USGS 3DEP 1 m / Scottish public lidar) | yes | | project, tile name, year |
+| Aerial of the green complex | yes | | |
+| Photo from on or behind the tee | yes | | |
+| Backdrop photos (buildings, hedges, trees) | optional | | |
+| Low-sun or rain photo of the green | optional | | |
+
 ## 1. Inspiration
 
 | | |
