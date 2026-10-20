@@ -69,14 +69,15 @@ module.exports = {
       { name: 'a shot carried 12 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 149] }, expect: { end: 'water' } },
       { name: 'a bad miss right is wet', shot: { club: 'Iron', offset: 0.6 }, expect: { end: 'water' } },
       { name: 'ignore a 17 mph tailwind and the ball flies the green into the water', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } }, expect: { end: 'water' } },
-      { name: 'play the tailwind (land it short) and it finishes on the green', shot: { club: 'Iron', at: [-4, 123], wind: { mph: 17, dir: 'tail' } }, expect: { surf: ['GREENS'] } },
+      { name: 'play the tailwind (arc on the island\'s front edge) and it finishes on the green', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } }, expect: { surf: ['GREENS'] } },
       { name: 'into a 17 mph headwind, a stock shot to a front pin comes up short and wet', shot: { club: 'Iron', at: [-4, 129], wind: { mph: 17, dir: 'head' } }, expect: { end: 'water' } },
-      { name: 'into the same headwind, aiming the arc 11 yards past the pin finds the green', shot: { club: 'Iron', at: [-4, 148], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'into the same headwind, aiming the arc 11 yards past the pin, left of the pot bunker, finds the green', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'the same arc straight over the pot bunker comes down short of the pin and kicks into it', shot: { club: 'Iron', at: [-4, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
     ],
     strategies: [
       { name: 'reading a following wind', plans: [
           { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } } },
-          { name: 'read', shot: { club: 'Iron', at: [-4, 123], wind: { mph: 17, dir: 'tail' } } } ],
+          { name: 'read', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } } } ],
         expect: [
           ['ignoring the wind is a disaster even for a sharp player', r => r.stock.sharp.hazard > 0.5],
           ['reading the wind keeps a sharp player dry', r => r.read.sharp.hazard === 0],

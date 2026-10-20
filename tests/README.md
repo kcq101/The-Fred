@@ -2,7 +2,7 @@
 
 Run from the repo root (Node 18+; no installs needed):
 
-    node --test tests/*.test.js    # 148 checks (30 swing/wiring/fan + 24 ball physics + 85 iconic holes + 9 authoring tools)
+    node --test tests/*.test.js    # 154 checks (31 swing/wiring/fan + 24 ball physics + 87 iconic holes + 12 authoring tools; the two lidar regressions skip without their tiles)
     node tests/swing-report.js     # before/after tables (legacy swing math vs SwingModel)
     node tests/ball-report.js      # Phase 2 before/after tables (frozen old physics vs BallModel), real-hole fuzz, Node-only CPU timing
     node tests/hole-report.js [ref] [--hole=id]   # Phase 3 before/after: every hole's checks on the current holes vs commit 548d49a (or any git ref); holes added after that commit are compared with the same land stripped of its signature. Needs history: `git fetch --unshallow` in a shallow clone
@@ -18,6 +18,7 @@ Authoring tools, in `tests/tools/` (each file opens with its full usage and flag
                                                                          # ref: the game from each reference photo's matched camera, outlines on top
     node tests/tools/trace.js <id> [--write] [--snippet] [--ref=<commit>]  # visual review: fit each reference photo's camera, lay the traced outlines on the hole, compare
     python3 tests/tools/trace_photo.py grid|fill|show|hash ...          # visual review: read outlines off a reference photo (photos live in tests/tools/refs/, never committed)
+    python3 tests/tools/lidar.py fetch|look|outlines|fit|match|selftest  # the lidar into hole coordinates: tile from a map pin, tee and direction, water/islands/bunkers/heights as pts, Riviera's bunker fit, an aerial placed by the lidar (tiles live in tests/tools/refs/, never committed)
     python3 tests/tools/card.py <n> <name> <par> <yards>                 # a placeholder hole card in the card1-3 layout -> cards/card<n>.jpg
 
 ## What these are

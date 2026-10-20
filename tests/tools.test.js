@@ -156,4 +156,39 @@ test('trace_photo: fill traces a bright bunker on a synthetic photo to within a 
   assert.equal(h.w, 200); assert.equal(h.h, 160); assert.match(h.sha256, /^[0-9a-f]{64}$/);
 });
 
+const geo = spawnSync('python3', ['-c', 'import numpy, scipy, skimage, tifffile, pyproj, matplotlib'], { encoding: 'utf8' });
+const noGeo = geo.status !== 0 && 'python3 with numpy, scipy, scikit-image, tifffile, pyproj and matplotlib not available';
+test('lidar: a synthetic tile through the whole chain (water level, an island, a pot bunker on it, a bunker on land, the plane, the frame both ways); bad input is refused', { skip: noGeo }, () => {
+  const r = spawnSync('python3', ['tests/tools/lidar.py', 'selftest'], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(JSON.parse(r.stdout).ok, true);
+  assert.notEqual(spawnSync('python3', ['tests/tools/lidar.py', 'fetch'], { cwd: root }).status, 0, 'fetch without a pin is refused');
+  assert.notEqual(spawnSync('python3', ['tests/tools/lidar.py', 'fetch', '--pin', '95,0'], { cwd: root }).status, 0, 'a latitude past 90 is refused');
+  assert.notEqual(spawnSync('python3', ['tests/tools/lidar.py', 'outlines', 'no-such-hole'], { cwd: root }).status, 0, 'a hole with no trace file is refused');
+  assert.equal(spawnSync('python3', ['tests/tools/lidar.py', '--help'], { cwd: root }).status, 0);
+});
+
+// The tiles are not in the repo (docs/ICONIC-HOLES.md §2.1); these run when they have been fetched into tests/tools/refs/
+const tile = f => fs.existsSync(path.join(__dirname, 'tools', 'refs', f));
+test('lidar fit: Riviera No. 6\'s traced bunkers matched to its 2025 lidar give back the scale and place the hand-made fit found', { skip: noGeo || (!tile('USGS_1M_11_x36y377_CA_2025LosAngelesPostWildfire_C25.tif') && 'Riviera\'s lidar tile is not in tests/tools/refs/') }, () => {
+  const r = spawnSync('python3', ['tests/tools/lidar.py', 'fit', 'riviera-6', '--json'], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const f = JSON.parse(r.stdout.trim().split('\n').pop());
+  assert.ok(Math.abs(f.scale - 0.906) < 0.015, `scale ${f.scale} (the hand-made fit: 0.906)`);
+  assert.ok(Math.abs(f.bearing_deg - 129.9) < 2.5, `bearing ${f.bearing_deg} (129.9)`);
+  assert.ok(Math.hypot(f.anchor_utm[0] - 360833.6, f.anchor_utm[1] - 3767668.4) < 1.5, `middle bunker at ${f.anchor_utm}`);
+  for (const n of ['middle', 'front', 'back']) assert.ok(f.per_bunker[n].iou > 0.4, `${n} bunker IoU ${f.per_bunker[n].iou}`);
+});
+test('lidar match: Sawgrass No. 17\'s aerial island, matched to the 2018 lidar, puts the walkway back-left and the pot bunker front-right', { skip: noGeo || (!tile('USGS_1M_17_x46y335_FL_Peninsular_FDEM_2018_D19_DRRA.tif') && 'Sawgrass\'s lidar tile is not in tests/tools/refs/') }, () => {
+  const r = spawnSync('python3', ['tests/tools/lidar.py', 'match', 'sawgrass-17', '--view', 'aerial', '--outline', 'island', '--clip', '26'], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const m = /IoU ([\d.]+); ([\d.]+) px per yd; rotation ([\d.]+)°/.exec(r.stdout);
+  assert.ok(m, r.stdout);
+  assert.ok(+m[1] > 0.88, `IoU ${m[1]}`);
+  assert.ok(Math.abs(+m[2] - 23.9) < 0.6, `${m[2]} px per yd`);
+  assert.ok(Math.abs(+m[3] - 135.5) < 3, `rotation ${m[3]}°`);
+  const ru = /runner-up: rotation [\d.]+°, IoU ([\d.]+)/.exec(r.stdout);
+  assert.ok(!ru || +ru[1] < +m[1] - 0.05, 'the other rotations are clearly worse');
+});
+
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
