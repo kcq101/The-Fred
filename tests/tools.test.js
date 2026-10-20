@@ -73,9 +73,9 @@ test('slope bounds: the shipped plateau passes, the rejected first Pinehurst dom
     assert.ok(dome.coherence < 0.2 && dome.share[3] > 90, `a dome points every which way (coherence ${dome.coherence.toFixed(2)}) and is steep almost everywhere`);
     assert.equal(ids(dome), 'ring,top,pockets,dome', 'flagged on all four');
   } finally { hole.features = saved; course.prepHole(i); }
-  course.prepHole(id('pebble-8'));
+  course.prepHole(id('augusta-13'));                                  // one plane from the lidar (Pebble No. 8 was the example until its green was traced: its plane is 5 %)
   const plane = analyze(course);
-  assert.ok(plane.coherence > 0.95 && plane.share[2] > 90, 'Pebble Beach No. 8 is one tilted plane in the 2.5–4 % band');
+  assert.ok(plane.coherence > 0.95 && plane.share[2] > 90, 'Augusta No. 13 is one tilted plane in the 2.5–4 % band');
   assert.ok(plane.checks.find(c => c.id === 'dome').ok, 'a tilted plane is not a dome, though it has no flat pockets (that one is a WARN for the spec to justify)');
 });
 

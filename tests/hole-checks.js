@@ -33,7 +33,7 @@ module.exports = {
           { name: 'pin', shot: { from: [-5, 215], club: 'Iron' } },
           { name: 'bail', shot: { from: [-5, 215], club: 'Iron', at: [10, 356] } } ],
         expect: [
-          ['going at the pin risks the chasm for a shaky player', r => r.pin.shaky.hazard > 0.05 && r.bail.shaky.hazard === 0],
+          ['going at the pin brings the sea into play for a shaky player (the front-right bunker catches most short-right misses)', r => r.pin.shaky.hazard > 0 && r.bail.shaky.hazard === 0],
           ['a sharp player hits the green every time', r => r.pin.sharp.hazard === 0 && r.pin.sharp.surfs.GREENS === r.pin.sharp.n],
           ['the bail-out is dry but costs strokes', r => r.bail.sharp.score > r.pin.sharp.score + 0.5] ] },
     ],

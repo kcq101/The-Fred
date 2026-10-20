@@ -259,9 +259,10 @@ test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary 
   assert.ok(recovery(course, { x: road.x, z: road.z }, 'SAND') >= 0.9 * RECOVERY.cap, 'a ball in the pot bunker whose face is the whole story');
   course.prepHole(idx('pebble-8'));
   const bunker = (x, z) => course.BUNKERS.find(b => b.x === x && b.z === z);
-  const beside = bunker(-32.6, 390.3), front = bunker(3.4, 363);                  // both from the lidar (0.45 deep, 0.25 lip), within 25 yd of the pin
+  const near = (x, z) => course.BUNKERS.reduce((a, b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(a.x - x, a.z - z) ? b : a);
+  const beside = near(-33, 390), front = near(3.8, 362.6);                     // both traced, lidar depths (0.43 and 0.36), within 25 yd of the pin
   const rec = b => recovery(course, { x: b.x, z: b.z }, 'SAND');
-  // the lidar sets both level with the green (no knoll above them, as the game's design had), so neither has a face to climb: docs/holes/pebble-8.md §6
+  // the lidar sets both about level with the green (no knoll above them, as the game's design had), so neither has a face to climb: docs/holes/pebble-8.md §6
   assert.ok(rec(beside) < 0.2 && rec(front) < 0.2, 'shallow bunkers level with the green are within the lie charge');
   course.prepHole(idx('pinehurst-5'));
   assert.equal(recovery(course, { x: 24, z: 432 }, 'FAIRWAY'), 0, 'the lay-up to the elevated plateau is an ordinary wedge');
