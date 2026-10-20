@@ -145,18 +145,18 @@ module.exports = {
     shots: [
       { name: 'a good drive finds the fairway', shot: { club: 'Hammer', at: [-8, 288], offset: 0.1 }, expect: { surf: ['FAIRWAY'] } },
       { name: 'a pushed drive is in the wiregrass and sand, not the rough', shot: { club: 'Hammer', at: [-8, 288], offset: 0.5 }, expect: { end: 'rest', surf: ['WASTE'] } },
-      { name: 'the second shot is played with the ball below the feet', shot: { from: [-8, 288], club: '3-Wood' }, expect: { stance: 'BALL BELOW FEET · SLICES' } },
-      { name: 'a full 3-wood aimed straight at the pin from the slanted fairway is pushed right by the lie and finishes well away', shot: { from: [-8, 288], club: '3-Wood', at: 'pin', power: 1 }, expect: { end: 'rest', minToPin: 10 } },
-      { name: 'the same 3-wood aimed left of the green, allowing for the slant, finishes close', shot: { from: [-8, 288], club: '3-Wood', at: [46, 503] }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'the lay-up with an iron finds the fairway at wedge distance', shot: { from: [-8, 288], club: 'Iron', at: [24, 432] }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 50, maxToPin: 90 } },
+      { name: 'the second shot is played with the ball above the feet', shot: { from: [-8, 288], club: '3-Wood', at: [25, 505] }, expect: { stance: 'BALL ABOVE FEET · HOOKS' } },
+      { name: 'a full 3-wood aimed straight at the pin from the slanted fairway is hooked left by the lie and finishes well away', shot: { from: [-8, 288], club: '3-Wood', at: 'pin', power: 1 }, expect: { end: 'rest', minToPin: 10 } },
+      { name: 'the same 3-wood aimed right of the pin, allowing for the slant, finishes close', shot: { from: [-8, 288], club: '3-Wood', at: [25, 505] }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 8 } },
+      { name: 'the lay-up with an iron finds the fairway at wedge distance', shot: { from: [-8, 288], club: 'Iron', at: [13, 432] }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 50, maxToPin: 90 } },
       { name: 'from the lay-up, a well-struck wedge at the pin holds the top', shot: { from: [24, 432], club: 'Wedge', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 6 } },
       { name: 'a wedge flown to the back-left edge runs off the falloff', shot: { from: [24, 432], club: 'Wedge', at: [30, 515] }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE', 'WASTE', 'ROUGH'] } },
       { name: 'from the low runoff left of the green, a wedge back up the falloff finishes on or near the green', shot: { from: [56, 502], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', maxToPin: 10 } },
     ],
     strategies: [
-      { name: 'the second shot: go for the green with a 3-wood (aimed left of it, for the slant) or lay up with an iron to wedge distance', plans: [
-          { name: 'go', shot: { from: [-8, 288], club: '3-Wood', at: [46, 503] } },
-          { name: 'layup', shot: { from: [-8, 288], club: 'Iron', at: [24, 432] } } ],
+      { name: 'the second shot: go for the green with a 3-wood (aimed right of the pin, for the slant) or lay up with an iron to wedge distance', plans: [
+          { name: 'go', shot: { from: [-8, 288], club: '3-Wood', at: [25, 505] } },
+          { name: 'layup', shot: { from: [-8, 288], club: 'Iron', at: [13, 432] } } ],
         expect: [
           ['a sharp player who goes for it reaches the green most of the time', r => (r.go.sharp.surfs.GREENS || 0) / r.go.sharp.n >= 0.5],
           ['a shaky one rarely holds it', r => (r.go.shaky.surfs.GREENS || 0) / r.go.shaky.n <= 0.35],

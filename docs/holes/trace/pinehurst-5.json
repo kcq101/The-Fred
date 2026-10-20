@@ -1,0 +1,17 @@
+{
+ "id": "pinehurst-5",
+ "lidar": {
+  "source": "USGS NED 1/9 arc-second (about 3.4 m), NC statewide 2003 (ned19_n35x25_w079x50_nc_statewide_2003, public domain), from prd-tnm.s3.amazonaws.com; no 1 m DEM covers this pin. Resampled (bilinear) to a 1 m EPSG:26917 GeoTIFF, NED19_2003_pinehurst5_utm17_1m.tif, 2.4 km square round the pin. Flown before the 2010-11 restoration. Not in the repo",
+  "crs": "EPSG:26917 (UTM 17N, NAD83), heights NAVD88 m",
+  "located_by": "map pins from the project owner on the green (35.197038, -79.458473), placed at the game pin (37, 503), and on the tee (35.198610, -79.453982)",
+  "frame": {
+   "tile": ["NED19_2003_pinehurst5_utm17_1m.tif"],
+   "anchor": {"latlon": [35.197038, -79.458473], "at": [37, 503]},
+   "bearing_deg": 250.2,
+   "yd_per_m": 1.134,
+   "pin": [37, 503],
+   "grid": {"x": [-60, 100], "z": [-10, 560], "step": 1},
+   "why": "tee -> pin is 444.5 m at 246.0 degrees (both pins from the project owner); the game's tee -> pin is 504 yd with the pin 37 yd left, so +z is 4.2 degrees right of that line and yd_per_m = 504 / 444.5. A 3.4 m DEM: heights and planes only; its hollows are not bunkers"
+  }
+ }
+}

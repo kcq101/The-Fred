@@ -589,9 +589,12 @@ const HOLES=[
   fw:[[40,15],[200,16],[300,15],[410,13],[480,12]],fairway:[[35,482]],
   green:{x:34,z:500,rx:15,rz:10,rot:0.45},pin:{x:37,z:503},tilt:{x:-0.006,z:-0.011},
   features:[
-    {type:'tilt',area:{pts:[[-10,230],[-8,350]],w:22},grade:0.08,edge:14},        // the fairway slants: rises to the left, so the ball sits below the feet
-    {type:'ramp',z0:370,z1:490,dh:2},                                              // the hole rises to the green
-    {type:'rise',area:{x:34,z:500,rx:17,rz:12,rot:0.45},dh:1.2,edge:8},            // the green sits up above the fairway and runoffs
+    {type:'tilt',area:{pts:[[-10,230],[-8,350]],w:22},grade:-0.1,edge:14},        // the fairway slants: falls to the left (2003 DEM: 4-6 %; doubled, §5), so the ball sits above the feet and hooks
+    // heights along the line from the 2003 NC DEM (3.4 m, before the restoration; lidar.py build, docs/holes/trace/pinehurst-5.json): gentle roll, a dip at 250-360, then up 5 yd to the green
+    {type:'ramp',z0:0,z1:13,dh:-0.92},{type:'ramp',z0:13,z1:38.9,dh:0.6},{type:'ramp',z0:77.8,z1:116.7,dh:-0.16},{type:'ramp',z0:116.7,z1:155.6,dh:-0.72},
+    {type:'ramp',z0:155.6,z1:194.5,dh:1.23},{type:'ramp',z0:194.5,z1:207.4,dh:0.93},{type:'ramp',z0:207.4,z1:246.3,dh:-0.89},{type:'ramp',z0:246.3,z1:324.1,dh:-2.91},
+    {type:'ramp',z0:324.1,z1:363,dh:-0.63},{type:'ramp',z0:401.9,z1:440.8,dh:0.87},{type:'ramp',z0:440.8,z1:466.7,dh:1.92},{type:'ramp',z0:466.7,z1:505.6,dh:2.2},
+    {type:'ramp',z0:505.6,z1:557.5,dh:1.51},
     {type:'hollow',area:{x:34,z:500,rx:18.5,rz:13,rot:0.45},depth:-0.75,flat:0.62,edge:2},  // the plateau: a top that barely moves, falling away steeply at its edges
     {type:'hollow',area:{x:35,z:500,rx:8,rz:5,rot:0.45},depth:-0.07,edge:2},    // movement on the top (see docs/holes/pinehurst-5.md): a broad, low crown in the middle...
     {type:'hollow',area:{x:24,z:497,rx:6,rz:4.5,rot:0.45},depth:0.07,edge:2},     // ...and soft pockets back-left, back-right and front
