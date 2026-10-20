@@ -8,9 +8,9 @@ Sections 1–3 are research and analysis; 4–5 are the design; 6 is the contrac
 | Reference | Required? | Have it? | Source / note (never commit photos or lidar tiles) |
 |---|---|---|---|
 | Map pin on the green (lat, lon) | yes | | |
-| Lidar tile (USGS 3DEP 1 m / Scottish public lidar) | yes | | project, tile name, year |
-| Aerial of the green complex | yes | | |
-| Photo from on or behind the tee | yes | | |
+| Lidar tile (USGS 3DEP 1 m / Scottish public lidar) | yes | | project, tile name, year (`lidar.py fetch --pin`) |
+| Aerial of the green complex | yes, for green and bunker edges | | |
+| The hole's direction: a yardage-book page with a compass, or a photo from the tee | one of them | | |
 | Backdrop photos (buildings, hedges, trees) | optional | | |
 | Low-sun or rain photo of the green | optional | | |
 
@@ -100,43 +100,16 @@ Written into `tests/hole-checks.js` under the hole's id; `node tests/tools/valid
 
 Paste the hole's section of `node tests/hole-report.js --hole=<id>` (before → after; `validate.js` prints it), plus anything learned while tuning.
 
-## 8. Visual review — does it look like the hole?
+## 8. Review — does it look like the hole?
 
-The checks in §6 say the hole *plays* as designed; this section says it *looks* like the real one, and what still does not. Workflow and tools: `docs/ICONIC-HOLES.md` §2, step 7.
+The checks in §6 say the hole *plays* as designed; this says it *looks* like the real one. Keep it short: what the references changed, and what is still missing. Workflow: `docs/ICONIC-HOLES.md` §2, step 7.
 
-**Reference images** — at least one; an aerial of the green complex traces best, a photo from the tee is the second. The photos are **not** in the repo (keep them in `tests/tools/refs/`, git-ignored); `docs/holes/trace/<id>.json` records each by file name, size, sha256 and source, with its camera constraints and the outlines traced on it.
+**References used** — one line each (the photos and tiles are not in the repo; `docs/holes/trace/<id>.json` records them).
 
-| View | What it shows | Source | Matched camera (`node tests/tools/trace.js <id>`) |
-|---|---|---|---|
+**What changed** — the table from `node tests/tools/trace.js <id> --ref=<commit before>` (or a hand-made one for shapes from `lidar.py build`): each green, bunker, island and water body, old against new (size, centroid, depth). Name any shape drawn bigger on purpose (§5).
 
-**Traced against the hole** — paste the outline table from `node tests/tools/trace.js <id> --ref=<commit before the tracing>`: each traced outline's width × depth, area and centroid against the shape the hole had, and their overlap. Note any outline exaggerated on purpose (`exaggerate` in the trace file, reasoned in §5), and the sensitivity table: how far the outlines move under each camera assumption.
+**Renders** — `python3 tests/tools/render.py <id> ref --out docs/maps` when a photo has a fitted camera, else `aerial`; commit those, never the side-by-sides.
 
-**Renders** — `python3 tests/tools/render.py <id> ref --out docs/maps` (the game from each photo's camera, outlines drawn on top; commit these), and the side-by-sides with the photo it writes to `tests/tools/out/` (never commit those: they contain the photo).
+**Verdict** — one line per area, each **matches**, **close**, **differs on purpose** (§5), **differs: fix** or **can't express yet** (name the primitive): tee and direction · heights · green · bunkers · water and surroundings.
 
-**Sign-off checklist** — one verdict per row, from the renders against the photos:
-
-- **matches**: the render and the photo agree at a glance
-- **close**: the same feature, with a difference a player would not notice
-- **differs: fix** — expressible with what the system has; say what to change, and whether it changes play (then it needs checks)
-- **differs on purpose** — an exaggeration, reasoned in §5
-- **can't express yet** — needs a primitive the system lacks; name the primitive
-- **no reference** — nothing in the photos shows it; say which photo would
-
-| Area | Item | Verdict | Evidence (render against photo) | Action / missing primitive |
-|---|---|---|---|---|
-| Tee placement and elevation | Tee position and line to the green | | | |
-| | Elevation: tee against landing area and green | | | |
-| | Ground between (rises, dips, valleys) | | | |
-| Fairway and fairway bunkers | Fairway outline and width | | | |
-| | Fairway bunkers: count, place, shape | | | |
-| | Rough, waste, paths | | | |
-| Green and greenside bunkers | Green outline and size | | | |
-| | Green contours as seen | | | |
-| | Greenside bunkers: count, place, shape, depth | | | |
-| | Collar, banks and falloffs round the green | | | |
-| Surroundings and landmarks | Trees: kind and where | | | |
-| | Water, cliffs, structures, backdrop | | | |
-| | Landmarks a player would name | | | |
-
-**Signed off**: who, date, commit. **Open items**, most important first.
-
+**Open items**, most important first. **Signed off**: who, date, commit.

@@ -18,7 +18,7 @@ Authoring tools, in `tests/tools/` (each file opens with its full usage and flag
                                                                          # ref: the game from each reference photo's matched camera, outlines on top
     node tests/tools/trace.js <id> [--write] [--snippet] [--ref=<commit>]  # visual review: fit each reference photo's camera, lay the traced outlines on the hole, compare
     python3 tests/tools/trace_photo.py grid|fill|show|hash ...          # visual review: read outlines off a reference photo (photos live in tests/tools/refs/, never committed)
-    python3 tests/tools/lidar.py fetch|look|outlines|fit|match|selftest  # the lidar into hole coordinates: tile from a map pin, tee and direction, water/islands/bunkers/heights as pts, Riviera's bunker fit, an aerial placed by the lidar (tiles live in tests/tools/refs/, never committed)
+    python3 tests/tools/lidar.py fetch|look|outlines|build|fit|match|selftest  # the lidar into hole coordinates: tile from a map pin, tee and direction, water/islands/bunkers/heights as pts, build: the hole entry's bunkers/water/ramps/tilt, Riviera's bunker fit, an aerial placed by the lidar (tiles live in tests/tools/refs/, never committed)
     python3 tests/tools/card.py <n> <name> <par> <yards>                 # a placeholder hole card in the card1-3 layout -> cards/card<n>.jpg
 
 ## What these are
