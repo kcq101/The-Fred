@@ -1,0 +1,6 @@
+# Reference photos are never committed, wherever they are dropped (docs/ICONIC-HOLES.md §2, step 7)
+docs/holes/trace/*.jpg
+docs/holes/trace/*.jpeg
+docs/holes/trace/*.png
+docs/holes/trace/*.webp
+docs/maps/*-pair.png

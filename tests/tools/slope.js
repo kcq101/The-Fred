@@ -65,7 +65,7 @@ for (let x = G.x - half; x <= G.x + half; x += gap) for (let z = G.z - half; z <
   if (course.S(x, z) !== g.GREENS) continue;
   const q = grad(x, z); if (q.pct < 0.4) continue;
   const dx = -q.hx, dz = -q.hz, l = Math.hypot(dx, dz), len = Math.min(gap * 0.8, 0.5 + q.pct * 0.22) * sc;     // downhill, longer where steeper
-  const [ax, ay] = toPx(x, z), ux = -dx / l, uy = dz / l;             // image y runs against z; image x against x
+  const [ax, ay] = toPx(x, z), ux = -dx / l, uy = -dz / l;            // image x runs against x and image y against z, so both flip
   const bx = ax + ux * len, by = ay + uy * len;
   line(ax, ay, bx, by, INK);
   for (const s of [-1, 1]) line(bx, by, bx - (ux * 0.8 - s * uy * 0.5) * 5, by - (uy * 0.8 + s * ux * 0.5) * 5, INK);

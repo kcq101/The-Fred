@@ -326,7 +326,32 @@ const $=id=>document.getElementById(id);
 
 // ---------------------------------------------------------------- shapes (world units are yards; every hole tees off at the origin and plays toward +z; screen-left is +x)
 function prepEll(o){o.rot=o.rot||0;o.c=Math.cos(o.rot);o.s=Math.sin(o.rot);return o;}
-const ell=(x,z,o)=>{const dx=x-o.x,dz=z-o.z;const u=(dx*o.c+dz*o.s)/o.rx,v=(-dx*o.s+dz*o.c)/o.rz;return Math.sqrt(u*u+v*v);};
+// ell(x,z,o): how far (x,z) is from the shape's middle, as a share of the way to its edge: 0 at the middle, 1 on the edge, >1 outside.
+// Every green and bunker rule reads this one number (heights, surfaces, colors, tree keep-out, the green's shader), so a shape plays as it looks.
+// An ellipse {x,z,rx,rz,rot}, or a traced outline {pts:[[x,z]...]} prepared by prepShape (which supplies o.nd).
+const ell=(x,z,o)=>{if(o.nd)return o.nd(x,z);const dx=x-o.x,dz=z-o.z;const u=(dx*o.c+dz*o.s)/o.rx,v=(-dx*o.s+dz*o.c)/o.rz;return Math.sqrt(u*u+v*v);};
+// A traced outline (a green or a bunker with its real shape, docs/ICONIC-HOLES.md "Visual review"). Inside, ell falls from 1 at the edge to 0 at the
+// point deepest inside (ri = that depth, the largest circle that fits); outside it grows by 1 every ro yards, ro = the radius of a circle of the same
+// area, so a fringe, a bunker lip or the green's blend into the land is as wide as on an ellipse of that size. Narrow arms of a bunker are shallower than
+// its middle, as real ones are. Past 2.5 the value is only a lower bound (a quick box test): nothing reads ell beyond 1.9.
+// x,z is the area centroid; rx,rz are the half-extents around it (for anything that needs a bounding size); rot is 0.
+function prepShape(o){
+  if(!o.pts)return prepEll(o);
+  const P=o.pts;if(P.length<3)throw new Error('an outline needs at least 3 points');
+  let A=0,cx=0,cz=0;
+  for(let i=0,j=P.length-1;i<P.length;j=i++){const k=P[j][0]*P[i][1]-P[i][0]*P[j][1];A+=k;cx+=(P[j][0]+P[i][0])*k;cz+=(P[j][1]+P[i][1])*k;}
+  A/=2;cx/=6*A;cz/=6*A;A=Math.abs(A);
+  const x0=Math.min(...P.map(p=>p[0])),x1=Math.max(...P.map(p=>p[0])),z0=Math.min(...P.map(p=>p[1])),z1=Math.max(...P.map(p=>p[1]));
+  let ri=0;for(let x=x0;x<=x1;x+=0.25)for(let z=z0;z<=z1;z+=0.25)ri=Math.max(ri,sdPoly(x,z,P));
+  const ro=Math.sqrt(A/Math.PI);
+  Object.assign(o,{x:cx,z:cz,rx:Math.max(x1-cx,cx-x0),rz:Math.max(z1-cz,cz-z0),rot:0,c:1,s:0,area:A,ri,ro,box:{x0,x1,z0,z1}});
+  o.nd=(x,z)=>{
+    const db=Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1));
+    if(db>1.5*ro)return 1+db/ro;
+    const s=sdPoly(x,z,P);return s>0?1-s/ri:1-s/ro;
+  };
+  return o;
+}
 // signed distance to a polygon of [x,z] points: positive inside
 function sdPoly(x,z,P){
   let d=1e18,inside=false;
@@ -564,16 +589,22 @@ const HOLES=[
   rocks:{n:0},leaf:{tallpine:'#2a6a3a',pine:'#2d6e3e'}},
  {id:'riviera-6',name:'Riviera Country Club',short:'Riviera',par:3,card:'cards/card7.jpg',note:'A bunker in the green · Pick a quadrant',theme:'parkland',
   // Inspired by No. 6: a par 3 to a small green with a pot bunker in the middle of it. The green falls from back to front and a tier separates the lower short-right
-  // pin area from the upper back-left one, so the decision is which quadrant to aim at, not which club. Deep bunkers front-left and behind. docs/holes/riviera-6.md
+  // pin area from the upper back-left one, so the decision is which quadrant to aim at, not which club. A big bunker short, small ones behind and off the left end. The green and
+  // bunkers are traced from photos (docs/holes/trace/riviera-6.json; the middle bunker ×2 on purpose). docs/holes/riviera-6.md
   seed:3.3,roll:0.35,ridge:1.5,
   route:[[0,0],[70,0],[146,0]],fw:[[0,12],[146,12]],fairway:[[7,125]],
-  green:{x:0,z:144,rx:15,rz:11.5,rot:0},pin:{x:-7,z:137.5},tilt:{x:0.003,z:0.010},
+  green:{pts:[[12.8,154.3],[12.1,154.9],[11.2,155.4],[10.2,155.6],[9.2,155.6],[8.2,155.6],[7.2,155.5],[6.2,155.4],[5.2,155.3],[4.3,155.1],[3.3,154.8],[2.4,154.4],[1.6,153.8],[1.1,152.9],[0.6,152],[-0.1,151.4],[-1,150.9],[-1.9,150.5],[-2.9,150.2],[-3.9,150],[-4.9,149.8],[-5.8,149.4],[-6.6,148.9],[-7.5,148.4],[-8.5,148.1],[-9.4,147.7],[-10.3,147.2],[-11.1,146.7],[-11.8,145.9],[-12.1,145],[-12.2,144],[-12.2,143],[-12.2,142],[-12.1,141],[-11.9,140],[-11.8,139],[-11.6,138],[-11.3,137.1],[-10.9,136.1],[-10.5,135.2],[-10,134.4],[-9.1,133.9],[-8.1,133.8],[-7.1,133.9],[-6.1,133.9],[-5.1,133.9],[-4.1,134],[-3.1,134.2],[-2.2,134.4],[-1.2,134.8],[-0.3,135.1],[0.7,135.4],[1.6,135.7],[2.6,136],[3.5,136.4],[4.5,136.7],[5.4,137],[6.4,137.3],[7.3,137.8],[8.1,138.3],[8.8,139],[9.3,139.9],[9.5,140.9],[9.6,141.9],[9.7,142.9],[9.8,143.9],[9.8,144.9],[9.9,145.9],[9.9,146.9],[10.1,147.9],[10.3,148.9],[10.6,149.8],[11.1,150.7],[11.6,151.6],[12.1,152.4],[12.5,153.3]]},pin:{x:-7,z:137.5},tilt:{x:0.003,z:0.010},
   features:[
     {type:'step',area:{x:0,z:144,rx:16.5,rz:13},a:[11,135],b:[-11,153],dh:0.4,w:7,edge:2},   // the tier: the back-left side sits above the short-right side, with pitch across the other two quadrants
     {type:'hollow',area:{x:-7,z:139,rx:12,rz:8,rot:0},depth:0.08,edge:2},                      // a broad, soft pocket in the lower short-right area: feeder slopes around a flat pin area
   ],
   play:{wind:[0,6],greens:{speed:1.15,firm:0.8}},
-  bunkers:[{x:0,z:144,rx:4.7,rz:3.7,rot:0.3,depth:1.6,lip:0.45},{x:13,z:129.5,rx:6.5,rz:3.6,rot:-0.5,depth:1.9,lip:0.6},{x:0,z:160,rx:8.5,rz:5,rot:0,depth:1.4,lip:0.3}],
+  bunkers:[
+    {pts:[[0.4,147.6],[-0.6,147.4],[-1.5,147],[-2.2,146.4],[-2.5,145.5],[-2.6,144.5],[-2.4,143.6],[-1.9,142.7],[-1.3,141.9],[-0.5,141.5],[0.5,141.3],[1.4,141.4],[2,142.1],[2.3,143.1],[2.5,144],[2.7,145],[2.2,145.7],[1.3,145.8],[0.9,146.8]],depth:1.3,lip:0.35},   // middle
+    {pts:[[2.9,129.5],[1.9,129.4],[1.1,128.9],[0.4,128.3],[-0.3,127.6],[-0.5,126.6],[-0.2,125.6],[0.2,124.7],[0.7,123.9],[1.3,123],[1.8,122.2],[2,121.2],[2.4,120.3],[2.9,119.4],[3.3,118.5],[3.1,117.6],[2.4,116.9],[1.4,116.6],[0.9,117.4],[0.8,118.4],[0.7,119.4],[0.6,120.4],[-0.2,121],[-0.9,121.7],[-1.4,122.6],[-1.7,123.5],[-1.9,124.5],[-2.7,124.9],[-3.6,124.5],[-4.1,123.6],[-4.6,122.8],[-5.2,122],[-5.9,121.3],[-6.1,120.4],[-5.9,119.4],[-5.3,118.6],[-4.6,117.9],[-3.6,117.6],[-2.6,117.6],[-1.9,117],[-1.7,116],[-2.6,115.7],[-3.4,115.3],[-3.7,114.3],[-3.6,113.4],[-3.1,112.5],[-2.3,112.1],[-1.4,112.1],[-0.4,112.3],[0.5,112.8],[1.5,113],[2.5,113.1],[3.5,113.3],[4.4,113.5],[5.2,114.2],[5.8,115],[6.3,115.8],[6.8,116.7],[7.1,117.6],[7.1,118.6],[6.9,119.6],[6.5,120.5],[6,121.4],[5.4,122.2],[4.9,123.1],[4.4,123.9],[4.1,124.9],[4,125.9],[4,126.9],[3.9,127.9],[3.6,128.8]],depth:1.2,lip:0.35},   // front
+    {pts:[[-3.3,157.9],[-3.7,157.5],[-4,156.5],[-4.5,156.4],[-5.1,157.3],[-5.6,156.6],[-5.8,155.7],[-5.9,154.7],[-5.8,153.6],[-5.4,152.8],[-4.5,152.3],[-3.5,152.2],[-2.5,152.3],[-1.5,152.3],[-0.5,152.5],[0.3,153.1],[0.9,153.9],[1.6,154.4],[1.3,155.3],[1,156.3],[0.6,157.2],[0.1,157.9],[-0.8,157.4],[-1.1,156.5],[-1.5,155.5],[-2.3,155.2],[-2.9,156],[-3.1,157]],depth:0.9,lip:0.15},   // back
+    {pts:[[12,148.2],[11.3,147.8],[11,146.9],[10.9,145.9],[10.9,144.9],[11,143.9],[11.1,142.9],[11.6,142.1],[12.6,142.2],[13.4,142.7],[13.6,143.7],[13.6,144.7],[13.2,145.7],[13.1,146.7],[12.8,147.6]],depth:0.6,lip:0.2}],   // left
+  
   water:[],
   bbox:{x0:-110,x1:110,z0:-55,z1:230},
   trees:[{type:'oak',n:90,zone:'sides',side:'both',d:[26,90],z:[-45,215],s:[0.9,1.3]},{type:'tallpine',n:110,zone:'sides',side:'both',d:[40,100],z:[-45,220],s:[0.9,1.3]},
@@ -702,11 +733,11 @@ function S(x,z){
 // make a hole current: shapes, heights and the pin
 function prepHole(i){
   holeIdx=i;HOLE=HOLES[i];
-  GREEN=prepEll(Object.assign({},HOLE.green));PIN=HOLE.pin;GT=HOLE.tilt;
+  GREEN=prepShape(Object.assign({},HOLE.green));PIN=HOLE.pin;GT=HOLE.tilt;
   prepFeatures(HOLE.features);prepObstacles(HOLE.obstacles);
   for(const f of FEATS.surf){f.surf=SURF[f.surf];f.over=(f.over||['ROUGH']).map(n=>SURF[n]);}
   applyPlay(HOLE.play);
-  BUNKERS=HOLE.bunkers.map(b=>prepEll(Object.assign({depth:0.9,lip:0.25},b)));
+  BUNKERS=HOLE.bunkers.map(b=>prepShape(Object.assign({depth:0.9,lip:0.25},b)));
   BODIES=HOLE.water.map(def=>{
     const b=Object.assign({},def);const base=shapeSD(def.shape);const isl=(def.islands||[]).map(shapeSD);
     b.sd=(x,z)=>{let s=base(x,z);for(const f of isl)s=Math.min(s,-f(x,z));if(def.jag)s+=jagN(x,z)*def.jag;return s;};
@@ -1276,23 +1307,21 @@ function buildWorld(){
   // ---- putting green: its own fine mesh so the mowing bands, collar and ink outline stay crisp
   {
     const gw=Math.max(GREEN.rx,GREEN.rz)*2.6;
-    // leave the sand showing: no mowing pattern where a bunker reaches into the green or its collar (same 0.95 edge as S() uses for SAND)
-    const GBUNK=BUNKERS.filter(b=>Math.hypot(b.x-GREEN.x,b.z-GREEN.z)<gw*0.75+Math.max(b.rx,b.rz)).map(b=>
-      `{vec2 bd=vGP.xz-vec2(${b.x.toFixed(2)},${b.z.toFixed(2)});if(length(vec2((bd.x*${b.c.toFixed(4)}+bd.y*${b.s.toFixed(4)})/${b.rx.toFixed(3)},(-bd.x*${b.s.toFixed(4)}+bd.y*${b.c.toFixed(4)})/${b.rz.toFixed(3)}))<0.95)discard;}`).join('');
     const gg=new THREE.PlaneGeometry(gw,gw,Math.round(gw*2),Math.round(gw*2));gg.rotateX(-Math.PI/2);gg.translate(GREEN.x,0,GREEN.z);
-    const gp=gg.attributes.position;for(let i=0;i<gp.count;i++)gp.setY(i,H(gp.getX(i),gp.getZ(i))+0.012);gg.computeVertexNormals();
+    // the shader draws the cut edge, collar and outline from ell(), the same number S() and H() use, handed over per vertex (every 0.5 yd) so an
+    // ellipse and a traced outline go through one path; aB: the nearest bunker's ell, so the sand shows where a bunker reaches into the green (S's 0.95 edge)
+    const gp=gg.attributes.position,gE=new Float32Array(gp.count),gB=new Float32Array(gp.count);
+    for(let i=0;i<gp.count;i++){const x=gp.getX(i),z=gp.getZ(i);gp.setY(i,H(x,z)+0.012);gE[i]=Math.min(ell(x,z,GREEN),3);let b=3;for(const k of BUNKERS)b=Math.min(b,ell(x,z,k));gB[i]=b;}
+    gg.setAttribute('aE',new THREE.BufferAttribute(gE,1));gg.setAttribute('aB',new THREE.BufferAttribute(gB,1));gg.computeVertexNormals();
     const gm=toon(0xffffff,{opacity:0.75,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});gm.extensions={derivatives:true};
     gm.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vGP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvGP=(modelMatrix*vec4(position,1.0)).xyz;');
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vGP;attribute float aE;attribute float aB;varying float vE;varying float vB;').replace('#include <begin_vertex>','#include <begin_vertex>\nvGP=(modelMatrix*vec4(position,1.0)).xyz;vE=aE;vB=aB;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-varying vec3 vGP;float gh21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+varying vec3 vGP;varying float vE;varying float vB;float gh21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh21(i),gh21(i+vec2(1.0,0.0)),f.x),mix(gh21(i+vec2(0.0,1.0)),gh21(i+vec2(1.0,1.0)),f.x),f.y);}`)
        .replace('#include <color_fragment>',`#include <color_fragment>
-        vec2 dd=vGP.xz-vec2(${GREEN.x.toFixed(2)},${GREEN.z.toFixed(2)});
-        vec2 gd2=vec2((dd.x*${GREEN.c.toFixed(4)}+dd.y*${GREEN.s.toFixed(4)})/${GREEN.rx.toFixed(2)},(-dd.x*${GREEN.s.toFixed(4)}+dd.y*${GREEN.c.toFixed(4)})/${GREEN.rz.toFixed(2)});
-        float e=length(gd2);
-        if(e>1.21)discard;
-        ${GBUNK}
+        float e=vE;
+        if(e>1.21||vB<0.95)discard;
         // crosscut mowing lined up with the fairway stripes: two sets of soft bands that overlap into three tones
         vec2 wp=vGP.xz;vec2 cr=vec2(wp.x*${GDIR.c.toFixed(4)}-wp.y*${GDIR.s.toFixed(4)},wp.x*${GDIR.s.toFixed(4)}+wp.y*${GDIR.c.toFixed(4)})/2.9;
         cr+=vec2(gnz(wp*1.1),gnz(wp*1.1+17.0))*0.09-0.045; // slightly wavering edges, like real mower passes

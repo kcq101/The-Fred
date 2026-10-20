@@ -119,3 +119,29 @@ from the low runoff left of the green, a wedge back up the falloff finishes o  G
 ```
 
 "Before" is the same land and green with no plateau, slant, waste, runoffs, bunker or play profile. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.
+
+## 8. Visual review — does it look like the hole?
+
+**Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py pinehurst-5 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/pinehurst-5-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Photos to get**: an aerial of the plateau green from the lay-up area, and one up the slanted fairway from the landing area of the drive.
+
+| Area | Item | Verdict | Evidence (render against sources) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | **close** | The hole rises and turns left at the end | — |
+| | Elevation: tee, landing area, green | **close** | `ramp` up over the last third; the plateau green raised above its runoffs | Heights from a topographic source |
+| | Ground between | **close** | The slanted fairway that gives the sidehill second shot | — |
+| Fairway and fairway bunkers | Fairway outline and width | **close** | — | — |
+| | Fairway bunkers: count, place, shape | **no reference** | One, right of the second-shot area | A photo up the fairway |
+| | Rough, waste, paths | **close** | Sandy waste with wiregrass tufts along both sides | — |
+| Green and greenside bunkers | Green outline and size | **close** | Diagonal, front-right to back-left, as an ellipse; the real outline is irregular (spec §4: "not expressed") | Trace from the aerial: now expressible |
+| | Green contours as seen | **close** | A level top with steep falloffs (the `flat` plateau), and small swales | — |
+| | Greenside bunkers: count, place, shape, depth | **no reference** | None at the green | The aerial will say |
+| | Collar, banks and falloffs | **close** | Short firm runoffs into waste, as the spec has them | — |
+| Surroundings and landmarks | Trees: kind and where | **close** | Longleaf-style pines | — |
+| | Water, cliffs, structures, backdrop | **matches** | None | — |
+| | Landmarks a player would name | **close** | The turtle-back green is the landmark, and is there | — |
+
+**Open items**, most important first:
+1. Trace the green's real outline: the spec listed it as not expressible; it now is.
+2. Whether a bunker guards the green: the aerial will say.

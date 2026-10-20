@@ -110,3 +110,29 @@ with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  R
 ```
 
 "Before" is the same land and green with no creek bank, bunkers, wind or green shaping. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.
+
+## 8. Visual review — does it look like the hole?
+
+**Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py augusta-12 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/augusta-12-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Photos to get**: an aerial of the green from over the tee, and the tee shot (the hole is one picture from the tee).
+
+| Area | Item | Verdict | Evidence (render against sources) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | **close** | Straight across the creek | — |
+| | Elevation: tee, landing area, green | **close** | The green raised above the creek bank (two `rise`s) | — |
+| | Ground between | **close** | Fairway grass down to the creek | — |
+| Fairway and fairway bunkers | Fairway outline and width | **matches** | A short mown approach | — |
+| | Fairway bunkers: count, place, shape | **matches** | None | — |
+| | Rough, waste, paths | **close** | — | — |
+| Green and greenside bunkers | Green outline and size | **close** | Wide and shallow (38 × 17 yd), angled away to the right, as the sources say; an ellipse | Trace from the aerial |
+| | Green contours as seen | **no reference** | — | — |
+| | Greenside bunkers: count, place, shape, depth | **close** | One in front, two behind; the front one sits front-left of the green's middle | Trace from the aerial to place the front one |
+| | Collar, banks and falloffs | **close** | The steep shaved bank into the creek | — |
+| Surroundings and landmarks | Trees: kind and where | **close** | Tall pines behind, azaleas in bloom under them | — |
+| | Water, cliffs, structures, backdrop | **close** | Rae's Creek across the front, bending in on the right | — |
+| | Landmarks a player would name | **differs: fix** (to confirm) | The Hogan Bridge is built at (−34, 134): right of the green from the tee. The bridge that carries players to this green crosses on the left | Move the `bridge` to the left side if a photo confirms it: data only |
+
+**Open items**, most important first:
+1. The Hogan Bridge's side: data only, confirm with a photo.
+2. Trace the green and the three bunkers from one aerial.

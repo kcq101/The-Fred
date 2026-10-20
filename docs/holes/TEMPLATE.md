@@ -1,7 +1,7 @@
 # Iconic hole spec: <Course> No. <n>
 
 Copy this file to `docs/holes/<id>.md` (id = `course-number`, e.g. `oldcourse-17`) and fill it in before touching code.
-Sections 1–3 are research and analysis; 4–5 are the design; 6 is the contract the hole must pass; 7 is the evidence. See `docs/ICONIC-HOLES.md` for the workflow, the feature catalogue and the tools (`node tests/tools/validate.js <id>` runs the checks, maps and report).
+Sections 1–3 are research and analysis; 4–5 are the design; 6 is the contract the hole must pass; 7 is the evidence; 8 is the visual review, the sign-off that the hole looks like the real one. See `docs/ICONIC-HOLES.md` for the workflow, the feature catalogue and the tools (`node tests/tools/validate.js <id>` runs the checks, maps and report).
 
 ## 1. Inspiration
 
@@ -44,7 +44,7 @@ One row per signature feature. Use only catalogue primitives and shared systems 
 
 | Real feature | Game expression | Parameters | What it does to play |
 |---|---|---|---|
-| | `ramp` / `rise` / `tilt` / `step` / `hollow` / `cover` / water body / bunker / play profile / stance | | |
+| | `ramp` / `rise` / `tilt` / `step` / `hollow` / `cover` / water body / bunker / traced outline (`pts`) / play profile / stance | | |
 
 **Capability gaps** (features we cannot express yet, and the primitive that would cover them):
 
@@ -88,3 +88,44 @@ Written into `tests/hole-checks.js` under the hole's id; `node tests/tools/valid
 ## 7. Results
 
 Paste the hole's section of `node tests/hole-report.js --hole=<id>` (before → after; `validate.js` prints it), plus anything learned while tuning.
+
+## 8. Visual review — does it look like the hole?
+
+The checks in §6 say the hole *plays* as designed; this section says it *looks* like the real one, and what still does not. Workflow and tools: `docs/ICONIC-HOLES.md` §2, step 7.
+
+**Reference images** — at least one; an aerial of the green complex traces best, a photo from the tee is the second. The photos are **not** in the repo (keep them in `tests/tools/refs/`, git-ignored); `docs/holes/trace/<id>.json` records each by file name, size, sha256 and source, with its camera constraints and the outlines traced on it.
+
+| View | What it shows | Source | Matched camera (`node tests/tools/trace.js <id>`) |
+|---|---|---|---|
+
+**Traced against the hole** — paste the outline table from `node tests/tools/trace.js <id> --ref=<commit before the tracing>`: each traced outline's width × depth, area and centroid against the shape the hole had, and their overlap. Note any outline exaggerated on purpose (`exaggerate` in the trace file, reasoned in §5), and the sensitivity table: how far the outlines move under each camera assumption.
+
+**Renders** — `python3 tests/tools/render.py <id> ref --out docs/maps` (the game from each photo's camera, outlines drawn on top; commit these), and the side-by-sides with the photo it writes to `tests/tools/out/` (never commit those: they contain the photo).
+
+**Sign-off checklist** — one verdict per row, from the renders against the photos:
+
+- **matches**: the render and the photo agree at a glance
+- **close**: the same feature, with a difference a player would not notice
+- **differs: fix** — expressible with what the system has; say what to change, and whether it changes play (then it needs checks)
+- **differs on purpose** — an exaggeration, reasoned in §5
+- **can't express yet** — needs a primitive the system lacks; name the primitive
+- **no reference** — nothing in the photos shows it; say which photo would
+
+| Area | Item | Verdict | Evidence (render against photo) | Action / missing primitive |
+|---|---|---|---|---|
+| Tee placement and elevation | Tee position and line to the green | | | |
+| | Elevation: tee against landing area and green | | | |
+| | Ground between (rises, dips, valleys) | | | |
+| Fairway and fairway bunkers | Fairway outline and width | | | |
+| | Fairway bunkers: count, place, shape | | | |
+| | Rough, waste, paths | | | |
+| Green and greenside bunkers | Green outline and size | | | |
+| | Green contours as seen | | | |
+| | Greenside bunkers: count, place, shape, depth | | | |
+| | Collar, banks and falloffs round the green | | | |
+| Surroundings and landmarks | Trees: kind and where | | | |
+| | Water, cliffs, structures, backdrop | | | |
+| | Landmarks a player would name | | | |
+
+**Signed off**: who, date, commit. **Open items**, most important first.
+
