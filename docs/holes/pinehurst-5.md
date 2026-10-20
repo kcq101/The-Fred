@@ -120,7 +120,25 @@ from the low runoff left of the green, a wedge back up the falloff finishes o  G
 
 "Before" is the same land and green with no plateau, slant, waste, runoffs, bunker or play profile. Expected strokes ("score") come from the baseline in `tests/hole-play.js`, including its recovery-difficulty term (see `docs/ICONIC-HOLES.md`), so they differ slightly from earlier pastes of this table.
 
-## 8. Visual review — does it look like the hole?
+## 8. Review — does it look like the hole?
+
+**Fast lane, partial** (2026-10-20). No 1 m lidar covers this pin: the National Map's only elevation here is the 2003 NC statewide DEM (1/9 arc-second, about 3.4 m; before the 2010–11 restoration). It was fetched and resampled to a 1 m UTM tile in `tests/tools/refs/` (not in the repo), but it cannot show the tee: the hole's direction is not settled, so no heights or frame were taken from it. A flyover rendering from the project owner confirms the layout (tee bottom-left, a long corridor with waste both sides, the green raised at the far end) but is oblique, so nothing was traced.
+
+**What changed**
+
+| Item | Was | Now |
+|---|---|---|
+| Fairway bunker at (−20, 270) | depth 1.4, lip 0.5 | depth 0.5, lip 0.25: set into the land like the lidar bunkers elsewhere; its shape and place are still from words |
+| Highest hop, ten seeds (counted from the first touchdown) | 2.72 yd | 2.15 yd |
+
+**Verdict**: unchanged from the review-only pass below, except the bunker's depth.
+
+**Open items**
+1. A map pin on the tee (or a yardage-book page with a compass) to set the frame; then heights from the 2003 DEM (rise to the green, the fairway's slant).
+2. Newer lidar (NC 2015 QL2, on `sdd.nc.gov`: not reachable from the sandbox) for the bunkers and waste areas, and a top-down aerial of the green.
+
+### Earlier review-only pass
+
 
 **Review-only pass, no reference image yet** (2026-10-19). The verdicts below compare the game's renders (`python3 tests/tools/render.py pinehurst-5 tee bird approach green aerial`; the green-complex view is committed as `docs/maps/pinehurst-5-aerial.png`) with this spec's sources and what is widely known of the hole. Nothing here was traced, so no shape is measured: "close" means the parts are there and in the right places, not that their sizes are right, and every **no reference** row waits for a photo. The step and its tools: `docs/ICONIC-HOLES.md` §2, step 7.
 
