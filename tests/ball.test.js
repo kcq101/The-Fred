@@ -329,9 +329,10 @@ test('real holes: wedge shots dropped into a bunker end in that bunker, at rest,
 });
 
 test('real holes, 600 random shots each (random start, club, power, aim, shaping, wind): no clipping, no NaN, no runaway, every shot settles or is a penalty', () => {
-  const rng = mulberry32(2024);
   const tot = { shots: 0, rest: 0, hazard: 0, minClear: Infinity, maxRestT: 0, maxGround: 0, maxDryHop: 0 };
   for (let hi = 0; hi < course.HOLES.length; hi++) {
+    // each hole its own stream, keyed by its id: changing one hole must not re-roll every hole after it (it used to, through one shared stream)
+    const rng = mulberry32(2024 + [...course.HOLES[hi].id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7));
     course.prepHole(hi);
     const bb = course.HOLE.bbox;
     for (let n = 0; n < 600; n++) {
@@ -351,7 +352,7 @@ test('real holes, 600 random shots each (random start, club, power, aim, shaping
         assert.ok(Number.isFinite(p.x + p.y + p.z + b.v.x + b.v.y + b.v.z), `${course.HOLE.name} shot ${n}: not finite`);
         const clear = p.y - R - course.H(p.x, p.z);
         tot.minClear = Math.min(tot.minClear, clear);
-        if (b.landed) { hop = Math.max(hop, clear); if (b.rolling) { const sv = Math.hypot(b.v.x, b.v.y, b.v.z); if (sv > tot.maxGround) { tot.maxGround = sv; tot.where = course.HOLE.id; } } }
+        if (b.landed) { if (!course.BODIES.some(bd => bd.sd(p.x, p.z) > 0)) hop = Math.max(hop, clear); /* over a lake the clearance is to its bed: dry ground only */ if (b.rolling) { const sv = Math.hypot(b.v.x, b.v.y, b.v.z); if (sv > tot.maxGround) { tot.maxGround = sv; tot.where = course.HOLE.id; } } }
         for (const bd of course.BODIES) if (p.y - R <= bd.level + 0.02 && bd.sd(p.x, p.z) > 0) exit = 'water';
         if (p.x < bb.x0 + 3 || p.x > bb.x1 - 3 || p.z < bb.z0 + 3 || p.z > bb.z1 - 3) exit = exit || 'oob';
       }
