@@ -1276,6 +1276,9 @@ function buildWorld(){
   // ---- putting green: its own fine mesh so the mowing bands, collar and ink outline stay crisp
   {
     const gw=Math.max(GREEN.rx,GREEN.rz)*2.6;
+    // leave the sand showing: no mowing pattern where a bunker reaches into the green or its collar (same 0.95 edge as S() uses for SAND)
+    const GBUNK=BUNKERS.filter(b=>Math.hypot(b.x-GREEN.x,b.z-GREEN.z)<gw*0.75+Math.max(b.rx,b.rz)).map(b=>
+      `{vec2 bd=vGP.xz-vec2(${b.x.toFixed(2)},${b.z.toFixed(2)});if(length(vec2((bd.x*${b.c.toFixed(4)}+bd.y*${b.s.toFixed(4)})/${b.rx.toFixed(3)},(-bd.x*${b.s.toFixed(4)}+bd.y*${b.c.toFixed(4)})/${b.rz.toFixed(3)}))<0.95)discard;}`).join('');
     const gg=new THREE.PlaneGeometry(gw,gw,Math.round(gw*2),Math.round(gw*2));gg.rotateX(-Math.PI/2);gg.translate(GREEN.x,0,GREEN.z);
     const gp=gg.attributes.position;for(let i=0;i<gp.count;i++)gp.setY(i,H(gp.getX(i),gp.getZ(i))+0.012);gg.computeVertexNormals();
     const gm=toon(0xffffff,{opacity:0.75,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});gm.extensions={derivatives:true};
@@ -1289,6 +1292,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
         vec2 gd2=vec2((dd.x*${GREEN.c.toFixed(4)}+dd.y*${GREEN.s.toFixed(4)})/${GREEN.rx.toFixed(2)},(-dd.x*${GREEN.s.toFixed(4)}+dd.y*${GREEN.c.toFixed(4)})/${GREEN.rz.toFixed(2)});
         float e=length(gd2);
         if(e>1.21)discard;
+        ${GBUNK}
         // crosscut mowing lined up with the fairway stripes: two sets of soft bands that overlap into three tones
         vec2 wp=vGP.xz;vec2 cr=vec2(wp.x*${GDIR.c.toFixed(4)}-wp.y*${GDIR.s.toFixed(4)},wp.x*${GDIR.s.toFixed(4)}+wp.y*${GDIR.c.toFixed(4)})/2.9;
         cr+=vec2(gnz(wp*1.1),gnz(wp*1.1+17.0))*0.09-0.045; // slightly wavering edges, like real mower passes
