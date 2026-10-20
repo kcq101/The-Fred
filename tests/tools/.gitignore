@@ -4,3 +4,5 @@ out/
 # reference photos for the visual review: other people's pictures, never committed (docs/ICONIC-HOLES.md §2, step 7). Only the traced outlines in
 # docs/holes/trace/ go in the repo.
 refs/
+# Python bytecode from running the tools
+__pycache__/

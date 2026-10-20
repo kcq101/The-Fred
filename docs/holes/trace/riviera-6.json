@@ -269,6 +269,23 @@
   "lidar": {
     "source": "USGS 3DEP 1 m DEM, project CA_2025LosAngelesPostWildfire_C25, tile USGS_1M_11_x36y377_CA_2025LosAngelesPostWildfire_C25.tif (public domain), from prd-tnm.s3.amazonaws.com. Not in the repo (127 MB); fetch it again with the TNM API.",
     "crs": "EPSG:26911 (UTM 11N, NAD83), heights NAVD88 m",
+    "frame": {
+      "tile": [
+        "USGS_1M_11_x36y377_CA_2025LosAngelesPostWildfire_C25.tif"
+      ],
+      "anchor": {
+        "utm": [360833.6,3767668.4],
+        "at": [0,144]
+      },
+      "bearing_deg": 129.9,
+      "yd_per_m": 0.7546,
+      "pin": [-6.3,138.1],
+      "grid": {
+        "x": [-35,35],
+        "z": [0,200],
+        "step": 0.5
+      }
+    },
     "located_by": "a map pin from the project owner on the middle bunker (34.040475, -118.507647)",
     "fit": {
       "what": "the traced bunkers (middle as traced, not x2) matched to the lidar's sand (ground 0.25 m below its 6 m gaussian), solving centre, bearing and scale",
