@@ -44,6 +44,7 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 | Rae's Creek | two creek bodies, shore profile | in front of the green: the lidar's flattened water (`poly`, 85 × 73.5 yd overall, 12–17 yd wide), its green-side shore 13 yd short of the pin and 2 yd off the green's right end; left of it, a band along the lidar's lowest line under the bridge | Short or thin is wet; the right end of the green is the tight one |
 | Steep bank | `ramp` z 126–134.5, dh 1.45 (lidar: 1.5 m in 7 yd on the line to the pin), `cover` FAIRWAY band along the green-side shore | `w:8` | Short balls land on a shaved slope above the water |
 | Heights: the tee above the creek, the green, the bank behind | six `ramp`s from the 2018 USGS lidar (`lidar.py build`) | tee 3.5 yd above the pin; the green 1.6 yd above the water; +2.4 yd over 32 yd behind | The tee shot drops; long balls run up into the back bunkers |
+| The green | traced outline (`pts`) from a top-down drawing, placed by the lidar bunkers; `tilt` from the lidar plane | 37 × 12–25 yd, 434 yd²; tilt x −0.1 %, z +1.6 % | Deep and safe at the left end, 11 yd deep at the Sunday pin |
 | Bunkers front and back | one in front (lidar outline), two behind the green's left half (lidar 2 m hollows) | depth 0.41–0.54, lip 0.25 | The back ones are the miss long |
 | Swirling wind | play profile | `wind:[3,14], windPush:2` | The HUD reads GUSTY; wind decides the club |
 | Fast greens | play profile | `greens:{speed:1.3, firm:0.75}` | Soft landing, quick roll |
@@ -55,18 +56,18 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 
 | Characteristic | Real | Game | Why this amount |
 |---|---|---|---|
-| Green depth | 16–26 yd by source | about 17 yd | Shallow, so distance control decides |
+| Green depth | 16–26 yd by source | traced: 11 yd at the pin, up to 25 at the left end | Not exaggerated: the shallow right end is what the pin attack has to hold |
 | Creek margin on the right | a few yards | as the lidar has it: 2 yd off the green's right end, 13 yd short of the pin | Not exaggerated any more: the pin attack still costs a shaky player (wet 33 % vs 10 % for the middle) |
 | Wind | 0–15+ mph | 3–14, windPush 2 | A 14 mph headwind costs a stock iron 8 yd: it lands on the front of the green, not in the creek (that needs about 22 mph, or a club short) |
 
-**Realism bounds** (`node tests/tools/slope.js augusta-12`, `docs/maps/augusta-12-slope.png`): 0 / 95 / 1 / 4 % in the four bands: one gentle tilt, steep only at the front edge. No dome; "flat pockets" reads WARN. §3 calls the green's contours mild (a slight tilt and a bank behind); the decision is the creek and the wind, so the putting surface is left as it is.
+**Realism bounds** (`node tests/tools/slope.js augusta-12`, `docs/maps/augusta-12-slope.png`): 0 / 100 / 0 / 0 % in the four bands: one plane, the lidar's 1.6 % rise toward the back. No dome; "flat pockets" reads WARN: a 1 m lidar grid gives a plane, not the pockets. §3 calls the green's contours mild (a slight tilt and a bank behind); the decision is the creek and the wind, so the putting surface is left as it is.
 
 ## 6. Validation — the contract
 
 | Shot | Expected |
 |---|---|
 | A well-struck iron at the pin | Green, ≤ 7 yd from the pin |
-| A well-struck iron at the middle | Green |
+| A well-struck iron at the deep left side, (14, 131) | Green |
 | A thin iron at the pin (needle 0.4) | Short, in the creek |
 | A push right at the pin | Wet |
 | Long over the left half, at (2,152) | A back bunker |
@@ -76,9 +77,9 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 
 | Decision | Plans | Must hold |
 |---|---|---|
-| The Sunday pin | pin / deep middle | The pin is never wet for a sharp player (100 % on the green) and wet ≥ 25 % for a shaky one (33 %, with 62 % on the green); the middle drowns half as often or less (10 %); the pin saves a sharp player over 0.4 strokes (0.46); for a shaky player the two plans are within a quarter stroke of each other, either way (the middle is 0.12 better) |
+| The Sunday pin | pin / deep middle | The pin is never wet for a sharp player (100 % on the green) and wet ≥ 25 % for a shaky one (29 %, with 57 % on the green); the middle drowns half as often or less (10 %); the pin saves a sharp player over 0.4 strokes (0.52); for a shaky player the two plans are within a quarter stroke of each other, either way (the pin is 0.12 better) |
 
-**Honest note**: the baseline rates the two plans as close for a shaky player (pin 3.51, middle 3.39: the middle is 0.12 stroke better) because its penalty for a wet ball is only one stroke; the middle drowns 10 % of the time against 33 %. The contract therefore asserts the hazard rates and a bounded gap, not a score advantage for the middle. The real hole is the same at the margin: the middle is safer, not better.
+**Honest note**: the baseline rates the two plans as close for a shaky player (pin 3.47, middle 3.59: the pin is 0.12 stroke better) because its penalty for a wet ball is only one stroke; the middle drowns 10 % of the time against 29 %. The contract therefore asserts the hazard rates and a bounded gap, not a score advantage for the middle. The real hole is the same at the margin: the middle is safer, not better.
 
 **Check-change log**
 
@@ -88,6 +89,7 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 | A slightly thin iron (needle 0.3) | lands on the steep bank and feeds back into the creek | a thin iron (needle 0.4) comes up short in the creek | The lidar puts the creek 7 yd further from the pin than the old guess: a 0.3 thin iron now carries the water and the bank (lands at z 134, the shore is at 128) and holds the green 8 yd from the pin. 0.4 is the first miss that is short and wet |
 | 15 yards long at (-12,156) | finds the deep back-right bunker | long over the left half, at (2,152), finds a back bunker | The lidar has no bunker back right: both back bunkers sit behind the green's left half (as the yardage book draws them) |
 | 14 mph headwind, stock shot | short, in the creek | an iron flown a club short (at -8,128) finds the creek | With the creek where the lidar has it, a 14 mph headwind costs a stock iron 8 yd and it lands on the green's front edge (3.6 yd from the pin); it takes about 22 mph, outside the hole's wind range, to reach the water. The check now states the miss the creek punishes: a club short |
+| The safe plan's target (shot and strategy) | the middle, (10, 139) | the deep left side, (14, 131) | (10, 139) was the ellipse's middle; on the traced green it is 1 yd from the back edge and a pure iron ran off it onto the fringe. The traced green is deep at its left end (the spec's 'deeper left side'), so the safe plan now aims there |
 
 ## 7. Results
 
@@ -97,30 +99,30 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 === Augusta National (augusta-12) — A short iron over Rae's Creek to a shallow, wide green angled away from the tee: the creek and its steep bank short, deep bunkers long, a swirling wind over it all. The deeper left side is the safe target; the Sunday pin tucked by the creek on the right is the temptation.
 shot                                                                           before           after
 a well-struck iron at the pin holds the right side of the green                GREENS 5y        GREENS 5y
-a well-struck iron at the middle of the green holds it                         GREENS 15y       GREENS 15y
+a well-struck iron at the middle of the green holds it                         GREENS 19y       GREENS 19y
 a thin iron at the pin comes up short in the creek                             ROUGH 13y        WATER 12y
 a push right at the pin is wet                                                 ROUGH 19y        WATER 17y
 carried long over the left half of the green, the ball finds a back bunker     ROUGH 15y        SAND 14y
 an iron flown a club short of the pin (the wind misjudged) finds the creek     ROUGH 12y        WATER 14y
-clubbing up for the headwind (arc past the pin) finishes on the putting surfa  ROUGH 9y         GREENS 5y
-with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  ROUGH 9y         ROUGH 11y
+clubbing up for the headwind (arc past the pin) finishes on the putting surfa  ROUGH 10y        GREENS 5y
+with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  ROUGH 9y         ROUGH 10y
 
   strategy: the Sunday pin: attack it by the creek, or play to the deep middle
   plan       skill   before: wet green score   after: wet green score
-  pin        sharp           0% 100% 2.64              0% 100% 2.67
-  pin        shaky           0%  67% 2.95             33%  62% 3.51
-  middle     sharp           0% 100% 3.13              0% 100% 3.13
-  middle     shaky           0%  71% 3.23             10%  71% 3.39
-  payoff of pin over middle (strokes saved): sharp 0.49 → 0.46, shaky 0.28 → -0.12   (before → after)
+  pin        sharp           0% 100% 2.65              0% 100% 2.68
+  pin        shaky           0%  52% 3.01             29%  57% 3.47
+  middle     sharp           0% 100% 3.20              0% 100% 3.19
+  middle     shaky           0%  52% 3.40             10%  48% 3.59
+  payoff of pin over middle (strokes saved): sharp 0.55 → 0.52, shaky 0.39 → 0.12   (before → after)
 
 "score" = expected strokes for the whole hole from that moment (tour-style baseline; water/OB = stroke and distance).
 ```
 
 ## 8. Review — does it look like the hole?
 
-**Fast lane, lidar** (2026-10-20). Bunkers, water and heights from the lidar; the green is still the ellipse: no near-vertical aerial yet.
+**Fast lane, lidar** (2026-10-20). Bunkers, water and heights from the lidar; the green traced on a top-down drawing placed on the lidar by its bunkers.
 
-**References used**: USGS 3DEP 1 m DEM, `GA_Statewide_2018_B18_DRRA`, tile x40y371 (2018; not in the repo); a map pin on the green from the project owner; a tee photo and a bridge-side photo, and a yardage-book drawing (no compass) — used for direction and to confirm the bridge, not traced. Frame: `docs/holes/trace/augusta-12.json` (bearing 207.1°, 1.012 game yd per m: the real tee is 136 m from the pin, the game's 141 yd).
+**References used**: USGS 3DEP 1 m DEM, `GA_Statewide_2018_B18_DRRA`, tile x40y371 (2018; not in the repo); a map pin on the green from the project owner; a tee photo and a bridge-side photo, and a yardage-book drawing of the hole (no compass) — direction and the bridge; a top-down drawing of the green complex (`augusta-12-green-diagram.jpg`, not in the repo) — the green, traced and placed by a similarity fitted to the three lidar bunkers (0.0415 yd/px, residuals 0.24 / 0.75 / 0.67 yd, two equations spare). Frame: `docs/holes/trace/augusta-12.json` (bearing 207.1°, 1.012 game yd per m: the real tee is 136 m from the pin, the game's 141 yd).
 
 **What changed**
 
@@ -129,6 +131,7 @@ with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  R
 | Creek in front of the green | a 6.4 yd band, its shore about 8 yd short of the pin | the lidar's flattened water: 12–17 yd wide, shore 13 yd short of the pin, 2 yd off the green's right end; level 0.7 yd under its banks, shore edge 3 |
 | Creek left of the green | the same band, bending toward the tee | a band along the lidar's lowest line, under the bridge |
 | Heights | two `rise`s (green +2.2, bank +1.4) | six `ramp`s: the tee 3.5 yd above the pin, down to the water, a 7 yd front bank, the bank behind |
+| Green | ellipse 38 × 17 yd at (4, 138), tilt 1.4 % left / 2 % back | traced kidney 37 × 12–25 yd, centroid (6.8, 135.5), tilt 1.6 % back (lidar) |
 | Front bunker | ellipse 12 × 6 yd at (14, 131), 1.6 deep | lidar outline 9.5 × 8.5 yd at (4.7, 127.2), 0.41 deep |
 | Back bunkers | two ellipses, back-left (21, 147) and back-right (-12, 152), 1.6 deep | both behind the left half, at (7.6, 148) and (1, 151.8), 0.54 and 0.50 deep |
 | Hogan Bridge | (-34, 134): right | (30, 93): left |
@@ -139,12 +142,13 @@ with a 14 mph tailwind, a stock shot flies the green into the back bunkers or  R
 **Verdict**
 - Tee and direction: **matches** — the creek runs across from front-left to back-right and the bridge is on the left, as in the tee photo and the yardage book.
 - Heights: **matches** (lidar).
-- Green: **close** — ellipse, shallow and angled the right way; its left end runs about 8 yd into the foot of the bank the lidar shows. Needs an aerial.
+- Green: **close** — traced: a kidney 37 × 12–25 yd (434 yd²), deep at the left end, narrowing to 11 yd at the Sunday pin; its tilt is the lidar's plane (1.6 % up toward the back). From a drawing, not a photo: the edge under the drawing's overlay pill is read from darkened colours.
 - Bunkers: **matches** for place and depth; the back two are sized from 2 m hollows and may be a little small.
 - Water and surroundings: **matches** for the creek; azaleas and pines as before.
 
 **Open items**
-1. Trace the green from a near-vertical aerial and place it with `lidar.py match`.
-2. `lidar.py build` merges the back bunkers into the bank's toe at every smoothing tried; they were placed by hand.
+1. Confirm the green's edge against a real aerial photo (the trace is from a drawing).
+2. The creek's lidar outline steps in 1 m stairs; smooth it if it shows from the tee.
+3. `lidar.py build` merges the back bunkers into the bank's toe at every smoothing tried; they were placed by hand.
 
 **Signed off**: pending review.
