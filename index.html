@@ -2014,16 +2014,18 @@ function fanArrow(u,h,shift=0){
 }
 // </fan-geometry>
 const _fv=new V3();
-function fanScreen(x,z){_fv.set(x,H(x,z)+0.07,z).project(camera);return _fv.z>=1?null:{x:(_fv.x+1)/2*vw,y:(1-_fv.y)/2*vh};}
+// level: a height to use instead of the ground's (drawFan measures directions on a level plane through the ball, so ground falling away ahead
+// of it, e.g. over a cliff edge, cannot turn the fan round behind the ball)
+function fanScreen(x,z,level){_fv.set(x,level??H(x,z)+0.07,z).project(camera);return _fv.z>=1?null:{x:(_fv.x+1)/2*vw,y:(1-_fv.y)/2*vh};}
 let fanKey='',fanBuilt='',fanH=0,fanShift=0,fanYaw=null; // fanYaw: the ball's starting direction, set by drawGuide()
 // <fan-draw>
 function drawFan(){
-  const b=ball.p,o=fanScreen(b.x,b.z),A=fanScreen(b.x+3*Math.sin(aimYaw),b.z+3*Math.cos(aimYaw));
+  const b=ball.p,o=fanScreen(b.x,b.z),A=fanScreen(b.x+3*Math.sin(aimYaw),b.z+3*Math.cos(aimYaw),b.y);   // aim direction on the level through the ball, not the ground ahead
   if(!o||!A)return;
   const ux=A.x-o.x,uy=A.y-o.y,l=Math.hypot(ux,uy)||1,ang=Math.atan2(ux/l,-uy/l)*180/Math.PI,h=fanSize(o,vw,vh);
   // how far right of the aim line the ball will start, as seen on screen, turned into a place on the ring
   let shift=0;const sy=fanYaw==null?aimYaw:fanYaw;
-  if(Math.abs(sy-aimYaw)>1e-4){const S=fanScreen(b.x+3*Math.sin(sy),b.z+3*Math.cos(sy));if(S){const sx=S.x-o.x,syy=S.y-o.y;shift=fanShiftFor(Math.atan2(ux*syy-uy*sx,ux*sx+uy*syy)*180/Math.PI);}}
+  if(Math.abs(sy-aimYaw)>1e-4){const S=fanScreen(b.x+3*Math.sin(sy),b.z+3*Math.cos(sy),b.y);if(S){const sx=S.x-o.x,syy=S.y-o.y;shift=fanShiftFor(Math.atan2(ux*syy-uy*sx,ux*sx+uy*syy)*180/Math.PI);}}
   const tf=`translate(${fx1(o.x)} ${fx1(o.y)}) rotate(${ang.toFixed(2)})`,bk=h.toFixed(0)+'|'+shift.toFixed(1);
   if(bk!==fanBuilt){fanBuilt=bk;fanH=h;fanShift=shift;$('fanStatic').innerHTML=fanStatic(h,shift);}   // rebuilt only when the size or the shift changes
   if(tf!==fanKey){fanKey=tf;$('fanStatic').setAttribute('transform',tf);$('fanArrow').setAttribute('transform',tf);}

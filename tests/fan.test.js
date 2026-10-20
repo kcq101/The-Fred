@@ -100,3 +100,20 @@ test('drawFan(): placed on the ball and turned to the aim line, rebuilt only whe
   A = { x: 233, y: 560 }; S = { x: 253, y: 560 }; w.setStart(-0.1); w.drawFan();   // ball starts right of the aim line (negative yaw = right)
   assert.equal(html.length, 2, 'rebuilt when the start direction moves'); assert.ok(w.shift() > 0, 'arc shifted right');
 });
+
+test('drawFan(): the aim direction is measured on the level through the ball, so ground falling away ahead (a cliff edge) cannot turn the fan round', () => {
+  // A ball at a cliff edge aiming out over the drop: the ground 3 yd ahead is far below, and seen from the camera it projects BELOW the ball
+  // on screen. Measured there, the fan turned 180° and drew behind the ball, upside down. On the level through the ball it is still ahead.
+  const html = [], set = {}, attrs = {}, calls = [];
+  const body = `let fanKey='',fanBuilt='',fanH=0,fanShift=0,fanYaw=null,aimYaw=0,pendOffset=0;const vw=466,vh=848;
+    const ball={p:{x:0,y:30.05,z:0}};
+    const fanScreen=(x,z,level)=>{env.calls.push(level);if(x===0&&z===0)return {x:233,y:600};return level===undefined?{x:233,y:640}:{x:233,y:560};};
+    const $=id=>({set innerHTML(v){env.html.push(v);},setAttribute(k,v){if(k==='points')env.set[id]=v;else env.attrs[id]=v;}});
+    ${block('// <fan-draw>', '// </fan-draw>')}
+    return {drawFan};`;
+  const w = new Function('env', 'FAN', 'fanSize', 'fanStatic', 'fanArrow', 'fanShiftFor', 'fx1', body)({ html, set, attrs, calls }, FAN, fanSize, fanStatic, fanArrow, fanShiftFor, v => v.toFixed(1));
+  w.drawFan();
+  assert.equal(calls[1], 30.05, 'the aim point is projected at the ball\'s height');
+  assert.equal(attrs.fanStatic, 'translate(233.0 600.0) rotate(0.00)', 'the fan points ahead of the ball, not behind it');
+  assert.match(SRC, /function fanScreen\(x,z,level\)\{_fv\.set\(x,level\?\?H\(x,z\)\+0\.07,z\)/, 'the game\'s fanScreen takes the level');
+});
