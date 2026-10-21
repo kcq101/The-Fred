@@ -52,10 +52,12 @@ In rough order of how much each would change what a player meets. Item 1 is in p
    Backspin went in without moving any hole check, and these may not. Do them one at a time, re-run `validate.js` on all seven holes after each, and log any check that changes (spec §6).
 
    **Status (2026-10-21, evening).** The drag and lift piece is ported on branch `flight-aero-openfairway`, draft PR #22, **not merged**. Full-swing carries held, but the ball now lands at real angles (driver 15° → 36°), and our impact law grabs by the tangent of the landing angle, so a driver's roll fell from 41 to 3 yd. 30 of 67 hole checks fail; the PR lists every number that moved.
-   **The owner's decision: option 2A.** Next session, port OpenFairway's spin-dependent bounce (`BounceCalculator.cs` and its profiles) onto that branch, so roll comes back from physics, not tuning; then re-run all seven holes. Only after that:
-   - propose each hole's `windPush` again (drag into the wind is about twice as strong now);
-   - propose whether to scale each club's `curve` and `shape` by the hang-time ratio² (Hammer ×0.32 … Wedge ×0.53), since curves bend further over longer flights.
-   Both are the owner's call. Don't merge #22 without the owner's OK.
+   **Update (2026-10-21, night): the bounce is ported too** (commit `95ed276` on the same branch, PR #22 still a draft, **not merged**). It behaves like OpenFairway's, but roll did not come back: a driver rolls 5.9 yd (main 41, before the bounce 3.5). The bounce leaves every full shot about 5 m/s of run; our rolling resistance (fairway `dec` 6.5, about 12× OpenFairway's) then kills it. The wedge no longer spins back (it lands at ~3,360 rpm after in-flight decay; PR #15's patch is replaced). Tests 111 / 41 / 3; no hole check flipped.
+   **Waiting on the owner (PR #22's description has the numbers):**
+   - **Roll:** (1, recommended) port OpenFairway's friction half next, with `hold` split from `dec`, then redesign holes that still need long run-outs; (2) an arcade release multiplier on firm turf; or (3) accept ~6 yd and redesign now.
+   - **windPush,** proposed to match main's headwind: Sawgrass 1.0, St Andrews 0.6, Augusta 12 0.77. No value restores the tailwind (real aero barely lengthens a downwind iron), so the tailwind checks need a design answer.
+   - **Curve and shape:** measured factors, not hang ratio² (which overcorrects): Hammer ×0.40, 3-Wood ×0.43, Iron ×0.54, Wedge ×0.72.
+   Don't merge #22 without the owner's OK.
 2. **Bunkers that take the pace off a ball** (gap #5 in the pipeline doc's §3.1). A ball landing on a steep grass face keeps its speed and can hop out. A plugging or soft-lip rule was tried once and dropped because it broke two holes. It needs a fresh design with its own tests.
 3. **Rapier (3D physics) for ball-versus-prop contact.** This only matters if props multiply. Walls are polylines today, which is fine for sheds and stone walls.
 
