@@ -1,0 +1,405 @@
+{
+ "id": "augusta-12",
+ "lidar": {
+  "source": "USGS 3DEP 1 m DEM, project GA_Statewide_2018_B18_DRRA (flown 2018, published 2022), tile USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif (public domain), from prd-tnm.s3.amazonaws.com. Not in the repo (351 MB): python3 tests/tools/lidar.py fetch --pin 33.494520,-82.023134 --download",
+  "crs": "EPSG:26917 (UTM 17N, NAD83), heights NAVD88 m",
+  "located_by": "a map pin from the project owner on the green (33.494520, -82.023134), placed at (8, 134) so the green the lidar shows (between its front bunker and the two behind) lands on the game green's centre (4, 138)",
+  "frame": {
+   "tile": [
+    "USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif"
+   ],
+   "anchor": {
+    "latlon": [
+     33.49452,
+     -82.023134
+    ],
+    "at": [
+     8,
+     134
+    ]
+   },
+   "bearing_deg": 207.1,
+   "yd_per_m": 1.012,
+   "pin": [
+    -6,
+    140.5
+   ],
+   "grid": {
+    "x": [
+     -70,
+     70
+    ],
+    "z": [
+     -15,
+     180
+    ],
+    "step": 0.5
+   },
+   "sand": {
+    "sigma": 2,
+    "below": 0.15,
+    "why": "the two back bunkers are small (5-7 yd) and sit at the foot of the bank behind the green: at the default 6 m smoothing they merge with the bank's toe into one 43 x 60 yd hollow; even at 2 m they stay joined to it, so they are placed by hand from the 2 m hollows (\u00a78)"
+   },
+   "water": {
+    "level": 48.93,
+    "tol": 0.1,
+    "why": "Rae's Creek is hydro-flattened at 48.93-49.0 m but too narrow for the automatic level; within 0.1 m it reads as a band 12-17 yd wide, its green-side shore 13 yd short of the pin, which is what the bridge photo shows"
+   }
+  }
+ },
+ "views": [
+  {
+   "name": "diagram",
+   "image": {
+    "file": "augusta-12-green-diagram.jpg",
+    "w": 1439,
+    "h": 801,
+    "sha256": "ceaf094a8c2e39264dfcf7f084c51456a0328b2b74a2b0606d661cbfa16c32d9",
+    "source": "Top-down illustration of the green complex (yardage-book style, slope arrows), screenshot sent by the project owner 2026-10-20; a 'Search inside image' pill covers its bottom-left. Not in the repo"
+   },
+   "fit": {
+    "kind": "similarity, drawing taken as straight down",
+    "from": "its three bunkers' centroids to the lidar bunkers (front 4.7,127.2; back 7.6,148.0 and 1.0,151.8)",
+    "px": [
+     [
+      795,
+      595
+     ],
+     [
+      690.1,
+      83.9
+     ],
+     [
+      865,
+      15
+     ]
+    ],
+    "px_note": "front bunker: centroid of the part above the pill, moved to the middle of its two lobes; back-right: cut by the top edge, its centroid moved up to where the drawn outline closes",
+    "yd_per_px": 0.04145,
+    "rotation_deg": -1.9,
+    "residual_yd": [
+     0.24,
+     0.75,
+     0.67
+    ],
+    "spare_equations": 2,
+    "note": "hole = (\u2212q.x, q.y) with q = s\u00b7R\u00b7(u, \u2212v) + t; s, R, t below",
+    "s": 0.04144745670529395,
+    "R": [
+     [
+      0.999422513902777,
+      0.03397997504785652
+     ],
+     [
+      -0.03397997504785653,
+      0.9994225139027771
+     ]
+    ],
+    "t": [
+     -36.55738008080701,
+     153.0178745501911
+    ]
+   }
+  }
+ ],
+ "outlines": [
+  {
+   "name": "green",
+   "kind": "green",
+   "view": "diagram",
+   "px": [
+    [
+     578.0,
+     624.5
+    ],
+    [
+     575,
+     640
+    ],
+    [
+     560,
+     658
+    ],
+    [
+     520,
+     700
+    ],
+    [
+     470,
+     718
+    ],
+    [
+     410,
+     715
+    ],
+    [
+     360,
+     700
+    ],
+    [
+     330,
+     675
+    ],
+    [
+     315,
+     645
+    ],
+    [
+     310.5,
+     620.0
+    ],
+    [
+     297.5,
+     549.0
+    ],
+    [
+     307.5,
+     486.0
+    ],
+    [
+     360.5,
+     394.0
+    ],
+    [
+     414.0,
+     343.5
+    ],
+    [
+     448.0,
+     317.5
+    ],
+    [
+     498.0,
+     291.5
+    ],
+    [
+     688.0,
+     230.5
+    ],
+    [
+     866.0,
+     144.5
+    ],
+    [
+     954.0,
+     109.5
+    ],
+    [
+     997.0,
+     100.5
+    ],
+    [
+     1032.0,
+     105.5
+    ],
+    [
+     1041.0,
+     98.5
+    ],
+    [
+     1051.0,
+     108.5
+    ],
+    [
+     1112.0,
+     131.5
+    ],
+    [
+     1145.5,
+     159.0
+    ],
+    [
+     1164.5,
+     190.0
+    ],
+    [
+     1171.5,
+     220.0
+    ],
+    [
+     1166.5,
+     266.0
+    ],
+    [
+     1145.5,
+     300.0
+    ],
+    [
+     1095.0,
+     345.5
+    ],
+    [
+     1062.0,
+     368.5
+    ],
+    [
+     983.0,
+     400.5
+    ],
+    [
+     861.0,
+     417.5
+    ],
+    [
+     738.0,
+     465.5
+    ],
+    [
+     673.0,
+     511.5
+    ],
+    [
+     628.5,
+     557.0
+    ]
+   ],
+   "hole": [
+    [
+     13.5,
+     126.3
+    ],
+    [
+     13.6,
+     125.7
+    ],
+    [
+     14.3,
+     125.0
+    ],
+    [
+     16.0,
+     123.3
+    ],
+    [
+     18.1,
+     122.6
+    ],
+    [
+     20.6,
+     122.8
+    ],
+    [
+     22.6,
+     123.5
+    ],
+    [
+     23.8,
+     124.6
+    ],
+    [
+     24.4,
+     125.9
+    ],
+    [
+     24.6,
+     126.9
+    ],
+    [
+     25.0,
+     129.9
+    ],
+    [
+     24.5,
+     132.5
+    ],
+    [
+     22.2,
+     136.2
+    ],
+    [
+     19.9,
+     138.2
+    ],
+    [
+     18.4,
+     139.2
+    ],
+    [
+     16.3,
+     140.2
+    ],
+    [
+     8.4,
+     142.5
+    ],
+    [
+     0.9,
+     145.8
+    ],
+    [
+     -2.8,
+     147.1
+    ],
+    [
+     -4.6,
+     147.5
+    ],
+    [
+     -6.0,
+     147.2
+    ],
+    [
+     -6.4,
+     147.5
+    ],
+    [
+     -6.8,
+     147.0
+    ],
+    [
+     -9.3,
+     146.0
+    ],
+    [
+     -10.7,
+     144.8
+    ],
+    [
+     -11.4,
+     143.5
+    ],
+    [
+     -11.7,
+     142.3
+    ],
+    [
+     -11.4,
+     140.4
+    ],
+    [
+     -10.5,
+     139.0
+    ],
+    [
+     -8.3,
+     137.2
+    ],
+    [
+     -6.9,
+     136.3
+    ],
+    [
+     -3.6,
+     135.0
+    ],
+    [
+     1.5,
+     134.5
+    ],
+    [
+     6.6,
+     132.7
+    ],
+    [
+     9.4,
+     130.9
+    ],
+    [
+     11.3,
+     129.1
+    ]
+   ],
+   "why": "the light-green putting surface, flood-segmented; the slope arrows filled in; under the overlay pill (v 625-760) the edge was read from the darkened colours (green 38,48,21 against collar 27,35,14)"
+  }
+ ]
+}

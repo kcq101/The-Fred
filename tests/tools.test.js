@@ -15,7 +15,7 @@ const node = (tool, argv) => spawnSync(process.execPath, [path.join(__dirname, '
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fred-tools-'));
 
 test('probe: prints what hole-play.js plays, as JSON, for one shot or several; bad input is refused', () => {
-  const shots = [{ from: [0, 334], club: 'Iron', at: [18, 464] }, { from: [0, 334], club: 'Iron', at: [18, 464], offset: -0.25 }];
+  const shots = [{ from: [1, 345], club: 'Iron', at: [27.5, 476.5] }, { from: [1, 345], club: 'Iron', at: [27.5, 476.5], offset: -0.25 }];
   const r = node('probe.js', ['standrews-17', JSON.stringify(shots), '--json']);
   assert.equal(r.status, 0, r.stderr);
   const rows = JSON.parse(r.stdout);
@@ -73,9 +73,9 @@ test('slope bounds: the shipped plateau passes, the rejected first Pinehurst dom
     assert.ok(dome.coherence < 0.2 && dome.share[3] > 90, `a dome points every which way (coherence ${dome.coherence.toFixed(2)}) and is steep almost everywhere`);
     assert.equal(ids(dome), 'ring,top,pockets,dome', 'flagged on all four');
   } finally { hole.features = saved; course.prepHole(i); }
-  course.prepHole(id('pebble-8'));
+  course.prepHole(id('augusta-13'));                                  // one plane from the lidar (Pebble No. 8 was the example until its green was traced: its plane is 5 %)
   const plane = analyze(course);
-  assert.ok(plane.coherence > 0.95 && plane.share[2] > 90, 'Pebble Beach No. 8 is one tilted plane in the 2.5–4 % band');
+  assert.ok(plane.coherence > 0.95 && plane.share[2] > 90, 'Augusta No. 13 is one tilted plane in the 2.5–4 % band');
   assert.ok(plane.checks.find(c => c.id === 'dome').ok, 'a tilted plane is not a dome, though it has no flat pockets (that one is a WARN for the spec to justify)');
 });
 

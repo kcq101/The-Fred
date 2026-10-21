@@ -1,0 +1,583 @@
+{
+ "id": "augusta-13",
+ "lidar": {
+  "source": "USGS 3DEP 1 m DEM, project GA_Statewide_2018_B18_DRRA (flown 2018, published 2022), tile USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif (public domain), from prd-tnm.s3.amazonaws.com; the same tile as Augusta 12. Not in the repo (351 MB): python3 tests/tools/lidar.py fetch --pin 33.497069,-82.025535 --download",
+  "crs": "EPSG:26917 (UTM 17N, NAD83), heights NAVD88 m",
+  "located_by": "a map pin from the project owner on the green (33.497069, -82.025535), placed at the game pin (75, 570)",
+  "frame": {
+   "tile": [
+    "USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif"
+   ],
+   "anchor": {
+    "latlon": [
+     33.497069,
+     -82.025535
+    ],
+    "at": [
+     75,
+     570
+    ]
+   },
+   "bearing_deg": 293.2,
+   "yd_per_m": 1.154,
+   "pin": [
+    75,
+    570
+   ],
+   "grid": {
+    "x": [
+     -40,
+     170
+    ],
+    "z": [
+     -10,
+     640
+    ],
+    "step": 0.5
+   },
+   "why": "the 2018 tee is the long pad on Rae's Creek east of the 12th green (405075 E, 3706655 N, 49.2 m); the hole runs NNW 181 m to the corner (405000, 3706820; 64 m), then turns 56 degrees left and runs 266 m west to the green: 447 m (489 yd) along the line, 397 m straight. The game hole is a gentle bend (575 yd straight, 75 yd left at the green), so one rigid frame cannot hold both legs: this one holds the second leg and the green complex (the corner lands at (3, 271), on the game's route), and the real tee lands at (144, 117). yd_per_m = 1.0936 x 575/545",
+   "sand": {
+    "sigma": 3,
+    "below": 0.2,
+    "why": "the green's bunkers are 9-17 yd hollows round a plateau inside the creek's bend: at the default 6 m smoothing they merge with the creek channel (one 58 x 98 yd hollow)"
+   }
+  }
+ },
+ "views": [
+  {
+   "name": "diagram",
+   "image": {
+    "file": "augusta-13-green-diagram.webp",
+    "w": 1364,
+    "h": 767,
+    "sha256": "3acf0f53a174b4047124bdb780e8ee9733b49026c92d8e0927763fffc94e6abc",
+    "source": "Top-down rendering of the green complex (slope arrows), screenshot sent by the project owner 2026-10-20. Not in the repo"
+   },
+   "fit": {
+    "kind": "similarity, rendering taken as straight down",
+    "from": "its four bunkers to the lidar's 3 m hollows: behind-left (82, 600), behind-right (67.4, 603), left (95, 578.7), the front-left kidney (98.5, 545.7)",
+    "px": [
+     [
+      752,
+      10
+     ],
+     [
+      1000,
+      35
+     ],
+     [
+      460,
+      190
+     ],
+     [
+      219,
+      637
+     ]
+    ],
+    "px_note": "the two behind and the kidney are cut by the frame: their points are where the drawn outlines close, not pixel centroids",
+    "check": "fitted on the first three alone, the kidney is predicted at (97.1, 545.8): 1.4 yd from its lidar hollow",
+    "yd_per_px": 0.06689,
+    "rotation_deg": 23.8,
+    "residual_yd": [
+     1.61,
+     0.98,
+     1.02,
+     0.29
+    ],
+    "spare_equations": 4,
+    "note": "hole = (-q.x, q.y) with q = s\u00b7R\u00b7(u, -v) + t",
+    "s": 0.06688908327555036,
+    "R": [
+     [
+      0.9149983436280917,
+      -0.4034575952412458
+     ],
+     [
+      0.4034575952412458,
+      0.9149983436280917
+     ]
+    ],
+    "t": [
+     -128.8045126890899,
+     578.7910475339914
+    ]
+   }
+  },
+  {
+   "name": "yardage-book",
+   "image": {
+    "file": "augusta-13-yardage-book.jpg",
+    "source": "yardage-book drawing of the hole (no compass), sent by the project owner 2026-10-20. Not in the repo"
+   },
+   "used_for": "the tee (across Rae's Creek beside the 12th green), the tributary up the left, four bunkers left of and behind the green: direction only, not traced"
+  }
+ ],
+ "outlines": [
+  {
+   "name": "green",
+   "kind": "green",
+   "view": "diagram",
+   "px": [
+    [
+     655.0,
+     693.5
+    ],
+    [
+     631.0,
+     681.5
+    ],
+    [
+     604.0,
+     682.5
+    ],
+    [
+     598.0,
+     676.5
+    ],
+    [
+     594.0,
+     680.5
+    ],
+    [
+     571.0,
+     666.5
+    ],
+    [
+     556.0,
+     673.5
+    ],
+    [
+     543.0,
+     657.5
+    ],
+    [
+     538.0,
+     661.5
+    ],
+    [
+     528.0,
+     651.5
+    ],
+    [
+     514.0,
+     648.5
+    ],
+    [
+     456.0,
+     599.5
+    ],
+    [
+     448.0,
+     603.5
+    ],
+    [
+     424.5,
+     582.0
+    ],
+    [
+     419.5,
+     572.0
+    ],
+    [
+     423.5,
+     568.0
+    ],
+    [
+     405.5,
+     554.0
+    ],
+    [
+     415.5,
+     537.0
+    ],
+    [
+     400.5,
+     516.0
+    ],
+    [
+     401.5,
+     493.0
+    ],
+    [
+     394.5,
+     475.0
+    ],
+    [
+     401.5,
+     452.0
+    ],
+    [
+     397.5,
+     428.0
+    ],
+    [
+     407.5,
+     415.0
+    ],
+    [
+     410.5,
+     392.0
+    ],
+    [
+     456.0,
+     337.5
+    ],
+    [
+     571.5,
+     249.0
+    ],
+    [
+     660.0,
+     129.5
+    ],
+    [
+     708.0,
+     98.5
+    ],
+    [
+     763.0,
+     81.5
+    ],
+    [
+     828.0,
+     77.5
+    ],
+    [
+     902.0,
+     91.5
+    ],
+    [
+     972.0,
+     122.5
+    ],
+    [
+     1025.5,
+     167.0
+    ],
+    [
+     1039.5,
+     195.0
+    ],
+    [
+     1035.5,
+     224.0
+    ],
+    [
+     1041.5,
+     230.0
+    ],
+    [
+     1011.5,
+     272.0
+    ],
+    [
+     997.5,
+     308.0
+    ],
+    [
+     977.5,
+     391.0
+    ],
+    [
+     981.5,
+     395.0
+    ],
+    [
+     970.5,
+     412.0
+    ],
+    [
+     980.5,
+     422.0
+    ],
+    [
+     978.5,
+     432.0
+    ],
+    [
+     974.0,
+     436.5
+    ],
+    [
+     964.0,
+     428.5
+    ],
+    [
+     955.5,
+     437.0
+    ],
+    [
+     957.5,
+     444.0
+    ],
+    [
+     929.0,
+     474.5
+    ],
+    [
+     887.0,
+     495.5
+    ],
+    [
+     878.0,
+     492.5
+    ],
+    [
+     834.0,
+     522.5
+    ],
+    [
+     795.5,
+     559.0
+    ],
+    [
+     742.5,
+     629.0
+    ],
+    [
+     700.0,
+     665.5
+    ],
+    [
+     692.0,
+     679.5
+    ],
+    [
+     667.0,
+     678.5
+    ]
+   ],
+   "hole": [
+    [
+     70.0,
+     554.0
+    ],
+    [
+     71.8,
+     554.1
+    ],
+    [
+     73.4,
+     553.3
+    ],
+    [
+     73.9,
+     553.5
+    ],
+    [
+     74.1,
+     553.2
+    ],
+    [
+     75.9,
+     553.4
+    ],
+    [
+     76.6,
+     552.6
+    ],
+    [
+     77.8,
+     553.2
+    ],
+    [
+     78.0,
+     552.8
+    ],
+    [
+     78.9,
+     553.2
+    ],
+    [
+     79.8,
+     553.0
+    ],
+    [
+     84.7,
+     554.4
+    ],
+    [
+     85.1,
+     553.9
+    ],
+    [
+     87.1,
+     554.6
+    ],
+    [
+     87.7,
+     555.1
+    ],
+    [
+     87.6,
+     555.5
+    ],
+    [
+     89.0,
+     555.8
+    ],
+    [
+     88.9,
+     557.1
+    ],
+    [
+     90.4,
+     558.0
+    ],
+    [
+     90.9,
+     559.5
+    ],
+    [
+     91.8,
+     560.4
+    ],
+    [
+     92.0,
+     562.0
+    ],
+    [
+     92.9,
+     563.3
+    ],
+    [
+     92.7,
+     564.4
+    ],
+    [
+     93.1,
+     565.9
+    ],
+    [
+     91.8,
+     570.4
+    ],
+    [
+     87.1,
+     579.0
+    ],
+    [
+     84.9,
+     588.7
+    ],
+    [
+     82.8,
+     591.9
+    ],
+    [
+     79.9,
+     594.4
+    ],
+    [
+     76.0,
+     596.4
+    ],
+    [
+     71.1,
+     597.5
+    ],
+    [
+     66.0,
+     597.5
+    ],
+    [
+     61.5,
+     596.2
+    ],
+    [
+     59.9,
+     594.9
+    ],
+    [
+     59.4,
+     593.0
+    ],
+    [
+     58.9,
+     592.8
+    ],
+    [
+     59.6,
+     589.4
+    ],
+    [
+     59.4,
+     586.9
+    ],
+    [
+     58.4,
+     581.2
+    ],
+    [
+     58.1,
+     581.1
+    ],
+    [
+     58.3,
+     579.8
+    ],
+    [
+     57.4,
+     579.4
+    ],
+    [
+     57.3,
+     578.8
+    ],
+    [
+     57.4,
+     578.4
+    ],
+    [
+     58.2,
+     578.6
+    ],
+    [
+     58.5,
+     577.8
+    ],
+    [
+     58.2,
+     577.5
+    ],
+    [
+     59.1,
+     574.8
+    ],
+    [
+     61.1,
+     572.4
+    ],
+    [
+     61.8,
+     572.3
+    ],
+    [
+     63.7,
+     569.3
+    ],
+    [
+     65.0,
+     566.0
+    ],
+    [
+     66.4,
+     560.3
+    ],
+    [
+     68.0,
+     557.0
+    ],
+    [
+     68.1,
+     555.9
+    ],
+    [
+     69.7,
+     555.3
+    ]
+   ],
+   "why": "the putting surface, flood-segmented on its colour; the slope arrows filled in"
+  }
+ ]
+}

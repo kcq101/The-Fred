@@ -1,0 +1,17 @@
+{
+ "id": "standrews-17",
+ "lidar": {
+  "source": "Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE_50CM_DTM_PHASE5.tif and NO51NW_50CM_DTM_PHASE5.tif (Open Government Licence v3), from srsp-open-data.s3.eu-west-2.amazonaws.com (lidar/phase-5/dtm/27700/gridded/). Not in the repo (383 + 206 MB)",
+  "crs": "EPSG:27700 (British National Grid), heights ODN m",
+  "located_by": "map pins from the project owner on the green (56.343195, -2.808815), placed at the game pin (18, 470), and on the back tee by the Old Course Hotel (56.345991, -2.813011)",
+  "frame": {
+   "tile": ["NO41NE_50CM_DTM_PHASE5.tif", "NO51NW_50CM_DTM_PHASE5.tif"],
+   "anchor": {"latlon": [56.343195, -2.808815], "at": [18, 470]},
+   "bearing_deg": 143.1,
+   "yd_per_m": 1.161,
+   "pin": [18, 470],
+   "grid": {"x": [-130, 130], "z": [-55, 536], "step": 0.5},
+   "why": "tee -> pin is 405.1 m at 140.9 degrees (the owner's two pins; both yardage pages put the green south-east of the hotel tee); the game's tee -> pin is 470 yd with the pin 18 yd left, so +z is 2.2 degrees right of that line and yd_per_m = 470.3 / 405.1"
+  }
+ }
+}

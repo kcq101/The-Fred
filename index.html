@@ -449,19 +449,29 @@ const HOLES=[
   seed:0.4,roll:0.8,ridge:2.5,
   route:[[0,0],[100,2],[200,-1],[262,-6],[330,-14],[376,-22]],
   fw:[[40,14],[200,16],[262,15]],fairway:[[38,262]],
-  green:{x:-22,z:375,rx:13,rz:11,rot:0.25},pin:{x:-22,z:375.4},tilt:{x:0.02,z:-0.03},
+  // the green traced on a drone photo placed on the 2017-18 lidar by its five bunkers (homography, residuals under 0.2 yd); its tilt is the lidar's plane over it
+  green:{pts:[[-25.0,367.8],[-21.1,366.2],[-16.7,366.5],[-14.4,369.4],[-13.3,373.8],[-13.1,378.1],[-13.6,381.9],[-14.9,384.4],[-16.8,386.0],[-19.8,386.7],[-22.9,387.0],[-26.1,387.2],[-29.5,386.8],[-32.5,385.5],[-34.3,383.5],[-35.3,380.8],[-35.2,378.2],[-34.1,375.6],[-32.1,373.8],[-29.1,371.7],[-27.1,369.8]]},pin:{x:-22,z:375.4},tilt:{x:0.0024,z:0.0508},
   features:[
-    {type:'ramp',z0:30,z1:200,dh:5},                                   // the drive climbs to the plateau
-    {type:'ramp',z0:195,z1:262,dh:-2.2},                               // ...which tips toward the cliff edge, so a long drive runs out of land
-    {type:'ramp',z0:262,z1:335,dh:-6},                                 // beyond the chasm the land is lower: the approach plays downhill
-    {type:'rise',area:{x:-22,z:377,rx:19,rz:15,rot:0.25},dh:3,edge:11},  // the green is perched on a knoll above the chasm
+    // heights from the 2017-18 USGS lidar (docs/holes/trace/pebble-8.json), read along the fairway's left half (x 12): the straight tee-pin line hugs the cliff and clips an inlet at z 126-153
+    {type:'ramp',z0:12,z1:50,dh:6.6},                                  // the drive climbs to the plateau: steeply for the first 50 yd...
+    {type:'ramp',z0:50,z1:120,dh:2.6},
+    {type:'ramp',z0:120,z1:225,dh:2.8},                                // ...then gently to its end, 12 yd above the tee
+    {type:'ramp',z0:230,z1:345,dh:-4.2},                               // beyond the chasm the land is lower: the approach plays downhill
+    {type:'ramp',z0:345,z1:375,dh:2.4},                                // up to the green, 8.5 yd above the tee
+    {type:'ramp',z0:375,z1:450,dh:7.2},                                // and the hill behind it
     {type:'cover',area:{pts:[[-2,346],[8,354],[2,366],[-20,368],[-42,365],[-42,352]]},surf:'FAIRWAY'},  // shaved bank in front: short shots roll back to the sea
   ],
   play:{wind:[6,18],greens:{speed:1.1}},
-  bunkers:[{x:-6,z:362,rx:6,rz:3.5,rot:0.5},{x:-33,z:391,rx:7,rz:3,rot:-0.3},{x:16,z:244,rx:7,rz:4,rot:0.25},{x:-27,z:228,rx:6,rz:3.2,rot:-0.2}],
-  water:[{kind:'ocean',profile:'cliff',level:-9,bed:-15,edge:3.5,jag:1.6,
-    shape:{type:'outside',pts:[[2000,-2000],[-50,-2000],[-50,-60],[-46,0],[-48,40],[-52,110],[-41,150],[-60,195],[-62,232],[-50,262],
-      [-30,268],[-12,266],[2,272],[10,288],[11,308],[6,326],[-3,340],[-16,349],[-32,353],[-46,357],[-52,368],[-46,388],[-27,402],[-4,399],[14,410],[60,421],[2000,430]]}}],
+  // the five greenside bunkers traced on the same photo (back, left, front-right, short by the cove, back-right), depths from the lidar's relief; the compact back one first: tests/ball.test.js drops wedges into BUNKERS[0]
+  bunkers:[{pts:[[-13.2,395.4],[-14.6,395.6],[-15.9,395.3],[-17.6,394.4],[-18.5,394.3],[-20.4,394.5],[-21.6,394.2],[-22.5,393.9],[-23.0,393.4],[-23.3,392.7],[-22.7,390.5],[-21.6,389.4],[-20.6,389.0],[-19.8,388.9],[-19.0,389.1],[-17.7,390.0],[-16.9,390.3],[-15.4,390.4],[-14.7,390.2],[-14.5,390.4],[-13.8,390.2],[-13.2,390.2],[-12.0,391.1],[-11.5,393.1],[-11.9,394.6]],depth:0.39,lip:0.25},
+           {pts:[[4.6,369.7],[3.7,369.9],[1.2,369.2],[-0.6,370.2],[-2.0,370.3],[-3.3,369.7],[-4.0,368.7],[-3.7,367.5],[-3.5,367.6],[-3.3,367.0],[-3.1,367.2],[-3.0,366.8],[-2.8,365.2],[-1.6,364.0],[-1.4,363.3],[-1.3,362.0],[0.7,360.8],[0.9,360.0],[0.7,358.8],[1.2,357.6],[2.8,357.3],[3.8,356.6],[4.6,356.6],[4.7,356.3],[5.6,356.0],[6.8,355.9],[7.1,356.3],[8.8,355.8],[11.4,356.3],[13.1,356.3],[14.3,357.1],[13.6,358.5],[11.5,359.6],[9.5,360.2],[7.3,359.8],[6.1,360.2],[5.4,360.8],[5.1,361.4],[5.1,362.0],[5.5,363.0],[5.8,362.4],[7.8,363.3],[8.2,364.0],[7.9,364.8],[7.3,365.4],[6.2,365.3],[4.6,364.7],[3.8,364.9],[3.3,365.4],[3.1,366.2],[3.1,366.6],[3.3,367.0],[5.4,368.2],[5.5,368.7],[5.3,369.1]],depth:0.36,lip:0.25},
+           {pts:[[-37.2,378.3],[-38.6,378.5],[-39.9,377.7],[-39.7,376.5],[-38.5,374.3],[-37.8,371.7],[-37.5,371.9],[-37.4,371.3],[-36.4,369.9],[-36.0,370.1],[-35.9,369.2],[-35.2,368.1],[-34.8,368.2],[-34.6,367.3],[-34.3,367.5],[-34.2,367.0],[-33.6,366.9],[-33.5,366.4],[-33.0,366.3],[-32.7,365.7],[-32.4,365.6],[-32.1,365.9],[-32.0,365.4],[-31.7,365.7],[-31.6,365.3],[-31.1,365.7],[-30.7,365.6],[-30.4,365.2],[-29.8,365.7],[-29.3,365.2],[-28.0,365.6],[-26.9,366.4],[-26.5,366.3],[-26.1,366.8],[-26.0,367.4],[-26.2,368.4],[-26.8,370.6],[-27.4,371.5],[-29.8,372.6],[-30.4,372.1],[-30.9,371.2],[-31.4,370.7],[-32.6,370.7],[-33.0,371.3],[-33.2,372.3],[-33.1,373.7],[-33.3,374.5],[-35.2,375.9],[-36.3,377.6]],depth:0.5,lip:0.25},
+           {pts:[[-8.4,340.3],[-9.6,340.4],[-10.6,340.0],[-11.3,338.6],[-10.8,337.0],[-9.1,335.6],[-7.1,335.4],[-2.9,332.9],[2.4,331.5],[4.5,329.7],[6.4,329.4],[7.2,330.2],[6.8,332.1],[5.4,333.5],[2.9,334.4],[-0.0,336.6],[-5.7,338.5]],depth:0.3,lip:0.25},
+           {pts:[[-30.1,393.6],[-30.9,393.7],[-31.6,393.5],[-34.1,392.0],[-36.8,391.2],[-38.1,390.1],[-38.8,388.5],[-38.7,387.3],[-38.0,387.4],[-37.7,387.2],[-37.3,387.4],[-37.2,387.0],[-36.6,387.3],[-36.5,387.0],[-36.0,387.5],[-35.7,386.7],[-35.8,386.2],[-36.3,385.7],[-36.2,385.5],[-35.1,386.1],[-34.4,386.9],[-34.2,387.2],[-32.5,388.4],[-31.0,388.0],[-29.2,388.3],[-28.6,388.8],[-27.9,390.0],[-27.9,390.8],[-27.7,391.0],[-27.8,391.5],[-28.7,392.8]],depth:0.43,lip:0.25}],
+  water:[{kind:'ocean',profile:'cliff',level:-8.56,bed:-14.5,edge:2,   // the coastline from the lidar, read on the cliff face at 7 m (lidar.py build, water.tol 6), carried out past the hole's edges; level at the real water, 1.15 m
+    shape:{type:'poly',pts:[[-117,368.8],[-118.5,368.8],[-2000,367.5],[-2000,-2000],[-2000,-2000],[2000,-2000],[2000,-2000],[2000,86.5],[2000,87.2],[128.5,86.8],[125,87.2],[121,85.2],[117.5,85.8],[115,87.2],[111,85.8],[109,85.8],[108.5,86.2],[108,85.8],[106.5,85.8],[100.8,81],[99.2,79.5],[98.2,77.5],[98.8,77],[98.8,75.5],[101.8,72.5],[102.8,70.5],[102.8,68.5],[101.5,67.2],[99,66.2],[98.2,65.5],[98.2,64.5],[99.8,62],[99.8,60.5],[100.8,59],[100.8,55],[102.8,52],[103.2,49],[104.8,46.5],[104.8,42],[103.2,39.5],[104.8,33.5],[102.8,31],[102.8,29.5],[104,28.2],[105.5,28.2],[107.5,27.2],[108.2,26],[108.2,24],[107.2,22.5],[104.2,20],[103.8,18.5],[102.5,17.2],[96,16.8],[94.8,19.5],[94.8,20.5],[93.5,21.8],[92,21.8],[91.5,22.2],[88,19.8],[85,19.2],[83,18.2],[81.5,18.2],[81,17.8],[78.5,17.8],[76.8,16.5],[76.2,15],[73.8,12],[73.2,10],[70,6.2],[68,5.2],[62,5.8],[57,-0.2],[54.5,-1.2],[53.5,-0.8],[49.5,-0.8],[49,-0.2],[43.5,-0.2],[43,-0.8],[38.5,-0.8],[38,-1.2],[35,-1.8],[31,-5.2],[26,-8.2],[23.8,-11],[22.2,-12],[21.2,-14.5],[18,-17.8],[17.5,-17.8],[15,-20.8],[12.5,-21.8],[10.5,-21.8],[9.5,-22.2],[8.2,-24],[8.2,-25],[6,-26.2],[3,-26.8],[0.5,-28.8],[-2,-28.8],[-5,-30.2],[-6.8,-29.5],[-6.8,-28.5],[-9.2,-24],[-12,-21.2],[-13,-20.8],[-16,-20.8],[-18.2,-19.5],[-18.8,-18.5],[-18.2,-14.5],[-19,-13.8],[-20,-13.8],[-20.5,-13.2],[-21.5,-13.8],[-22.8,-13],[-22.8,-11.5],[-21.8,-9.5],[-22.2,-7],[-20.8,-3],[-20.8,-1.5],[-19.8,0.5],[-21.8,3],[-21.8,4],[-17.8,8.5],[-17.8,13],[-20.2,16],[-21.2,18],[-21.8,21],[-23.2,23.5],[-24.2,29],[-26.2,33],[-27.8,34.5],[-27.8,38.5],[-25.2,41.5],[-25.8,44.5],[-27.8,48.5],[-26.2,51.5],[-24.2,53.5],[-24.2,56],[-25.8,58.5],[-29.5,61.2],[-32,61.2],[-32.5,60.8],[-38,60.2],[-38.5,59.8],[-40,59.8],[-41.2,61],[-41.8,62],[-41.8,64.5],[-40.8,65.5],[-39.8,68],[-39.8,72],[-40.2,72.5],[-40.8,77.5],[-42.8,81.5],[-42.8,86],[-41.5,86.8],[-39,86.8],[-37.8,88],[-37.8,91],[-40,93.2],[-42.5,93.8],[-44.5,94.8],[-49.5,99.2],[-50,99.2],[-51.8,102],[-51.8,103.5],[-49,105.8],[-45,107.2],[-43.8,109.5],[-41,112.2],[-40,112.8],[-38,112.8],[-36,113.8],[-34.8,115],[-34.2,116],[-34.2,118.5],[-32.8,121.5],[-32.2,125.5],[-29.5,128.2],[-27,129.2],[-25,129.2],[-24,130.2],[-21.5,130.8],[-20,131.8],[-15.5,131.8],[-13,132.8],[-10.2,136],[-10.2,137.5],[-9.8,138],[-9.8,142],[-9.2,142.5],[-9.8,143],[-9.2,143.5],[-8.8,146],[-11,148.2],[-15.5,151.2],[-17,151.2],[-19,150.2],[-22.5,149.8],[-24.5,148.2],[-25.5,148.2],[-27.5,147.2],[-32,147.2],[-32.5,146.8],[-35.5,146.8],[-39.8,149.5],[-39.2,153.5],[-38.8,154],[-38.8,161],[-38.2,161.5],[-38.2,165],[-39.2,167],[-38.8,172.5],[-41.8,178.5],[-42.2,181.5],[-42.8,182],[-43.2,192.5],[-42.8,193],[-42.8,196],[-42.2,196.5],[-41.8,202.5],[-43.5,204.8],[-44.8,205.5],[-44.8,210],[-44.2,210.5],[-43.8,213.5],[-42.2,215.5],[-42.2,216.5],[-41.2,218.5],[-41.2,220],[-42.2,222],[-47.2,226],[-48.2,228.5],[-48.2,232.5],[-47.2,235],[-46,236.2],[-44,237.2],[-43.2,238.5],[-41,240.2],[-38.5,241.2],[-37.5,240.8],[-27.5,240.2],[-24,238.8],[-20,238.8],[-19.5,238.2],[-10.5,238.2],[-10,237.8],[-8,237.8],[-4,239.2],[-1,241.8],[1,242.8],[6,243.8],[15.5,248.2],[19,249.2],[20.8,251],[20.8,253],[20.2,253.5],[20.2,259.5],[19.2,261],[19.2,262.5],[17.8,265.5],[16.2,267],[16.2,268],[18.2,270.5],[18.8,272.5],[17.8,274],[15.8,281],[15.2,281.5],[14.8,286.5],[12.8,289.5],[12.8,291.5],[9.8,296],[8.2,300.5],[5.2,303.5],[2.8,307],[2.2,309.5],[-0.2,313],[-0.8,315.5],[-2,316.8],[-5.5,316.8],[-6.5,317.2],[-10.5,320.8],[-14,318.8],[-15.5,318.8],[-16,319.2],[-18.5,319.8],[-22,323.8],[-27,324.8],[-27.8,326],[-27.8,332],[-26.8,333],[-25.8,335],[-25.8,336],[-34.5,342.2],[-36,342.8],[-41,348.8],[-43,349.8],[-46.5,350.2],[-48.2,353],[-52.2,356.5],[-52.2,357.5],[-54,359.8],[-56.5,361.2],[-62,360.8],[-63,360.2],[-66,362.2],[-70.5,362.8],[-75,358.8],[-77.5,358.2],[-79,356.8],[-81,356.2],[-84,354.2],[-85,354.2],[-85.5,353.8],[-89,353.8],[-91,355.2],[-94.5,354.8],[-95,355.2],[-98.5,355.2],[-99,355.8],[-100.5,355.8],[-104,358.2],[-105,358.2],[-105.5,358.8],[-108,358.8],[-111.5,360.2],[-114.2,362.5],[-115.2,366]]}},
+    {kind:'ocean',profile:'cliff',level:-8.56,bed:-14.5,edge:3.5,   // exaggerated (§5): the sea brought in under the bank short-right of the green, below its front-right bunker, where the real bank falls 12 m to it at about 40 %
+      shape:{type:'poly',pts:[[-36,334],[-34,348],[-37,358],[-42,364],[-70,364],[-70,334]]}}],
   bbox:{x0:-120,x1:130,z0:-55,z1:450},
   trees:[{type:'cypress',n:20,zone:'sides',side:'left',d:[10,60],z:[-10,385],s:[0.95,1.4]},
          {type:'cypress',n:5,zone:'rect',x:[-42,-16],z:[-40,40],s:[1,1.3]},
@@ -474,21 +484,29 @@ const HOLES=[
   seed:1.7,roll:1.1,ridge:4,
   route:[[0,0],[200,0],[300,9],[400,33],[480,56],[540,70],[575,75]],
   fw:[[40,16],[250,18],[420,16],[520,14],[560,12]],fairway:[[35,523],[548,560]],
-  green:{x:75,z:570,rx:15,rz:12,rot:-0.3},pin:{x:75,z:570},tilt:{x:-0.015,z:-0.028},
+  // the green traced on a top-down rendering of the complex, placed on the 2018 USGS lidar by its four bunkers (residuals 0.3-1.6 yd); its tilt is the lidar's plane over it
+  green:{pts:[[70.0,554.0],[71.8,554.1],[73.4,553.3],[73.9,553.5],[74.1,553.2],[75.9,553.4],[76.6,552.6],[77.8,553.2],[78.0,552.8],[78.9,553.2],[79.8,553.0],[84.7,554.4],[85.1,553.9],[87.1,554.6],[87.7,555.1],[87.6,555.5],[89.0,555.8],[88.9,557.1],[90.4,558.0],[90.9,559.5],[91.8,560.4],[92.0,562.0],[92.9,563.3],[92.7,564.4],[93.1,565.9],[91.8,570.4],[87.1,579.0],[84.9,588.7],[82.8,591.9],[79.9,594.4],[76.0,596.4],[71.1,597.5],[66.0,597.5],[61.5,596.2],[59.9,594.9],[59.4,593.0],[58.9,592.8],[59.6,589.4],[59.4,586.9],[58.4,581.2],[58.1,581.1],[58.3,579.8],[57.4,579.4],[57.3,578.8],[57.4,578.4],[58.2,578.6],[58.5,577.8],[58.2,577.5],[59.1,574.8],[61.1,572.4],[61.8,572.3],[63.7,569.3],[65.0,566.0],[66.4,560.3],[68.0,557.0],[68.1,555.9],[69.7,555.3]]},pin:{x:75,z:570},tilt:{x:0.0137,z:0.0303},
   features:[
-    {type:'ramp',z0:190,z1:330,dh:-11},                                // the drive tumbles down into the valley: a well-struck tee shot runs and runs
-    {type:'ramp',z0:380,z1:545,dh:-6},                                 // ...and the land keeps falling gently to the creek
-    {type:'tilt',area:{pts:[[2,280],[12,330],[33,400],[48,455]],w:28},grade:-0.11,edge:20},  // the second-shot fairway falls left toward the creek
+    {type:'ramp',z0:190,z1:360,dh:-14.5},                                // the drive tumbles down into the valley: a well-struck tee shot runs and runs (a design choice: see the spec's §8)
+    // from the corner on, heights from the lidar (lidar.py build; docs/holes/trace/augusta-13.json): down to the creek, the green 2 m above it, the bank behind
+    {type:'ramp',z0:333.1,z1:388.7,dh:-2.71},
+    {type:'ramp',z0:388.7,z1:458.1,dh:0.69},
+    {type:'ramp',z0:458.1,z1:513.6,dh:-1.45},
+    {type:'ramp',z0:527.5,z1:583,dh:2.37},
+    {type:'ramp',z0:596.9,z1:610.7,dh:2.6},
+    {type:'ramp',z0:610.7,z1:638.5,dh:2.7},
+    {type:'tilt',area:{pts:[[2,280],[12,330],[33,400],[48,455]],w:28},grade:-0.11,edge:20},  // the second-shot fairway falls left toward the creek (lidar: 8-11 %)
     {type:'cover',area:{pts:[[26,170],[37,250],[47,330],[63,400],[75,465]],w:10},surf:'PINE'},       // pine straw under the trees left of the corner
-    {type:'rise',area:{x:102,z:492,rx:12,rz:32},dh:4,edge:12},              // the far bank of the creek stands up (keeps the creek a creek, not a ravine)
-    {type:'rise',area:{x:75,z:572,rx:19,rz:15,rot:-0.3},dh:3.2,edge:18},  // the green sits up above the creek...
-    {type:'cover',area:{pts:[[52,537],[78,529],[98,546],[100,560],[60,561],[38,550]]},surf:'FAIRWAY'},  // ...on a shaved bank: anything short rolls back into the water
+    {type:'cover',area:{pts:[[95,528],[86,540],[74,549],[63,556],[54,568]],w:8},surf:'FAIRWAY'},  // the shaved bank between the creek and the green: anything short rolls back into the water
   ],
   play:{wind:[3,12],greens:{speed:1.25}},
-  bunkers:[{x:62,z:585,rx:6,rz:3.2,rot:0.3},{x:88,z:584,rx:5,rz:3,rot:-0.4},{x:95,z:561,rx:3.5,rz:5,rot:0.2},{x:-8,z:330,rx:7,rz:4,rot:0.3}],
-  water:[{kind:'creek',profile:'shore',level:-4.4,bed:-5.6,edge:2.5,
-    shape:{type:'band',w:3.2,pts:[[90,370],[86,440],[86,495],[80,532],[56,544],[18,550],[-20,559],[-60,566]]}}],
-  bridge:{x:40,z:541},
+  // bunkers from the lidar: the front-left kidney and the back-right one (lidar.py build), the left and back-left ones from 3 m hollows (build merges them with the creek's bend)
+  bunkers:[{pts:[[98,556.2],[96.5,556.2],[93.8,553.5],[92.8,551.5],[92.8,548],[93.8,546.5],[94.8,542.5],[96.2,539.5],[99,537.2],[102.5,537.2],[104.8,539.5],[104.8,540.5],[105.2,541],[103.5,544.2],[99.5,545.8],[98.8,547],[100.2,550],[100.2,553.5]],depth:0.52,lip:0.25},
+           {x:95,z:578.7,rx:4.5,rz:4.2,rot:0,depth:0.5,lip:0.25},{x:82,z:600.2,rx:5.5,rz:5,rot:0,depth:0.45,lip:0.25},
+           {pts:[[71,608.2],[68,608.2],[67.5,607.8],[66.5,607.8],[62.2,603.5],[60.8,600.5],[60.8,599],[62.5,597.2],[67,597.8],[69,598.8],[71,598.8],[72.8,600.5],[72.8,601.5],[73.8,603],[73.8,605]],depth:0.55,lip:0.25}],
+  water:[{kind:'creek',profile:'shore',level:-4.4,bed:-5.6,edge:2.5,   // the tributary of Rae's Creek along the lidar's lowest line: up the left, across the front of the green and up its right side
+    shape:{type:'band',w:3.2,pts:[[110,360],[103,390],[97,420],[102,450],[94,485],[98,515],[90,535],[75,548],[63,555],[53,570],[50,585],[45,605],[38,625],[34,650]]}}],
+  bridge:{x:50,z:600},   // the culvert behind the green's right side, where the rendering has it
   bbox:{x0:-90,x1:180,z0:-55,z1:650},
   trees:[{type:'tallpine',n:520,zone:'sides',side:'both',d:[8,110],z:[-45,600],s:[0.85,1.25]},
          {type:'tallpine',n:130,zone:'rect',x:[-40,180],z:[596,650],s:[0.9,1.3]},
@@ -529,14 +547,21 @@ const HOLES=[
   seed:3.3,roll:0.8,ridge:1.5,
   route:[[0,0],[120,-4],[250,-10],[350,-4],[430,6],[467,6]],
   fw:[[40,15],[200,15],[300,13],[400,12],[438,11],[466,12]],fairway:[[35,458]],
-  green:{x:12,z:468,rx:19,rz:8,rot:0.22},pin:{x:18,z:470},tilt:{x:0.012,z:0.02},
+  // no aerial yet: the ellipse is laid along the lidar's plateau (front-right to back-left, its back edge 2-3 yd short of the drop to the road); tilt is the lidar's plane over it
+  green:{x:19.3,z:477.3,rx:19,rz:8,rot:0.9},pin:{x:24.5,z:487.1},tilt:{x:-0.0124,z:0.0007},   // the pin tucked on the left end, behind the Road Hole bunker
   features:[
-    {type:'rise',area:{x:12,z:468,rx:21,rz:10,rot:0.22},dh:1.1,edge:9},       // a narrow plateau green: the front and sides fall away to the apron
-    {type:'cover',area:{pts:[[-26,441],[-22,463],[-12,478],[18,483],[50,481],[78,473]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road runs round the right and along the back of the green
+    // heights along the line from the Scottish lidar (Phase 5, 50 cm; lidar.py build, docs/holes/trace/standrews-17.json): links ground within a yard of flat
+    {type:'ramp',z0:0,z1:48,dh:-0.6},{type:'ramp',z0:48,z1:215.8,dh:1.03},{type:'ramp',z0:215.8,z1:239.8,dh:-1.46},{type:'ramp',z0:239.8,z1:251.8,dh:-0.35},
+    {type:'ramp',z0:251.8,z1:299.8,dh:0.47},{type:'ramp',z0:299.8,z1:431.7,dh:-0.82},{type:'ramp',z0:479.6,z1:503.6,dh:-0.82},{type:'ramp',z0:503.6,z1:527.6,dh:0.92},
+    {type:'rise',area:{x:19.3,z:477.3,rx:21,rz:10,rot:0.9},dh:0.8,edge:9},       // a narrow plateau green, 0.7 m above its apron (lidar; build's 431.7-479.6 ramp, +1, is this rise): the front and sides fall away
+    {type:'cover',area:{pts:[[-30,433],[-18,439.5],[-10.1,453.2],[-2.2,466.9],[6,480.2],[14.6,493.2],[23.5,505.7],[32.7,517.9],[41.9,530.2]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road behind the green, on the lidar's flat strip below the green's back edge
   ],
-  obstacles:[{type:'wall',pts:[[-30.3,441.8],[-26.1,464.6],[-14.4,481.7],[17.8,487.4],[50.7,485.3],[79.2,477.2]],t:1.2,h:2.2,e:0.3}],   // the stone wall behind the road
+  obstacles:[{type:'wall',pts:[[-36,441],[-24,452],[-17.4,461.4],[-9.2,474.7],[-0.9,488.1],[7.6,501],[16.8,513.2],[26.1,525.4],[33,534]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
   play:{firm:1.5,wind:[8,20],windPush:1.6,greens:{speed:1.15,firm:1.3}},
-  bunkers:[{x:21,z:456,rx:9,rz:4.8,rot:0.3,depth:2.8,lip:0.9},{x:20,z:300,rx:3,rz:2.4,rot:0.2,depth:1.4,lip:0.4},{x:-14,z:318,rx:3,rz:2.4,rot:-0.2,depth:1.4,lip:0.4}],
+  // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)
+  bunkers:[{pts:[[34.5,479.2],[32.5,478.8],[31.2,477],[30.2,476.5],[30.2,474.5],[28.2,471.5],[28.2,471],[30.5,468.8],[31.5,468.8],[32,468.2],[36.2,472],[36.2,473],[36.8,473.5],[36.2,474],[36.8,474.5],[36.8,478]],depth:2.6,lip:0.6},
+           {pts:[[46.5,399.8],[45.5,398.8],[41.5,398.2],[41,397.8],[39,397.8],[37.5,398.8],[34,398.8],[33,398.2],[31.8,396],[32.8,392.5],[34,390.8],[36.5,389.8],[39,387.8],[42,386.2],[46.5,386.8],[49.2,389.5],[49.2,391],[50.8,394],[50.8,395.5],[49.8,398],[48.5,399.2],[47,399.2]],depth:1.17,lip:0.25},
+           {pts:[[43,417.8],[41.5,417.8],[40.5,416.2],[36.2,414.5],[36.2,413],[37.5,411.8],[38.8,411.5],[38.2,410],[36.2,408],[41,403.2],[43,402.2],[43.5,402.8],[45,402.2],[45.5,402.8],[47.5,402.8],[48,403.2],[48.5,402.8],[50.5,403.8],[52,403.8],[53,404.8],[54,404.8],[55.8,406.5],[55.8,407.5],[54.8,408.5],[55.2,409],[54.8,411.5],[52.5,413.8],[51.5,413.8],[51,414.2],[46.5,414.2],[46,413.8],[44.5,414.2],[44.2,414.5],[45.2,416]],depth:0.72,lip:0.25}],
   water:[],
   clubhouse:{x:-95,z:120,rot:0},
   bbox:{x0:-130,x1:130,z0:-55,z1:536},
@@ -547,18 +572,27 @@ const HOLES=[
   // Inspired by No. 12 (Golden Bell): a short iron over Rae's Creek to a shallow, wide green angled away from the tee, with a steep bank in front, deep bunkers behind
   // and a wind that swirls in the lowest spot on the property. The deeper left side is safe; the pin tucked by the creek on the right is the temptation. docs/holes/augusta-12.md
   seed:1.1,roll:0.5,ridge:3,
-  route:[[0,0],[75,2],[142,4]],fw:[[0,12],[142,12]],fairway:[[7,118]],
-  green:{x:4,z:138,rx:19,rz:8.5,rot:-0.22},pin:{x:-6,z:140.5},tilt:{x:0.014,z:0.02},
+  route:[[0,0],[75,2],[142,4]],fw:[[0,12],[142,12]],fairway:[[7,108]],
+  // the green traced on a top-down drawing of the complex, placed on the lidar by its three bunkers (residuals under 0.8 yd); its tilt is the lidar's plane over it
+  green:{pts:[[13.5,126.3],[13.6,125.7],[14.3,125.0],[16.0,123.3],[18.1,122.6],[20.6,122.8],[22.6,123.5],[23.8,124.6],[24.4,125.9],[24.6,126.9],[25.0,129.9],[24.5,132.5],[22.2,136.2],[19.9,138.2],[18.4,139.2],[16.3,140.2],[8.4,142.5],[0.9,145.8],[-2.8,147.1],[-4.6,147.5],[-6.0,147.2],[-6.4,147.5],[-6.8,147.0],[-9.3,146.0],[-10.7,144.8],[-11.4,143.5],[-11.7,142.3],[-11.4,140.4],[-10.5,139.0],[-8.3,137.2],[-6.9,136.3],[-3.6,135.0],[1.5,134.5],[6.6,132.7],[9.4,130.9],[11.3,129.1]]},pin:{x:-6,z:140.5},tilt:{x:-0.001,z:0.016},
   features:[
-    {type:'rise',area:{x:4,z:139,rx:21,rz:10.5,rot:-0.22},dh:2.2,edge:8},          // the green sits up above the creek
-    {type:'rise',area:{x:4,z:158,rx:30,rz:6},dh:1.4,edge:8},                        // and a bank rises behind it, so a long ball stops in the bunkers
-    {type:'cover',area:{pts:[[14,116],[-8,128],[-30,134],[-44,142]],w:11},surf:'FAIRWAY'},   // where the creek swings in to the green its banks are shaved: anything short rolls back into the water
+    // heights from the 2018 USGS lidar (lidar.py build; docs/holes/trace/augusta-12.json): the tee 3.5 yd above the pin, down to the creek, up onto the green, the bank behind
+    {type:'ramp',z0:0,z1:16,dh:-1.83},
+    {type:'ramp',z0:16,z1:32,dh:-0.88},
+    {type:'ramp',z0:32,z1:115.9,dh:-2.24},
+    {type:'ramp',z0:126,z1:134.5,dh:1.45},   // the front bank: build's 123.9-135.9 tightened to where the lidar has it on the line to the pin (x -6: 1.5 m in 7 yd)
+    {type:'ramp',z0:134.5,z1:147.9,dh:0.3},
+    {type:'ramp',z0:147.9,z1:179.8,dh:2.37},
+    {type:'cover',area:{pts:[[8,117],[0,123],[-8,128],[-15,134],[-22,139],[-32,148]],w:8},surf:'FAIRWAY'},   // where the creek swings in to the green its banks are shaved: anything short rolls back into the water
   ],
   play:{wind:[3,14],windPush:2,greens:{speed:1.3,firm:0.75}},
-  bunkers:[{x:14,z:131,rx:6,rz:3,rot:-0.3,depth:1.6,lip:0.5},{x:21,z:147,rx:5,rz:3.3,rot:-0.2,depth:1.6,lip:0.5},{x:-12,z:152,rx:5.5,rz:3.2,rot:-0.3,depth:1.6,lip:0.5}],
-  water:[{kind:'creek',profile:'shore',level:-2,bed:-3.3,edge:2.5,
-    shape:{type:'band',w:3.2,pts:[[110,98],[70,101],[38,105],[14,116],[-8,128],[-30,134],[-48,144],[-54,162],[-56,190]]}}],
-  bridge:{x:-34,z:134},
+  // bunkers from the lidar: one in front of the green (lidar.py build), two behind its left half (2 m hollows, placed by hand: they join the bank's toe in build)
+  bunkers:[{pts:[[3,131.2],[0.5,130.8],[-0.2,129.5],[-0.2,128.5],[1,127.2],[3.5,126.2],[5.5,123.8],[7.5,122.8],[8.5,123.2],[9.2,124.5],[8.8,127],[7,128.2],[5.5,128.2]],depth:0.41,lip:0.25},
+           {x:7.6,z:148,rx:4,rz:3.2,rot:-0.22,depth:0.54,lip:0.25},{x:1,z:151.8,rx:3.5,rz:3,rot:-0.22,depth:0.5,lip:0.25}],
+  water:[{kind:'creek',profile:'shore',level:-5,bed:-6.3,edge:2.5,   // Rae's Creek left of the green, under the Hogan Bridge (the lidar's lowest line: not flattened there)
+    shape:{type:'band',w:3.2,pts:[[110,30],[80,51],[60,66],[40,81],[30,93],[18,100],[8,106]]}},
+    {kind:'creek',profile:'shore',level:-5.7,bed:-6.6,edge:3,shape:{type:'poly',pts:[[-69,170.8],[-70.2,169.5],[-70.2,163.5],[-67.8,158.5],[-67.8,157],[-68.8,155.5],[-67.5,154.2],[-66,153.8],[-64.8,155],[-65.2,156],[-64,156.2],[-63.2,155],[-64.8,153.5],[-63,151.8],[-58,148.8],[-57,148.8],[-54,150.8],[-52,150.2],[-50.8,149],[-50.8,147.5],[-49.8,145.5],[-50.2,143],[-48.5,141.2],[-46.5,140.8],[-33,127.8],[-29,124.8],[-27.5,124.2],[-25,121.8],[-22.5,120.2],[-21,121.8],[-20,121.8],[-18.8,119.5],[-18.8,118.5],[-17,116.8],[-15.8,118],[-15.5,119.8],[-13,119.8],[-10.5,116.8],[-9.5,116.8],[-7.2,114.5],[-6.2,113],[-6.2,111.5],[-7.2,110.5],[-2,105.2],[-1,104.8],[0.5,106.2],[3.2,103.5],[3.8,101.5],[7.5,98.2],[9.5,97.2],[10.8,98.5],[11.2,101],[11.8,101.5],[11.8,103],[12.8,105],[12.8,107],[14.8,111],[13,112.8],[9,113.8],[8.2,116.5],[2.5,121.8],[0.5,122.8],[-2,123.2],[-5,126.8],[-7.5,127.8],[-10.5,131.2],[-11,131.2],[-12.5,132.8],[-14.5,132.8],[-16.8,135],[-16.8,136.5],[-18.5,138.2],[-21,139.2],[-23.5,136.2],[-25,135.8],[-26,134.8],[-25.8,138],[-26.8,140.5],[-27.8,141.5],[-27.8,143.5],[-31.5,147.2],[-37.5,150.2],[-41,153.2],[-42,153.2],[-43.8,155],[-43.2,155.5],[-43.2,157],[-47,160.8],[-49.5,160.2],[-53.5,163.8],[-55.5,163.8],[-58.5,165.2],[-62.5,168.8],[-65.5,168.8]]}}],   // and in front of the green, as wide as the lidar's flattened water (85 x 73.5 yd overall); level set 0.7 under the flattened banks and edge 3 (build: -5.03, 0.6) so the shore profile neither raises a 0.6 yd step round it nor leaves a cliff that launches balls
+  bridge:{x:30,z:93},   // the Hogan Bridge: left of the green from the tee, as the tee photo and the yardage book show
   bbox:{x0:-110,x1:140,z0:-55,z1:230},
   trees:[{type:'tallpine',n:260,zone:'rect',x:[-110,140],z:[168,230],s:[0.9,1.3]},{type:'tallpine',n:220,zone:'sides',side:'both',d:[14,90],z:[-45,170],s:[0.85,1.25]},
          {type:'pine',n:50,zone:'sides',side:'both',d:[8,30],z:[0,150],s:[0.8,1.2]}],
@@ -572,9 +606,12 @@ const HOLES=[
   fw:[[40,15],[200,16],[300,15],[410,13],[480,12]],fairway:[[35,482]],
   green:{x:34,z:500,rx:15,rz:10,rot:0.45},pin:{x:37,z:503},tilt:{x:-0.006,z:-0.011},
   features:[
-    {type:'tilt',area:{pts:[[-10,230],[-8,350]],w:22},grade:0.08,edge:14},        // the fairway slants: rises to the left, so the ball sits below the feet
-    {type:'ramp',z0:370,z1:490,dh:2},                                              // the hole rises to the green
-    {type:'rise',area:{x:34,z:500,rx:17,rz:12,rot:0.45},dh:1.2,edge:8},            // the green sits up above the fairway and runoffs
+    {type:'tilt',area:{pts:[[-10,230],[-8,350]],w:22},grade:-0.1,edge:14},        // the fairway slants: falls to the left (2003 DEM: 4-6 %; doubled, §5), so the ball sits above the feet and hooks
+    // heights along the line from the 2003 NC DEM (3.4 m, before the restoration; lidar.py build, docs/holes/trace/pinehurst-5.json): gentle roll, a dip at 250-360, then up 5 yd to the green
+    {type:'ramp',z0:0,z1:13,dh:-0.92},{type:'ramp',z0:13,z1:38.9,dh:0.6},{type:'ramp',z0:77.8,z1:116.7,dh:-0.16},{type:'ramp',z0:116.7,z1:155.6,dh:-0.72},
+    {type:'ramp',z0:155.6,z1:194.5,dh:1.23},{type:'ramp',z0:194.5,z1:207.4,dh:0.93},{type:'ramp',z0:207.4,z1:246.3,dh:-0.89},{type:'ramp',z0:246.3,z1:324.1,dh:-2.91},
+    {type:'ramp',z0:324.1,z1:363,dh:-0.63},{type:'ramp',z0:401.9,z1:440.8,dh:0.87},{type:'ramp',z0:440.8,z1:466.7,dh:1.92},{type:'ramp',z0:466.7,z1:505.6,dh:2.2},
+    {type:'ramp',z0:505.6,z1:557.5,dh:1.51},
     {type:'hollow',area:{x:34,z:500,rx:18.5,rz:13,rot:0.45},depth:-0.75,flat:0.62,edge:2},  // the plateau: a top that barely moves, falling away steeply at its edges
     {type:'hollow',area:{x:35,z:500,rx:8,rz:5,rot:0.45},depth:-0.07,edge:2},    // movement on the top (see docs/holes/pinehurst-5.md): a broad, low crown in the middle...
     {type:'hollow',area:{x:24,z:497,rx:6,rz:4.5,rot:0.45},depth:0.07,edge:2},     // ...and soft pockets back-left, back-right and front
@@ -586,7 +623,7 @@ const HOLES=[
     {type:'cover',area:{x:34,z:500,rx:36,rz:30,rot:0.45},surf:'WASTE'},            // and beyond the runoffs
   ],
   play:{firm:1.1,greens:{speed:1.1,firm:1.0}},
-  bunkers:[{x:-20,z:270,rx:5,rz:3.5,rot:0.1,depth:1.4,lip:0.5}],
+  bunkers:[{x:-20,z:270,rx:5,rz:3.5,rot:0.1,depth:0.5,lip:0.25}],   // set into the land at a lidar-like depth (0.5 yd): its shape and place are still from words (no 1 m lidar here)
   water:[],
   bbox:{x0:-110,x1:150,z0:-55,z1:590},
   trees:[{type:'pine',n:240,zone:'sides',side:'both',d:[30,95],z:[-45,560],s:[0.9,1.3]},{type:'tallpine',n:130,zone:'sides',side:'both',d:[42,105],z:[0,570],s:[0.9,1.3]}],
