@@ -6,7 +6,7 @@
 |---|---|
 | Real hole | St Andrews Old Course, hole 17, the Road Hole |
 | Par / yardage (real) | Par 4, about 495 yards (lengthened for recent Opens) |
-| Par / yardage (game) | Par 4, 488 yards tee → pin since the lidar rebuild moved the pin behind the bunker (470 before; the card still says 470). A pure driver leaves about 138 yards on the firm fairway; reaching in two takes a driver and a long second. |
+| Par / yardage (game) | Par 4, 488 yards tee → pin since the lidar rebuild moved the pin behind the bunker (470 before; `cards/card4.jpg` now reads 488). A pure driver leaves about 138 yards on the firm fairway; reaching in two takes a driver and a long second. |
 | Sources | See below |
 
 - [golf.com — Inside the Old Course's Road Hole](https://golf.com/travel/inside-oid-course-road-hole-st-andrews/?amp=1)
@@ -157,7 +157,6 @@ the safe line to the wide front of the green holds it                          G
 **Open items**
 1. An aerial of the green: trace its outline (the real green wraps round the bunker).
 2. A revetted-face primitive, so the Road Hole bunker can take its real depth.
-3. The hole card shows 470; the tee → pin is now 488.
 
 ### Earlier review-only pass
 
