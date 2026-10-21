@@ -314,7 +314,7 @@ const V3 = THREE.Vector3;
 const LOOK={ink:0.4,dots:0.2,mis:0.2,hatch:0.2,sat:1.05,grain:0.25,sun:22,forest:0.7,
   pal:{sky:['#ffe6c4','#cfe4f2','#8ec2ea','#3d86d4'],sun:'#fff6ea',sunI:0.9,hemi:['#e8f2ff','#2f4a3a',0.5],fog:'#c4d6da',
    cloud:['#ffffff','#fbf3ea','#d8cfd2'],cloudInk:false,city:{far:'#b3c2d8',near:['#8496b4','#90a2bf','#7586a6','#9cadc8'],win:['#ffe0a0','#fff0c8'],lit:0.18},treeline:['#3f6e4e','#2f6040'],
-   g:{tee:'#5aa83a',fw1:'#69b641',fw2:'#4c9a31',cut:'#3f8a30',rough:'#2a6e2c',deep:'#1d5826',fringe:'#4f9433',green1:'#86c96c',green2:'#5a9e48',sand:'#f6dcae',sandRim:'#c89a62',bed:'#3a7fa8',path:'#c4b090',pathEdge:'#9a8668'},
+   g:{tee:'#5aa83a',fw1:'#5fa83f',fw2:'#4c9a31',cut:'#3f8a30',rough:'#2a6e2c',deep:'#1d5826',fringe:'#4f9433',green1:'#86c96c',green2:'#5a9e48',sand:'#f6dcae',sandRim:'#c89a62',bed:'#3a7fa8',path:'#c4b090',pathEdge:'#9a8668'},
    trees:['#1d5a34','#226638','#2a7240','#174d2c','#2f7a44','#205c36'],trunk:'#5a3e2a',bush:['#2a6a32','#30763a','#235e2c','#3a8242'],water:['#2a6fa0','#7ab8d0'],bank:'#5a6a5a',rock:'#a89a88',ink:'#3a2a22',teeSide:'#2f7a2c',flag:'#e04a2a'}};
 const PAL=LOOK.pal;
 const D2R = Math.PI/180;
@@ -1468,7 +1468,7 @@ function buildWorld(){
         if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}
         if(HOLE.theme==='links'&&!inFairway(x,z,3)){const n=jagN(x*0.35+11,z*0.35)*0.5+jagN(x*1.3,z*1.1+5)*0.25;c.lerp(n>0?LGOLD:LMOSS,Math.min(0.75,Math.abs(n)*0.9));}}
     };
-    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count);
+    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count),dA=new Float32Array(pos.count);
     const REV=BUNKERS.filter(b=>b.revet??HOLE.theme==='links');   // their sand and faces are drawn by a finer mesh of their own (below): the terrain leaves a hole for it
     for(let i=0;i<pos.count;i++){
       const x0=pos.getX(i),z0=pos.getZ(i),y0=H(x0,z0);pos.setY(i,y0);if(y0<lowH&&!overWater(x0,z0))lowH=y0;
@@ -1477,27 +1477,38 @@ function buildWorld(){
       cols[i*3]=acc.r;cols[i*3+1]=acc.g;cols[i*3+2]=acc.b;
       let bk=3;for(const b of REV)bk=Math.min(bk,ell(x0,z0,b));bkA[i]=bk;
             fwA[i]=fw;uA[i]=x0-centerX(z0); // sideways distance from the centre line: mowing stripes run down the hole and bend with it
+      dA[i]=(centerX(z0+2)-centerX(z0-2))/4;  // the stripes' direction (dx per yard of z), so the shader knows which way each pass was mown
     }
-    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.setAttribute('aBk',new THREE.BufferAttribute(bkA,1));tg.computeVertexNormals();
+    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.setAttribute('aBk',new THREE.BufferAttribute(bkA,1));tg.setAttribute('aD',new THREE.BufferAttribute(dA,1));tg.computeVertexNormals();
     { // relief shading: tilt each shading normal 3x so gentle links swales and banks read in the light (look only: the ball reads H, never the mesh)
       const nA=tg.attributes.normal;for(let i=0;i<nA.count;i++){const v=new V3(nA.getX(i)*3,nA.getY(i),nA.getZ(i)*3).normalize();nA.setXYZ(i,v.x,v.y,v.z);}
       tg.computeBoundingSphere();
     }
     const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});tm.extensions={derivatives:true};
     tm.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;attribute float aBk;varying float vFw;varying float vU;varying float vBk;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;vBk=aBk;');
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;attribute float aBk;attribute float aD;varying float vFw;varying float vU;varying float vBk;varying float vD;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;vBk=aBk;vD=aD;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;varying float vD;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}`)
        .replace('#include <color_fragment>',`#include <color_fragment>
         if(vBk<0.92)discard;
         float gn=vnoise(vWP.xz*0.05)*0.6+vnoise(vWP.xz*0.21)*0.3+vnoise(vWP.xz*1.7)*0.1;
         float fwm=smoothstep(0.35,0.65,vFw);
-        // crisp lengthwise mowing stripes, anti-aliased so they fade to an even tone in the distance
-        float su=vU/4.2+(vnoise(vWP.xz*0.45)-0.5)*0.045,aa=max(fwidth(su)*1.5,0.05),tri=abs(fract(su)-0.5)*2.0;
-        float st=mix(smoothstep(0.5-aa,0.5+aa,tri),0.5,smoothstep(0.25,0.6,aa));
-        diffuseColor.rgb*=1.0-0.15*st*fwm;
-        diffuseColor.rgb*=1.0+((h21(floor(vWP.xz*8.0))-0.5)*0.06+(vnoise(vec2(su*10.0,vWP.z*0.4))-0.5)*0.05)*fwm;
+        // mowing stripes the way real ones work: each pass lays the grass one way, so a stripe reads light looking with the grain and dark
+        // looking against it. The contrast follows the view (strongest straight down the hole, gone looking across it), edges are soft and wavering,
+        // and every stripe fades to an even tone in the distance. Look only.
+        float su=vU/4.6+(vnoise(vWP.xz*0.3)-0.5)*0.09,aa=max(fwidth(su)*1.5,0.05),tri=abs(fract(su)-0.5)*2.0;
+        float par=(mix(smoothstep(0.5-aa-0.12,0.5+aa+0.12,tri),0.5,smoothstep(0.25,0.6,aa))-0.5)*2.0;   // -1..1: which way this pass was mown
+        vec2 md=normalize(vec2(vD,1.0)),vw=vWP.xz-cameraPosition.xz;float vl=length(vw);vw/=max(vl,0.001);
+        float grain=dot(vw,md)*smoothstep(4.0,25.0,vl)+0.25*dot(normalize(vec2(${SUN_OFF.x.toFixed(3)},${SUN_OFF.z.toFixed(3)})),md);
+        diffuseColor.rgb*=1.0+(0.02+0.055*abs(grain))*sign(grain+0.0001)*par*fwm;
+        // the turf itself: broad patches a shade lusher or drier (drier is a touch yellower), and fine blade grain that fades before it can shimmer
+        float pt=vnoise(vWP.xz*0.035+3.0)*0.65+vnoise(vWP.xz*0.11+9.0)*0.35;
+        diffuseColor.rgb*=1.0+(pt-0.5)*0.12*fwm;
+        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.07,1.02,0.8),smoothstep(0.55,0.8,pt)*0.45*fwm);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(dot(diffuseColor.rgb,vec3(0.3,0.59,0.11))),0.16*fwm);   // a little less saturated than the old cartoon lime
+        float fpx=max(fwidth(vWP.x),fwidth(vWP.z));
+        diffuseColor.rgb*=1.0+((vnoise(vWP.xz*3.0)-0.5)*0.07*(1.0-smoothstep(0.12,0.3,fpx))+(vnoise(vec2(su*14.0,vWP.z*0.9))-0.5)*0.04)*fwm;
         diffuseColor.rgb*=1.0+(0.12*gn-0.06+(vnoise(vWP.xz*7.0)-0.5)*0.06)*(1.0-0.65*fwm);`);
     };
     const terrain=add(new THREE.Mesh(tg,tm));terrain.receiveShadow=true;
