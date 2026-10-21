@@ -1209,19 +1209,31 @@ async function loadNature(){
     NATURE.ok=true;
   }catch(e){console.warn('nature models not loaded, using simple shapes:',e&&e.message||e);}
 }
+
+// a strip of grass blades on a transparent card: white blades whose alpha is the silhouette (the grass shader colours them)
+let _blade=null;
+function bladeTex(){
+  if(_blade)return _blade;
+  const cv=document.createElement('canvas');cv.width=256;cv.height=128;const g=cv.getContext('2d'),r=rng(4242);
+  for(let i=0;i<34;i++){const x=4+r()*248,w=3+r()*5,h=60+r()*66,lean=(r()-0.5)*40;
+    g.beginPath();g.moveTo(x-w/2,128);g.quadraticCurveTo(x+lean*0.3,128-h*0.6,x+lean,128-h);g.quadraticCurveTo(x+lean*0.3+w*0.2,128-h*0.6,x+w/2,128);g.closePath();
+    g.fillStyle='#fff';g.fill();}
+  _blade=new THREE.CanvasTexture(cv);_blade.anisotropy=4;return _blade;
+}
 // a copy of a material whose geometry bends in the wind: the higher a vertex sits in its model, the further it moves (grass, fescue)
 const _sway=new Map();
 function swayMat(base){
   if(_sway.has(base))return _sway.get(base);
-  const m=base.clone();m.customProgramCacheKey=()=>'nat-sway';
-  m.onBeforeCompile=sh=>{sh.uniforms.uT=WT;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;')
+  const m=base.clone();m.opacity=0.75;m.alphaTest=0.4;m.customProgramCacheKey=()=>'nat-sway';   // opacity 0.75: the post pass treats it as ground (no ink outline round every blade)
+  m.onBeforeCompile=sh=>{sh.uniforms.uT=WT;sh.uniforms.uBall={value:ball.p};sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;uniform vec3 uBall;')
     .replace('#include <begin_vertex>',`#include <begin_vertex>
     #ifdef USE_INSTANCING
       vec3 ip=instanceMatrix[3].xyz;
     #else
       vec3 ip=vec3(0.0);
     #endif
-    float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.09*position.y;transformed.z+=sw*0.04*position.y;`);};
+    float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.09*position.y;transformed.z+=sw*0.04*position.y;
+    transformed.y*=0.2+0.8*smoothstep(0.8,2.4,distance(ip.xz,uBall.xz));`);};
   _sway.set(base,m);return m;
 }
 // Place a kit's models: items [{x,y,z,rot,s (uniform scale on top of the kit's height), sy?, v (variant), col?}]. One InstancedMesh per variant and
@@ -1686,6 +1698,45 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0);
       items.forEach(([x,z,s,col,az],i)=>{q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)+s*0.35,z),q,new V3(s*(az?1.5:1.3),s*(az?0.8:0.85),s*(az?1.3:1.2)));bm.setMatrixAt(i,m);bo.setMatrixAt(i,m);c.set(col);bm.setColorAt(i,c);});
       bm.castShadow=true;bm.receiveShadow=true;
+    }
+  }
+
+  // ---- grass carpet: dense, low cards of grass blades along the rough beside the fairway and round the green, so the ground the camera sees close
+  // up is grass rather than a painted colour. Each card is three crossed quads with a blade-silhouette texture; colour runs from a dark base to a
+  // lighter tip that drifts across the hole, and the tips bend in the wind (the idea from FluffyGrass, github.com/thebenezer/FluffyGrass, MIT). Look only.
+  {
+    const r=rng(5+holeIdx*29),LINKS=HOLE.theme==='links',spots=[];
+    const NC=LINKS?16000:22000;
+    for(let i=0;i<NC*5&&spots.length<NC;i++){
+      let x,z;
+      if(r()<0.8){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.3+Math.pow(r(),1.4)*24);}
+      else{const a=r()*6.28,q=Math.max(GREEN.rx,GREEN.rz)+2+r()*22;x=GREEN.x+Math.cos(a)*q;z=GREEN.z+Math.sin(a)*q;}
+      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.sd(x,z)>-0.8))continue;spots.push([x,z]);
+    }
+    if(spots.length){
+      const pos=[],uv=[],nor=[],ix=[];
+      for(let k=0;k<3;k++){const a=k*Math.PI/3,cx=Math.cos(a)*0.5,cz=Math.sin(a)*0.5,b=pos.length/3;
+        pos.push(-cx,0,-cz, cx,0,cz, cx,1,cz, -cx,1,-cz);uv.push(0,0,1,0,1,1,0,1);nor.push(0,1,0,0,1,0,0,1,0,0,1,0);ix.push(b,b+1,b+2,b,b+2,b+3);}
+      const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));cg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));cg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));cg.setIndex(ix);
+      const base=new THREE.Color(GP.rough).multiplyScalar(0.55),tip1=new THREE.Color(LINKS?'#d9c47a':GP.rough).offsetHSL(0,0.05,LINKS?0:0.12),tip2=new THREE.Color(LINKS?'#9aa257':GP.fringe).offsetHSL(0,0,LINKS?0:0.04);
+      const gm=toon(0xffffff,{map:bladeTex(),opacity:0.75,alphaTest:0.3,side:THREE.DoubleSide});gm.customProgramCacheKey=()=>'grass-carpet';
+      gm.onBeforeCompile=sh=>{
+        Object.assign(sh.uniforms,{uT:WT,uBase:{value:base},uTip1:{value:tip1},uTip2:{value:tip2},uBall:{value:ball.p}});
+        sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;uniform vec3 uBall;varying vec3 vCW;varying float vH;')
+          .replace('#include <begin_vertex>',`#include <begin_vertex>
+          vec3 ip=instanceMatrix[3].xyz;vCW=ip;vH=uv.y;
+          transformed.y*=0.25+0.75*smoothstep(0.5,1.8,distance(ip.xz,uBall.xz));   // pressed down round the ball, so it never hides in the grass
+          float sw=sin(uT*1.7+ip.x*0.27+ip.z*0.19)*0.7+sin(uT*2.9+ip.z*0.8)*0.3;transformed.x+=sw*0.22*uv.y;transformed.z+=sw*0.1*uv.y;`);
+        sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+          uniform vec3 uBase;uniform vec3 uTip1;uniform vec3 uTip2;varying vec3 vCW;varying float vH;
+          float ch21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+          float cnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(ch21(i),ch21(i+vec2(1.0,0.0)),f.x),mix(ch21(i+vec2(0.0,1.0)),ch21(i+vec2(1.0,1.0)),f.x),f.y);}`)
+          .replace('#include <map_fragment>',`vec4 tA=texture2D(map,vUv);diffuseColor.a*=tA.a;
+          vec3 tip=mix(uTip1,uTip2,cnz(vCW.xz*0.09));diffuseColor.rgb=mix(uBase,tip,smoothstep(0.0,0.85,vH));`);
+      };
+      const cm=add(new THREE.InstancedMesh(cg,gm,spots.length));cm.receiveShadow=true;
+      const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0);
+      spots.forEach(([x,z],i)=>{const w=LINKS?0.9+r()*0.6:0.8+r()*0.5,h=LINKS?0.35+r()*0.3:0.22+r()*0.16;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.03,z),q,new V3(w,h,w));cm.setMatrixAt(i,m);});
     }
   }
   // ---- grass tufts and flowers in the rough
