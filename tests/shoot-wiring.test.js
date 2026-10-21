@@ -66,3 +66,10 @@ test('putter: TAP, same PERFECT!/PUSHED/PULLED tags as before, no CHUNK, no spin
   assert.deepEqual(w.popups.map(p => p.t), ['TAP']);
   assert.equal(w.ball.spin, 0); assert.equal(w.ball.v.y, 0);
 });
+
+test('a full wedge leaves with its backspin: begin() runs after the launch velocity is set (it used to see a ball at rest and give no spin)', () => {
+  const w = world(3); w.shoot(1, 0.02);
+  assert.ok(w.ball.back > g.CLUBS[3].back * 0.8, `wedge backspin ${w.ball.back} rpm`);
+  const c = world(3); c.shoot(0.15, 0.02);
+  assert.ok(c.ball.back > 0 && c.ball.back < w.ball.back * 0.3, `a chip spins far less (${c.ball.back.toFixed(0)} rpm)`);
+});

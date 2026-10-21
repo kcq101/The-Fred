@@ -1,6 +1,6 @@
 # Handoff: where The Fred stands
 
-Last updated 2026-10-21 (evening), after PRs #18–#20. Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
+Last updated 2026-10-21 (late evening), after PRs #18–#20 and #23 (the wedge-spin fix); PR #22 (drag and lift) is open. Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
 
 ## 1. The decision behind the latest work
 
@@ -30,18 +30,19 @@ What was decided (2026-10-21):
 | Tools | `render.py` serves the game's files, loads the models and takes `--js`. New: `tests/tools/nature.py` | `tests/README.md` |
 | Pipeline | New step 6b, **Dress the hole**: theme, props, backdrop, starting from the view from the tee. The template has a look table and a verdict line for the view from the tee | `docs/ICONIC-HOLES.md` §2; `docs/holes/TEMPLATE.md` |
 
-**Later the same day (PRs #18–#20):**
+**Later the same day (PRs #18–#20, #23):**
 
 | Area | Change | Where |
 |---|---|---|
 | Fairways | Softer mowing stripes that change light/dark with the view along the mowing; lusher and drier patches; smooth grain; a less lime base colour. Look only | the terrain shader; `docs/ICONIC-HOLES.md` §1.5, "Fairway turf" |
 | Riviera No. 6 | Bunker depths from the lidar (middle 0.46, front 0.68, back 0.61, left 0.48; lips 0.25). They were up to 2.8 × too deep and read as craters. Every hole's bunkers now come from lidar | `docs/holes/riviera-6.md` (end); pipeline doc §3.1 item 5 |
+| Wedge backspin in the live game (#23) | `shoot()` called `BallModel.begin` before setting the launch velocity, so the backspin from PR #15 saw a ball at rest and never happened in the browser (the hole checks launched in the right order, so they never saw it). Fixed, with a regression test. No hole check moved | `shoot()` in `index.html`; `tests/shoot-wiring.test.js` |
 
-Tests: `node --test tests/*.test.js` gives 153 pass, 0 fail and 3 skipped. The skips are the lidar regressions, which skip without their tiles. Every hole's checks pass. In a shallow clone, one tools test needs older history (see §2, "Environment notes" in the pipeline doc).
+Tests: `node --test tests/*.test.js` gives 152 pass, 0 fail and 3 skipped (155 tests). The skips are the lidar regressions, which skip without their tiles. Every hole's checks pass. In a shallow clone, one tools test needs older history (see §2, "Environment notes" in the pipeline doc).
 
 ## 3. Open items to consider
 
-In rough order of how much each would change what a player meets. None has been started.
+In rough order of how much each would change what a player meets. Item 1 is in progress (below); the rest have not been started.
 
 **Ball feel (the owner's top long-term priority)**
 1. **Port more of OpenFairway's physics.** The next pieces are:
@@ -49,6 +50,12 @@ In rough order of how much each would change what a player meets. None has been 
    - its spin-dependent bounce (coefficient of restitution falls with spin and impact speed);
    - its surface presets (fairway, rough, firm, soft).
    Backspin went in without moving any hole check, and these may not. Do them one at a time, re-run `validate.js` on all seven holes after each, and log any check that changes (spec §6).
+
+   **Status (2026-10-21, evening).** The drag and lift piece is ported on branch `flight-aero-openfairway`, draft PR #22, **not merged**. Full-swing carries held, but the ball now lands at real angles (driver 15° → 36°), and our impact law grabs by the tangent of the landing angle, so a driver's roll fell from 41 to 3 yd. 30 of 67 hole checks fail; the PR lists every number that moved.
+   **The owner's decision: option 2A.** Next session, port OpenFairway's spin-dependent bounce (`BounceCalculator.cs` and its profiles) onto that branch, so roll comes back from physics, not tuning; then re-run all seven holes. Only after that:
+   - propose each hole's `windPush` again (drag into the wind is about twice as strong now);
+   - propose whether to scale each club's `curve` and `shape` by the hang-time ratio² (Hammer ×0.32 … Wedge ×0.53), since curves bend further over longer flights.
+   Both are the owner's call. Don't merge #22 without the owner's OK.
 2. **Bunkers that take the pace off a ball** (gap #5 in the pipeline doc's §3.1). A ball landing on a steep grass face keeps its speed and can hop out. A plugging or soft-lip rule was tried once and dropped because it broke two holes. It needs a fresh design with its own tests.
 3. **Rapier (3D physics) for ball-versus-prop contact.** This only matters if props multiply. Walls are polylines today, which is fine for sheds and stone walls.
 
