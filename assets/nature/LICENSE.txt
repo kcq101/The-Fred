@@ -1,0 +1,4 @@
+Models and textures: Quaternius, Stylized Nature MegaKit (standard tier).
+License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdomain/zero/1.0/
+Source: https://quaternius.com/packs/stylizednaturemegakit.html
+Packed for the game by tests/tools/nature.py (quantized geometry, smaller textures).

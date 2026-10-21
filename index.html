@@ -1175,6 +1175,68 @@ function cleanMat(hex,shaded=false){
   });
 }
 
+
+// ---------------------------------------------------------------- nature models (assets/nature: Quaternius' Stylized Nature MegaKit, CC0, packed by
+// tests/tools/nature.py). Loaded once at start-up; until they arrive, or if they cannot be fetched, the world uses its own simple shapes.
+const NATURE={ok:false,models:{},kits:{}};
+// how tall each kit stands in the game (yards, before a tree's own size jitter), whatever height the pack draws it at
+const NAT_H={oak:7.6,pine:7.8,cypress:8.2,dead:8,bush:1.25,bushflower:1.25,rock:1,fescue:0.75,tuft:0.5,fern:0.6,flowers:0.5};
+async function loadNature(){
+  try{
+    const base='assets/nature/';
+    const [idx,bin]=await Promise.all([fetch(base+'nature.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),fetch(base+'nature.bin').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer();})]);
+    const tl=new THREE.TextureLoader(),tex={};
+    await Promise.all(Object.keys(idx.textures).map(n=>new Promise((ok,no)=>tl.load(base+n,t=>{t.encoding=THREE.LinearEncoding;t.anisotropy=4;tex[n]=t;ok();},undefined,no))));
+    const mats={};
+    const matFor=pt=>{const k=pt.tex+(pt.alpha?'a':'');return mats[k]||(mats[k]=toon(0xffffff,{map:tex[pt.tex],vertexColors:true,alphaTest:pt.alpha?0.5:0,side:pt.alpha?THREE.DoubleSide:THREE.FrontSide}));};
+    for(const[name,m]of Object.entries(idx.models)){
+      const ext=[0,1,2].map(j=>m.hi[j]-m.lo[j]);
+      const parts=m.parts.map(pt=>{
+        const q=new Int16Array(bin,pt.pos,pt.n*3),P=new Float32Array(pt.n*3);
+        for(let i=0;i<pt.n*3;i++){const j=i%3;P[i]=m.lo[j]+(q[i]/32767+1)/2*ext[j]-(j===1?m.lo[1]:0)-(j!==1?(m.lo[j]+m.hi[j])/2:0);}   // base on the ground, centred on its trunk
+        const g=new THREE.BufferGeometry();
+        g.setAttribute('position',new THREE.BufferAttribute(P,3));
+        g.setAttribute('normal',new THREE.BufferAttribute(new Int8Array(bin,pt.nor,pt.n*3),3,true));
+        g.setAttribute('uv',new THREE.BufferAttribute(new Uint16Array(bin,pt.uv,pt.n*2),2,true));
+        g.setAttribute('color',new THREE.BufferAttribute(new Uint8Array(bin,pt.col,pt.n*3),3,true));
+        g.setIndex(new THREE.BufferAttribute(pt.big?new Uint32Array(bin,pt.idx,pt.ni):new Uint16Array(bin,pt.idx,pt.ni),1));
+        g.computeBoundingSphere();
+        return{geo:g,mat:matFor(pt),alpha:pt.alpha};
+      });
+      NATURE.models[name]={h:ext[1],parts};
+    }
+    for(const[k,names]of Object.entries(idx.kits)){const ms=names.map(n=>NATURE.models[n]).filter(Boolean);NATURE.kits[k]={variants:ms,h:ms.reduce((a,b)=>a+b.h,0)/ms.length};}
+    NATURE.ok=true;
+  }catch(e){console.warn('nature models not loaded, using simple shapes:',e&&e.message||e);}
+}
+// a copy of a material whose geometry bends in the wind: the higher a vertex sits in its model, the further it moves (grass, fescue)
+const _sway=new Map();
+function swayMat(base){
+  if(_sway.has(base))return _sway.get(base);
+  const m=base.clone();m.customProgramCacheKey=()=>'nat-sway';
+  m.onBeforeCompile=sh=>{sh.uniforms.uT=WT;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;')
+    .replace('#include <begin_vertex>',`#include <begin_vertex>
+    #ifdef USE_INSTANCING
+      vec3 ip=instanceMatrix[3].xyz;
+    #else
+      vec3 ip=vec3(0.0);
+    #endif
+    float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.09*position.y;transformed.z+=sw*0.04*position.y;`);};
+  _sway.set(base,m);return m;
+}
+// Place a kit's models: items [{x,y,z,rot,s (uniform scale on top of the kit's height), sy?, v (variant), col?}]. One InstancedMesh per variant and
+// material; each item gets item.ims (its meshes) and item.idx (its slot in them) so it can be hidden (tree cutaway). Returns the meshes.
+function placeNature(kitName,items,add,{cast=true,target,sway=false}={}){
+  const kit=NATURE.kits[kitName],out=[];if(!kit)return out;
+  const unit=(target??NAT_H[kitName]??1)/kit.h,m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0),c=new THREE.Color();
+  kit.variants.forEach((vm,vi)=>{
+    const set=items.filter(it=>it.v%kit.variants.length===vi);if(!set.length)return;
+    const meshes=vm.parts.map(pt=>{const im=add(new THREE.InstancedMesh(pt.geo,sway?swayMat(pt.mat):pt.mat,set.length));im.castShadow=cast;im.receiveShadow=true;out.push(im);return im;});
+    set.forEach((it,i)=>{q.setFromAxisAngle(up,it.rot||0);m.compose(new V3(it.x,it.y,it.z),q,new V3(it.s*unit,(it.sy??it.s)*unit,it.s*unit));
+      meshes.forEach(im=>{im.setMatrixAt(i,m);if(it.col){c.copy(it.col);im.setColorAt(i,c);}});it.ims=meshes;it.idx=i;it.mat=m.clone();});
+  });
+  return out;
+}
 const glv=h=>{const c=new THREE.Color(h);return `vec3(${c.r.toFixed(3)},${c.g.toFixed(3)},${c.b.toFixed(3)})`;};
 // ---------------------------------------------------------------- lights + sky
 // sun from behind-left of the tee at the chosen height
@@ -1553,10 +1615,12 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     if(cliffB)for(let k=0;k<12000&&rocks.length<n;k++){const x=mix(bb.x0,bb.x1,r()),z=mix(bb.z0,bb.z1,r());const s=cliffB.sd(x,z);if(s>0.4&&s<9){const sz=mix(1,4.2,Math.pow(r(),1.6));rocks.push([x,z,sz,cliffB.level+sz*mix(0.0,0.35,r())]);}}
     for(let k=0;k<45;k++){const z=mix(-10,PIN.z,r()),side=r()<0.5?-1:1,x=centerX(z)+side*(fairwayHalf(z)+5+r()*14);if(spotOK(x,z,2)&&S(x,z)===ROUGH){const sz=0.5+r()*1.1;rocks.push([x,z,sz,H(x,z)+sz*0.2]);}}
     if(rocks.length){
+      if(NATURE.ok)placeNature('rock',rocks.map(([x,z,sz,y])=>({x,y:y-sz*0.35,z,rot:r()*6.28,s:sz*1.1,sy:sz*0.8,v:Math.floor(r()*9)})),add);
+      else{
       const geo=new THREE.DodecahedronGeometry(1,0);const rm=add(new THREE.InstancedMesh(geo,toon((HOLE.rocks&&HOLE.rocks.col)||PAL.rock),rocks.length)),ro=add(new THREE.InstancedMesh(geo,outlineMat(0.12),rocks.length));
       const m=new THREE.Matrix4(),q=new THREE.Quaternion();
       rocks.forEach(([x,z,s,y],i)=>{q.setFromAxisAngle(new V3(r(),r(),r()).normalize(),r()*6);m.compose(new V3(x,y,z),q,new V3(s*1.4,s*0.75,s));rm.setMatrixAt(i,m);ro.setMatrixAt(i,m);});
-      rm.castShadow=true;
+      rm.castShadow=true;}
     }
   }
   // ---- trees
@@ -1578,14 +1642,26 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       }
     }
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0);
+    const NAT_TREE={pine:['pine',1],tallpine:['pine',1.8],oak:['oak',1],cypress:['cypress',1]};
     for(const type in byType){
       const{kit,list}=byType[type];if(!list.length)continue;
+      const nk=NATURE.ok&&NAT_TREE[type];
+      if(nk){   // hand-made models; the trees' sizes, spacing and collision (cy, r) are unchanged
+        const near=t=>Math.abs(t.x-centerX(clamp(t.z,0,PIN.z)))<fairwayHalf(t.z)+34||Math.hypot(t.x-GREEN.x,t.z-GREEN.z)<60;
+        const col=t=>new THREE.Color().setRGB(t.k*(1+t.j*0.05),t.k*(1+t.j*0.02),t.k*(1-t.j*0.04));
+        for(const cast of[true,false]){
+          const items=list.filter(t=>near(t)===cast).map((t,i)=>Object.assign(t,{v:Math.floor(t.rot*7),y0:t.y}));
+          placeNature(nk[0],items.map(t=>({t,x:t.x,y:t.y-0.2,z:t.z,rot:t.rot,s:t.s,sy:t.sy*nk[1],v:t.v,col:col(t)})).map(it=>{it.t.it=it;return it;}),add,{cast});
+          for(const t of items){t.ims=t.it.ims;t.idx=t.it.idx;t.mat=t.it.mat;delete t.it;}
+        }
+        continue;
+      }
       const mat=toon(0xffffff,{vertexColors:true}),om=outlineMat(0.13);
       const nearSet=list.filter(t=>Math.abs(t.x-centerX(clamp(t.z,0,PIN.z)))<fairwayHalf(t.z)+34||Math.hypot(t.x-GREEN.x,t.z-GREEN.z)<60),farSet=list.filter(t=>!nearSet.includes(t));
       for(const[set,cast]of[[nearSet,true],[farSet,false]]){
         if(!set.length)continue;
         const im=add(new THREE.InstancedMesh(kit.geo,mat,set.length)),io=add(new THREE.InstancedMesh(kit.geo,om,set.length));
-        set.forEach((t,i)=>{q.setFromAxisAngle(up,t.rot);m.compose(new V3(t.x,t.y-0.25,t.z),q,new V3(t.s,t.sy,t.s));im.setMatrixAt(i,m);io.setMatrixAt(i,m);t.im=im;t.io=io;t.idx=i;t.mat=m.clone();
+        set.forEach((t,i)=>{q.setFromAxisAngle(up,t.rot);m.compose(new V3(t.x,t.y-0.25,t.z),q,new V3(t.s,t.sy,t.s));im.setMatrixAt(i,m);io.setMatrixAt(i,m);t.ims=[im,io];t.idx=i;t.mat=m.clone();
           c.setRGB(t.k*(1+t.j*0.05),t.k*(1+t.j*0.02),t.k*(1-t.j*0.04));im.setColorAt(i,c);});
         im.castShadow=cast;im.receiveShadow=true;
       }
@@ -1600,6 +1676,11 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     for(const z of HOLE.bushes){const sample=zoneSampler(z,r);let placed=0;
       for(let k=0;k<z.n*12&&placed<z.n;k++){const[x,zz]=sample();if(!spotOK(x,zz,1.5))continue;if(TREES.some(t=>Math.abs(t.x-x)<2&&Math.abs(t.z-zz)<2))continue;
         const az=z.type==='azalea',s=az?mix(1.1,2.1,r()):mix(0.9,1.8,r());items.push([x,zz,s,PALS[z.type][Math.floor(r()*PALS[z.type].length)],az]);placed++;}}
+    if(NATURE.ok){   // green shrubs become the pack's bush model; azaleas keep their own pink lumps
+      const shrubs=items.filter(it=>!it[4]);
+      placeNature('bush',shrubs.map(([x,z,sz])=>({x,y:H(x,z)-0.15,z,rot:r()*6.28,s:sz*0.9,sy:sz*0.75,v:0,col:new THREE.Color().setHSL(0.27,0.35,0.42+r()*0.12).multiplyScalar(2)})),add);
+      items.splice(0,items.length,...items.filter(it=>it[4]));
+    }
     if(items.length){
       const bm=add(new THREE.InstancedMesh(lump,toon(0xffffff),items.length)),bo=add(new THREE.InstancedMesh(lump,outlineMat(0.1),items.length));
       const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0);
@@ -1632,7 +1713,15 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       #endif
       float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.16*position.y;transformed.z+=sw*0.07*position.y;`);};
     tuftM.customProgramCacheKey=()=>'tuft-sway';
-    const tufts=add(new THREE.InstancedMesh(tgeo,tuftM,spots.length));
+    if(NATURE.ok&&LINKS){   // links fescue: the pack's wispy grass clumps, tinted from green to straw gold
+      const gold=['#ffe7a0','#f2d98a','#d8d488','#fff0c0'].map(h=>new THREE.Color(h));
+      // the hand-made clumps where the camera sees them close (along the fairway and round the green), the cheap blade tufts further out
+      const nearF=([x,z])=>Math.abs(x-centerX(z))<fairwayHalf(z)+26||Math.hypot(x-GREEN.x,z-GREEN.z)<40;
+      const close=spots.filter(nearF).slice(0,2600);
+      placeNature('fescue',close.map(([x,z])=>({x,y:H(x,z)-0.05,z,rot:r()*6.28,s:1.0+r()*0.7,v:Math.floor(r()*4),col:gold[Math.floor(r()*4)]})),add,{cast:false,sway:true});
+      const keep=spots.filter(p=>!close.includes(p));spots.length=0;spots.push(...keep);
+    }
+    const tufts=add(new THREE.InstancedMesh(tgeo,tuftM,Math.max(1,spots.length)));if(!spots.length)tufts.count=0;
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0),goldT=new THREE.Color('#b8a050');
     spots.forEach(([x,z],i)=>{const s=LINKS?0.75+r()*0.55:0.9+r()*0.9;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.02,z),q,new V3(s,s*(0.8+r()*0.6),s));tufts.setMatrixAt(i,m);
       if(LINKS){const k=r();c.set(k<0.45?'#c9b46a':k<0.75?'#a99c55':k<0.92?'#8c9450':'#d8c98a').offsetHSL(0,0,(r()-0.5)*0.08);}else c.set(GP.rough).offsetHSL(0,0,(r()-0.5)*0.12);if(HOLE.gold&&cliffB)c.lerp(goldT,0.85*(1-smooth(2,18,-cliffB.sd(x,z))));tufts.setColorAt(i,c);});
@@ -2514,8 +2603,8 @@ function updateTreeCutaway(clear){
     let hide=false;
     if(!clear){const u=clamp(((t.x-ax)*ex+(t.z-az)*ez)/L2,0,1),dx=t.x-(ax+ex*u),dz=t.z-(az+ez*u);hide=Math.hypot(dx,dz)<2.2+t.r*0.7&&camera.position.y<t.y+t.cy-t.y+t.r*1.6;}
     const was=hiddenTrees.has(t);
-    if(hide&&!was){t.im.setMatrixAt(t.idx,_zero);t.io.setMatrixAt(t.idx,_zero);hiddenTrees.add(t);touched.add(t.im);touched.add(t.io);}
-    else if(!hide&&was){t.im.setMatrixAt(t.idx,t.mat);t.io.setMatrixAt(t.idx,t.mat);hiddenTrees.delete(t);touched.add(t.im);touched.add(t.io);}
+    if(hide&&!was){for(const im of t.ims){im.setMatrixAt(t.idx,_zero);touched.add(im);}hiddenTrees.add(t);}
+    else if(!hide&&was){for(const im of t.ims){im.setMatrixAt(t.idx,t.mat);touched.add(im);}hiddenTrees.delete(t);}
   }
   touched.forEach(m=>m.instanceMatrix.needsUpdate=true);
 }
@@ -2627,7 +2716,7 @@ function frame(now){
 }
 
 window.__fred={go:i=>loadHole(i),put:(dx,dz)=>{ball.p.set(PIN.x+dx,H(PIN.x+dx,PIN.z+dz)+R,PIN.z+dz);ballGroup.visible=true;setupAim();},ball:()=>ballScreen(),target:()=>screenOf(target),state:()=>state,skip:()=>{for(let i=0;i<6000&&state==='flight';i++)simulateFlight(1/60);}};
-resize();loadHole(0);$('intro').hidden=true; // hole 1 is built behind the menu so New game starts instantly
+resize();loadHole(0);$('intro').hidden=true;loadNature().then(()=>{if(NATURE.ok&&world)buildWorld();}); // hole 1 is built behind the menu so New game starts instantly
 requestAnimationFrame(frame);
 })();
 </script>
