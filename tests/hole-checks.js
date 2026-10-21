@@ -90,26 +90,26 @@ module.exports = {
   },
 
   'standrews-17': {
-    challenge: 'A long second into a narrow green on firm links turf: the deep Road Hole bunker eats into the front-left (a ball in it cannot play out forwards) and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and the road has it.',
+    challenge: 'A long second into a narrow green on firm links turf, angled from front-right to back-left along the road: the deep Road Hole bunker eats into its left end (a ball in it cannot play out forwards), the Sunday pin is tucked behind it, and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and it runs off the back.',
     shots: [
       { name: 'a pure drive runs out on the firm fairway and leaves a full iron', shot: { club: 'Hammer', at: [0, 300], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
-      { name: 'an iron flown right at the pin runs through the green onto the road', shot: { from: [0, 334], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD'] } },
-      { name: 'carrying the bunker and landing just over it holds the green', shot: { from: [0, 334], club: 'Iron', at: [18, 464] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
-      { name: 'the same shot pulled a little drops into the Road Hole bunker', shot: { from: [0, 334], club: 'Iron', at: [18, 464], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'into an 18 mph headwind the same carry falls short, into the bunker', shot: { from: [0, 334], club: 'Iron', at: [18, 464], wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'with an 18 mph tailwind it flies the green into the rough behind', shot: { from: [0, 334], club: 'Iron', at: [18, 464], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['ROUGH', 'ROAD'] } },
-      { name: 'a 3-wood run into the back of the green strikes the stone wall and kicks back onto the road', shot: { from: [0, 334], club: '3-Wood', at: [18, 470] }, expect: { end: 'rest', surf: ['ROAD'], wall: true } },
-      { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [22, 456], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 334], club: 'Iron', at: [8, 455] }, expect: { surf: ['GREENS'] } },
+      { name: 'an iron flown at the pin runs through the green and off the back', shot: { from: [1, 345], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
+      { name: 'landed short of the tucked pin and run up, an iron holds the green', shot: { from: [1, 345], club: 'Iron', at: [22, 472] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
+      { name: 'the attack over the bunker\'s edge, pulled a little, drops into the Road Hole bunker', shot: { from: [1, 345], club: 'Iron', at: [27.5, 476.5], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'into an 18 mph headwind the attack comes up short of the green', shot: { from: [1, 345], club: 'Iron', at: [27.5, 476.5], wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['FRINGE', 'ROUGH', 'SAND'], minToPin: 10 } },
+      { name: 'with an 18 mph tailwind it flies the green into the rough behind', shot: { from: [1, 345], club: 'Iron', at: [27.5, 476.5], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['ROUGH', 'ROAD'] } },
+      { name: 'a 3-wood landed on the road behind the green strikes the stone wall', shot: { from: [1, 345], club: '3-Wood', at: [14, 496] }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'], wall: true } },
+      { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [32.5, 474.5], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'the safe line to the wide front of the green holds it', shot: { from: [1, 345], club: 'Iron', at: [10, 460] }, expect: { surf: ['GREENS'] } },
     ],
     strategies: [
       // no per-hole lie costs: the baseline's recovery term charges the Road Hole bunker for its deep face (a ball in it cannot play out forwards, see the shot above)
-      { name: 'the second shot: fly the pin, attack the tucked pin over the bunker, or play to the middle', plans: [
-          { name: 'fly', shot: { from: [0, 334], club: 'Iron' } },
-          { name: 'attack', shot: { from: [0, 334], club: 'Iron', at: [18, 464] } },
-          { name: 'middle', shot: { from: [0, 334], club: 'Iron', at: [8, 455] } } ],
+      { name: 'the second shot: fly the tucked pin, attack it over the bunker\'s edge, or play to the middle and run up', plans: [
+          { name: 'fly', shot: { from: [1, 345], club: 'Iron' } },
+          { name: 'attack', shot: { from: [1, 345], club: 'Iron', at: [27.5, 476.5] } },
+          { name: 'middle', shot: { from: [1, 345], club: 'Iron', at: [18, 468] } } ],
         expect: [
-          ['flying the pin puts a sharp player on the road more often than not', r => (r.fly.sharp.surfs.ROAD || 0) > 10],
+          ['flying the pin runs off the back: a sharp player holds the green less than half the time', r => (r.fly.sharp.surfs.GREENS || 0) * 2 < r.fly.sharp.n],
           ['it is the worst plan for both players', r => ['sharp', 'shaky'].every(k => r.fly[k].score > r.attack[k].score && r.fly[k].score > r.middle[k].score)],
           ['attacking the tucked pin puts even a sharp player in the bunker at least one time in five', r => (r.attack.sharp.surfs.SAND || 0) >= 4],
           ['the middle of the green is the play: a sharp player holds it four times in five and it beats the attack', r => (r.middle.sharp.surfs.GREENS || 0) >= 17 && r.middle.sharp.score < r.attack.sharp.score],

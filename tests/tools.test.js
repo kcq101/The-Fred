@@ -15,7 +15,7 @@ const node = (tool, argv) => spawnSync(process.execPath, [path.join(__dirname, '
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fred-tools-'));
 
 test('probe: prints what hole-play.js plays, as JSON, for one shot or several; bad input is refused', () => {
-  const shots = [{ from: [0, 334], club: 'Iron', at: [18, 464] }, { from: [0, 334], club: 'Iron', at: [18, 464], offset: -0.25 }];
+  const shots = [{ from: [1, 345], club: 'Iron', at: [27.5, 476.5] }, { from: [1, 345], club: 'Iron', at: [27.5, 476.5], offset: -0.25 }];
   const r = node('probe.js', ['standrews-17', JSON.stringify(shots), '--json']);
   assert.equal(r.status, 0, r.stderr);
   const rows = JSON.parse(r.stdout);

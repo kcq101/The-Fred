@@ -256,7 +256,7 @@ test('recovery: short-sided means a pin near the edge the ball is on; it needs a
 test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary bunkers and fairway lay-ups almost nothing', () => {
   course.prepHole(idx('standrews-17'));
   const road = course.BUNKERS.find(b => b.depth > 2);
-  assert.ok(recovery(course, { x: road.x, z: road.z }, 'SAND') >= 0.9 * RECOVERY.cap, 'a ball in the pot bunker whose face is the whole story');
+  assert.ok(recovery(course, { x: road.x, z: road.z }, 'SAND') >= 0.7 * RECOVERY.cap, 'a ball in the pot bunker whose face is the whole story (0.75 of the cap since the lidar rebuild: a 5 m pot, not the old 18 yd bowl)');
   course.prepHole(idx('pebble-8'));
   const bunker = (x, z) => course.BUNKERS.find(b => b.x === x && b.z === z);
   const near = (x, z) => course.BUNKERS.reduce((a, b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(a.x - x, a.z - z) ? b : a);
@@ -270,14 +270,14 @@ test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary 
 
 test('recovery: expected() adds it for balls off the green, opts.recovery=false removes it, and evaluate() reports the mean charge', () => {
   course.prepHole(idx('standrews-17'));
-  const shot = { from: [0, 334], club: 'Iron', at: [18, 464] };
+  const shot = { from: [1, 345], club: 'Iron', at: [27.5, 476.5] };
   const on = evaluate(course, shot, 0.55, 9), off = evaluate(course, shot, 0.55, 9, null, { recovery: false });
   assert.ok(on.recovery > 0 && off.recovery === 0);
   assert.equal(on.hazard, 0);
   assert.ok(Math.abs((on.score - off.score) - on.recovery) < 1e-9, 'with no water or holed balls the score differs by exactly the mean charge');
-  const r = { end: 'rest', surf: 'SAND', p: { x: 21, z: 456 }, toPin: Math.hypot(21 - course.PIN.x, 456 - course.PIN.z) };
-  assert.ok(expected(course, r, { x: 0, z: 334 }) > expected(course, r, { x: 0, z: 334 }, undefined, { recovery: false }));
-  assert.equal(expected(course, { ...r, surf: 'GREENS' }, { x: 0, z: 334 }), expected(course, { ...r, surf: 'GREENS' }, { x: 0, z: 334 }, undefined, { recovery: false }));
+  const r = { end: 'rest', surf: 'SAND', p: { x: 32.5, z: 474.5 }, toPin: Math.hypot(32.5 - course.PIN.x, 474.5 - course.PIN.z) };   // in the Road Hole bunker
+  assert.ok(expected(course, r, { x: 1, z: 345 }) > expected(course, r, { x: 1, z: 345 }, undefined, { recovery: false }));
+  assert.equal(expected(course, { ...r, surf: 'GREENS' }, { x: 1, z: 345 }), expected(course, { ...r, surf: 'GREENS' }, { x: 1, z: 345 }, undefined, { recovery: false }));
 });
 
 test('rolling start: a ball landing on a steep slope never rolls faster than the model\'s speed cap', () => {

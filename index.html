@@ -547,14 +547,21 @@ const HOLES=[
   seed:3.3,roll:0.8,ridge:1.5,
   route:[[0,0],[120,-4],[250,-10],[350,-4],[430,6],[467,6]],
   fw:[[40,15],[200,15],[300,13],[400,12],[438,11],[466,12]],fairway:[[35,458]],
-  green:{x:12,z:468,rx:19,rz:8,rot:0.22},pin:{x:18,z:470},tilt:{x:0.012,z:0.02},
+  // no aerial yet: the ellipse is laid along the lidar's plateau (front-right to back-left, its back edge 2-3 yd short of the drop to the road); tilt is the lidar's plane over it
+  green:{x:19.3,z:477.3,rx:19,rz:8,rot:0.9},pin:{x:24.5,z:487.1},tilt:{x:-0.0124,z:0.0007},   // the pin tucked on the left end, behind the Road Hole bunker
   features:[
-    {type:'rise',area:{x:12,z:468,rx:21,rz:10,rot:0.22},dh:1.1,edge:9},       // a narrow plateau green: the front and sides fall away to the apron
-    {type:'cover',area:{pts:[[-26,441],[-22,463],[-12,478],[18,483],[50,481],[78,473]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road runs round the right and along the back of the green
+    // heights along the line from the Scottish lidar (Phase 5, 50 cm; lidar.py build, docs/holes/trace/standrews-17.json): links ground within a yard of flat
+    {type:'ramp',z0:0,z1:48,dh:-0.6},{type:'ramp',z0:48,z1:215.8,dh:1.03},{type:'ramp',z0:215.8,z1:239.8,dh:-1.46},{type:'ramp',z0:239.8,z1:251.8,dh:-0.35},
+    {type:'ramp',z0:251.8,z1:299.8,dh:0.47},{type:'ramp',z0:299.8,z1:431.7,dh:-0.82},{type:'ramp',z0:479.6,z1:503.6,dh:-0.82},{type:'ramp',z0:503.6,z1:527.6,dh:0.92},
+    {type:'rise',area:{x:19.3,z:477.3,rx:21,rz:10,rot:0.9},dh:0.8,edge:9},       // a narrow plateau green, 0.7 m above its apron (lidar; build's 431.7-479.6 ramp, +1, is this rise): the front and sides fall away
+    {type:'cover',area:{pts:[[-30,433],[-18,439.5],[-10.1,453.2],[-2.2,466.9],[6,480.2],[14.6,493.2],[23.5,505.7],[32.7,517.9],[41.9,530.2]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road behind the green, on the lidar's flat strip below the green's back edge
   ],
-  obstacles:[{type:'wall',pts:[[-30.3,441.8],[-26.1,464.6],[-14.4,481.7],[17.8,487.4],[50.7,485.3],[79.2,477.2]],t:1.2,h:2.2,e:0.3}],   // the stone wall behind the road
+  obstacles:[{type:'wall',pts:[[-36,441],[-24,452],[-17.4,461.4],[-9.2,474.7],[-0.9,488.1],[7.6,501],[16.8,513.2],[26.1,525.4],[33,534]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
   play:{firm:1.5,wind:[8,20],windPush:1.6,greens:{speed:1.15,firm:1.3}},
-  bunkers:[{x:21,z:456,rx:9,rz:4.8,rot:0.3,depth:2.8,lip:0.9},{x:20,z:300,rx:3,rz:2.4,rot:0.2,depth:1.4,lip:0.4},{x:-14,z:318,rx:3,rz:2.4,rot:-0.2,depth:1.4,lip:0.4}],
+  // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)
+  bunkers:[{pts:[[34.5,479.2],[32.5,478.8],[31.2,477],[30.2,476.5],[30.2,474.5],[28.2,471.5],[28.2,471],[30.5,468.8],[31.5,468.8],[32,468.2],[36.2,472],[36.2,473],[36.8,473.5],[36.2,474],[36.8,474.5],[36.8,478]],depth:2.6,lip:0.6},
+           {pts:[[46.5,399.8],[45.5,398.8],[41.5,398.2],[41,397.8],[39,397.8],[37.5,398.8],[34,398.8],[33,398.2],[31.8,396],[32.8,392.5],[34,390.8],[36.5,389.8],[39,387.8],[42,386.2],[46.5,386.8],[49.2,389.5],[49.2,391],[50.8,394],[50.8,395.5],[49.8,398],[48.5,399.2],[47,399.2]],depth:1.17,lip:0.25},
+           {pts:[[43,417.8],[41.5,417.8],[40.5,416.2],[36.2,414.5],[36.2,413],[37.5,411.8],[38.8,411.5],[38.2,410],[36.2,408],[41,403.2],[43,402.2],[43.5,402.8],[45,402.2],[45.5,402.8],[47.5,402.8],[48,403.2],[48.5,402.8],[50.5,403.8],[52,403.8],[53,404.8],[54,404.8],[55.8,406.5],[55.8,407.5],[54.8,408.5],[55.2,409],[54.8,411.5],[52.5,413.8],[51.5,413.8],[51,414.2],[46.5,414.2],[46,413.8],[44.5,414.2],[44.2,414.5],[45.2,416]],depth:0.72,lip:0.25}],
   water:[],
   clubhouse:{x:-95,z:120,rot:0},
   bbox:{x0:-130,x1:130,z0:-55,z1:536},
