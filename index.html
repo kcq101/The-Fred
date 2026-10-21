@@ -1571,9 +1571,20 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
   }
   // ---- ground beyond the modelled area (follows the coastline on ocean holes)
   if(cliffB){
-    const sh=new THREE.Shape(cliffB.shape.pts.map(([x,z])=>new THREE.Vector2(x,-z)));
-    const lg=new THREE.ShapeGeometry(sh);lg.rotateX(-Math.PI/2);
-    const land=add(new THREE.Mesh(lg,toon(COL.deep,{opacity:0.75})));land.position.y=Math.min(-8,lowH-4);
+    // a sheet of land out to the horizon with the sea cut out of it. The coast is read from the water bodies' own distance (sd > 0 = sea), whichever way
+    // their outline is drawn, so the sheet can never cover the sea. The grid is fine near the hole and coarser toward the horizon.
+    const seas=BODIES.filter(b=>b.profile==='cliff'||b.kind==='ocean'),sea=(x,z)=>{let d=-1e9;for(const b of seas)d=Math.max(d,b.sd(x,z));return d;};
+    const cx=(bb.x0+bb.x1)/2,cz=(bb.z0+bb.z1)/2,FAR=1250;
+    const axis=(lo,hi,c)=>{const out=[];for(let t=lo-120;t<=hi+120;t+=5)out.push(t);let st=5,t=lo-120;while(t>c-FAR){st*=1.18;t-=st;out.unshift(Math.max(t,c-FAR));}st=5;t=out[out.length-1];while(t<c+FAR){st*=1.18;t+=st;out.push(Math.min(t,c+FAR));}return out;};
+    const xs=axis(bb.x0,bb.x1,cx),zs=axis(bb.z0,bb.z1,cz),nx=xs.length,nz=zs.length,y=Math.min(-8,lowH-4);
+    const pos=new Float32Array(nx*nz*3),sdA=new Float32Array(nx*nz),idx=[];
+    for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const k=j*nx+i;pos[k*3]=xs[i];pos[k*3+1]=y;pos[k*3+2]=zs[j];sdA[k]=clamp(sea(xs[i],zs[j]),-50,50);}
+    for(let j=0;j<nz-1;j++)for(let i=0;i<nx-1;i++){const a=j*nx+i,b=a+1,c=a+nx,d=c+1;if(sdA[a]>0&&sdA[b]>0&&sdA[c]>0&&sdA[d]>0)continue;idx.push(a,c,b,b,c,d);}
+    const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.BufferAttribute(pos,3));lg.setAttribute('aSea',new THREE.BufferAttribute(sdA,1));lg.setIndex(idx);lg.computeVertexNormals();
+    const lm=toon(COL.deep,{opacity:0.75});lm.customProgramCacheKey=()=>'land-sheet';
+    lm.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aSea;varying float vSea;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSea=aSea;');
+      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vSea;').replace('#include <color_fragment>','#include <color_fragment>\nif(vSea>0.0)discard;');};
+    add(new THREE.Mesh(lg,lm));
   }else{
     const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),toon(COL.deep,{opacity:0.75})));
     ground.rotation.x=-Math.PI/2;ground.position.set((bb.x0+bb.x1)/2,Math.min(-8,lowH-4),(bb.z0+bb.z1)/2);
