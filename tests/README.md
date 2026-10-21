@@ -14,8 +14,9 @@ Authoring tools, in `tests/tools/` (each file opens with its full usage and flag
     node tests/tools/probe.js <id> '<json shots>'                        # single shots: end, surface, yards to pin, first bounce, stance, wall strikes
     node tests/tools/aimscan.js <id> <from> <club> <x0,x1,z0,z1,step>    # one shot at a grid of aim points, sharp and shaky: expected strokes, green rate, wet rate
     node tests/tools/slope.js <id>                                       # green slope map (< 1 / 1-2.5 / 2.5-4 / > 4 % bands, contours, downhill arrows) -> docs/maps/<id>-slope.png, band shares, realism bounds
-    python3 tests/tools/render.py <id> [tee bird approach green aerial ref]  # real-game screenshots in headless Chromium, and the ball's screen position against the HUD;
-                                                                         # ref: the game from each reference photo's matched camera, outlines on top
+    python3 tests/tools/render.py <id> [tee bird approach green aerial ref] [--js EXPR]  # real-game screenshots in headless Chromium (nature models loaded), and the ball's screen position against the HUD;
+                                                                         # ref: the game from each reference photo's matched camera, outlines on top; --js: evaluate inside the game (debugging)
+    python3 -I tests/tools/nature.py <unzipped pack>                      # rebuild assets/nature/ from Quaternius' Stylized Nature MegaKit (only to change the bundle)
     node tests/tools/trace.js <id> [--write] [--snippet] [--ref=<commit>]  # visual review: fit each reference photo's camera, lay the traced outlines on the hole, compare
     python3 tests/tools/trace_photo.py grid|fill|show|hash ...          # visual review: read outlines off a reference photo (photos live in tests/tools/refs/, never committed)
     python3 tests/tools/lidar.py fetch|look|outlines|build|fit|match|selftest  # the lidar into hole coordinates: tile from a map pin, tee and direction, water/islands/bunkers/heights as pts, build: the hole entry's bunkers/water/ramps/tilt, Riviera's bunker fit, an aerial placed by the lidar (tiles live in tests/tools/refs/, never committed)
@@ -47,7 +48,7 @@ Authoring tools, in `tests/tools/` (each file opens with its full usage and flag
 
 ## What these are not
 
-- Not the live game. three.js is loaded from a CDN, so nothing here renders, runs the real terrain, trees, water, HUD or touch input.
+- Not the live game. three.js is loaded from a CDN, so nothing here renders, runs the real terrain, trees, water, HUD or touch input. The look layer (props, nature models, grass, revetted faces) is checked only by eye in `render.py`.
 - The flat mirror can drift from `physStep()` if the physics changes; the club-yardage test (shown yardage vs simulated carry) is the canary.
 - No manual playtesting has been done, and there is no telemetry. "Feels right on a phone" is unverified.
 

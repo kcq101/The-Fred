@@ -57,6 +57,12 @@ One row per signature feature. Use only catalogue primitives and shared systems 
 |---|---|---|---|
 | | `ramp` / `rise` / `tilt` / `step` / `hollow` / `cover` / water body / bunker / traced outline (`pts`) / play profile / stance | | |
 
+**The look** (step 6b, ICONIC-HOLES.md §1.5): what a player sees, separate from what the ball does.
+
+| From the tee / the approach, a player would name… | Look expression | Does it touch the ball? |
+|---|---|---|
+| | `theme` / `props` (sheds, building) / `town` / tree zones / `g` colours | no, or the `wall` obstacle (`look:false`) and the check that covers it |
+
 **Capability gaps** (features we cannot express yet, and the primitive that would cover them):
 
 ## 5. Exaggeration
@@ -110,6 +116,6 @@ The checks in §6 say the hole *plays* as designed; this says it *looks* like th
 
 **Renders** — `python3 tests/tools/render.py <id> ref --out docs/maps` when a photo has a fitted camera, else `aerial`; commit those, never the side-by-sides.
 
-**Verdict** — one line per area, each **matches**, **close**, **differs on purpose** (§5), **differs: fix** or **can't express yet** (name the primitive): tee and direction · heights · green · bunkers · water and surroundings.
+**Verdict** — one line per area, each **matches**, **close**, **differs on purpose** (§5), **differs: fix** or **can't express yet** (name the primitive): tee and direction · **the view from the tee** (the landmarks in §4's look table) · heights · green · bunkers · water and surroundings.
 
 **Open items**, most important first. **Signed off**: who, date, commit.
