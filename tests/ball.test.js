@@ -19,14 +19,18 @@ const grade = (s, z0) => (x, z) => s * Math.max(0, z - z0);        // constant g
 // fall angle of a still-air shot as it reaches the ground, from the model's own trace
 const arrivalAngle = (club, terrain, o = {}) => {
   const v = launch(club, o.power ?? 1), p = { x: 0, y: terrain.H(0, 0) + R + 0.02, z: 0 };
-  BM.trace(p, v, 0, BM.NO_WIND, terrain.H, null, 1);
+  BM.trace(p, v, 0, BM.NO_WIND, terrain.H, null, 1, club);
   return Math.atan2(-v.y, Math.hypot(v.x, v.z)) / g.D2R;
 };
-// independent still-air reference: its own tiny-step integrator (not BallModel), straight from the stated physics, to a terrain height function
+// independent still-air reference: its own tiny-step integrator (not BallModel or Aero.step), straight from the stated physics, to a terrain height function.
+// Only the wind-tunnel coefficients come from the game (Aero.coef); drag, lift (backspin, square to the air velocity in the vertical plane) and the spin's decay are written out here.
 function refCarry(club, speed, H, dt = 1 / 4000) {
-  let x = 0, y = H(0, 0) + R + 0.02, vx = Math.cos(club.ang) * speed, vy = Math.sin(club.ang) * speed;
+  const A = g.Aero; let x = 0, y = H(0, 0) + R + 0.02, vx = Math.cos(club.ang) * speed, vy = Math.sin(club.ang) * speed;
+  let w = club.spv * speed * A.RPM; const la = club.ang / g.D2R, c = { cd: 0, cl: 0 };
   for (let t = 0; t < 15; t += dt) {
-    const s = Math.hypot(vx, vy); vx -= K * s * vx * dt; vy -= (G + K * s * vy) * dt; x += vx * dt; y += vy * dt;
+    const s = Math.hypot(vx, vy); A.coef(s, w, la, c);
+    const ax = -A.KQ * c.cd * s * vx - A.KQ * c.cl * s * vy, ay = -A.KQ * c.cd * s * vy + A.KQ * c.cl * s * vx - G;
+    vx += ax * dt; vy += ay * dt; x += vx * dt; y += vy * dt; w *= Math.exp(-dt / A.TAU);
     if (t > 0.05 && y - R <= H(0, x)) return x;
   }
   return NaN;
@@ -48,7 +52,7 @@ test('flight is unchanged: every club still carries its stated distance on flat 
   for (const c of FULL) {
     const r = shot(c, flat(g.FAIRWAY));
     assert.ok(Math.abs(r.summary.carry - c.carry) <= 0.6, `${c.name}: stated ${c.carry}, carried ${r.summary.carry.toFixed(1)}`);
-    assert.ok(Math.abs(BM.carryTo(c.ang, c.v0) - c.carry) <= 0.8, `${c.name}: carryTo ${BM.carryTo(c.ang, c.v0).toFixed(1)}`);
+    assert.ok(Math.abs(BM.carryTo(c.ang, c.v0, 0, c) - c.carry) <= 0.8, `${c.name}: carryTo ${BM.carryTo(c.ang, c.v0, 0, c).toFixed(1)}`);
   }
 });
 
@@ -100,7 +104,7 @@ test('elevation is applied once: carry over raised/lowered ground matches an ind
 
 test('playsLike: higher targets play longer, lower ones shorter, and swinging at that speed lands on the target', () => {
   for (const c of FULL) for (const dh of [-6, -3, 3, 6]) {
-    const dist = c.carry * 0.9, pl = BM.playsLike(c.ang, dist, dh);
+    const dist = c.carry * 0.9, pl = BM.playsLike(c.ang, dist, dh, c);
     assert.ok(dh > 0 ? pl.plays > dist : pl.plays < dist, `${c.name} dh ${dh}: plays ${pl.plays.toFixed(1)} vs ${dist.toFixed(1)}`);
     // terrain whose height at `dist` is dh, reached well before the ball arrives; the ball must land on `dist`
     const t = makeTerrain((x, z) => dh * ss(dist * 0.3, dist * 0.6, z), g.FAIRWAY);
@@ -191,7 +195,7 @@ test('the aiming arc lands exactly where the live ball first touches down in sti
   for (const t of terrains) for (const c of FULL) for (let i = 0; i < 6; i++) {
     const power = 0.25 + 0.75 * rng(), yaw = (rng() - 0.5) * 0.3, spin = (rng() - 0.5) * 2 * c.shape;
     const v = launch(c, power, yaw), p = { x: 0, y: t.H(0, 0) + R + 0.02, z: 0 }, pv = { ...v };
-    const pre = BM.trace(p, pv, spin, BM.NO_WIND, t.H, null, 1);
+    const pre = BM.trace(p, pv, spin, BM.NO_WIND, t.H, null, 1, c);
     const live = runBall(g, t, { v, spin, club: c, maxT: 40 }).ball.landAt;
     assert.ok(pre && live, 'both land');
     assert.ok(Math.hypot(pre.x - live.x, pre.z - live.z) < 1e-6, `${c.name}: arc ${pre.x.toFixed(3)},${pre.z.toFixed(3)} vs live ${live.x.toFixed(3)},${live.z.toFixed(3)}`);
@@ -316,7 +320,7 @@ test('real holes: wedge shots dropped into a bunker end in that bunker, at rest,
     // find the launch speed whose first touchdown is the target, by bisection on the real terrain
     const yaw = Math.atan2(tx - from.x, tz - from.z), D = Math.hypot(tx - from.x, tz - from.z);
     let lo = 5, hi = 60;
-    const land = sp => { const p = { x: from.x, y: course.H(from.x, from.z) + R + 0.02, z: from.z }, v = { x: Math.sin(yaw) * Math.cos(wedge.ang) * sp, y: Math.sin(wedge.ang) * sp, z: Math.cos(yaw) * Math.cos(wedge.ang) * sp }; const l = BM.trace(p, v, 0, BM.NO_WIND, course.H, null, 1); return Math.hypot(l.x - from.x, l.z - from.z); };
+    const land = sp => { const p = { x: from.x, y: course.H(from.x, from.z) + R + 0.02, z: from.z }, v = { x: Math.sin(yaw) * Math.cos(wedge.ang) * sp, y: Math.sin(wedge.ang) * sp, z: Math.cos(yaw) * Math.cos(wedge.ang) * sp }; const l = BM.trace(p, v, 0, BM.NO_WIND, course.H, null, 1, wedge); return Math.hypot(l.x - from.x, l.z - from.z); };
     for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; land(m) < D ? lo = m : hi = m; }
     const sp = (lo + hi) / 2;
     const r = runBall(g, course.terrain, { start: from, v: { x: Math.sin(yaw) * Math.cos(wedge.ang) * sp, y: Math.sin(wedge.ang) * sp, z: Math.cos(yaw) * Math.cos(wedge.ang) * sp }, club: wedge, maxT: 30 });

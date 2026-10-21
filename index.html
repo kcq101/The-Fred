@@ -809,22 +809,119 @@ function prepHole(i){
 }
 
 // ---------------------------------------------------------------- ball physics
-const G=10.7,K=0.0011,R=0.05;
+const G=10.7,R=0.05;
+// <aero> Drag and Magnus lift on the ball in flight, ported from OpenFairway (MIT, github.com/digitalhand/openfairway at 4f3e11b:
+// addons/openfairway/physics/FlightAerodynamicsModel.cs with FlightProfile's defaults, BallPhysics.cs for the forces and the spin decay).
+// Cd follows the Reynolds number (about 0.46 slow, falling to 0.20 fast: the drag crisis); Cl follows the Reynolds number and the spin ratio
+// (surface speed of the spin over air speed), from wind-tunnel fits. Its per-shot-family calibration layer (RegimeScaleOverride) is not ported.
+// The game's world is in yards; the coefficients are worked out in metres and the accelerations handed back in yd/s².
+// Only backspin is modelled: a draw or fade stays the game's own sideways pull (spin in flightStep).
+const Aero=(()=>{
+  const YD=0.9144,RAD=0.021335,MASS=0.04592623,AREA=Math.PI*RAD*RAD;
+  const TK=(75-32)*5/9+273.15;                                        // OpenFairway's default air: sea level, 75 °F
+  const RHO=101325/(287.058*TK),MU=1.716e-5*Math.pow(TK/273.15,1.5)*(273.15+198.72)/(TK+198.72);
+  const KQ=0.5*RHO*AREA/MASS*YD;                                     // accel (yd/s²) = KQ × coefficient × speed² (yd/s)
+  const TAU=5,RPM=2*Math.PI/60;                                      // spin decay time constant (s); rpm -> rad/s
+  const P={cdA:1.1948,cdB:-0.0000209661,cdC:1.42472e-10,cdD:-3.14383e-16,cdHi:0.2,cdLo:0.38,loBlend:30000,cd50:0.4632,
+    clMax:0.268,clMaxHi:0.32,clSr0:0.35,clSr1:0.50,
+    sdK:4,sdMax:1.20,sdHiMax:1.03,sdUltraMax:1.21,sdHi0:0.30,sdHi1:0.48,sdRe0:90000,sdRe1:105000,sdU0:0.57,sdU1:0.77,sdProg0:0.33,sdProg1:0.50,sdProgMax:0.25,
+    hiRe:75000,gainMid:16,gain:16,gRed0:0.10,gRed1:0.18,gRec0:0.26,gRec1:0.40,
+    att0:0.45,att1:0.55,attMax:0.09,uAtt0:0.58,uAtt1:0.85,uAttMax:0.10,loAttMax:0.10,loUAttMax:0.06,
+    llMax:1.08,llFull:6.5,llZero:9.5,llRe0:85000,llRe1:110000,llSr0:0.18,llSr1:0.22,
+    mbMax:0.45,mb0:0.17,mb1:0.31,hdMax:1.24,hd0:24.5,hd1:31.5,hdSr0:0.50,hdSr1:0.70};
+  const s01=t=>{t=t<0?0:t>1?1:t;return t*t*(3-2*t);};
+  const ss=(v,a,b)=>Math.abs(b-a)<1e-6?(v>=b?1:0):s01((v-a)/(b-a));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  function cd(re){
+    if(re>200000)return P.cdHi;
+    if(re>=50000)return P.cdA+P.cdB*re+P.cdC*re*re+P.cdD*re*re*re;
+    if(re<=P.loBlend)return P.cdLo;
+    return lerp(P.cdLo,P.cd50,ss(re,P.loBlend,50000));
+  }
+  const clMax=sr=>sr<=P.clSr0?P.clMax:sr>=P.clSr1?P.clMaxHi:lerp(P.clMax,P.clMaxHi,ss(sr,P.clSr0,P.clSr1));
+  function gain(sr){
+    if(sr<=P.gRed0)return P.gain;
+    if(sr<P.gRed1)return lerp(P.gain,P.gainMid,ss(sr,P.gRed0,P.gRed1));
+    if(sr<=P.gRec0)return P.gainMid;
+    if(sr<P.gRec1)return lerp(P.gainMid,P.gain,ss(sr,P.gRec0,P.gRec1));
+    return P.gain;
+  }
+  const clHi=sr=>{const g=gain(sr);return clMax(sr)*sr*g/(1+sr*g);};
+  const cl50=s=>0.0472121+2.84795*s-23.4342*s*s+45.4849*s*s*s;
+  const cl60=s=>0.320524-4.7032*s+14.0613*s*s;
+  const cl65=s=>0.266667-4*s+13.3333*s*s;
+  const cl70=s=>0.0496189+0.00211396*s+2.34201*s*s;
+  const CLS=[cl50,cl60,cl65,cl70,clHi],RES=[50000,60000,65000,70000,75000];
+  const attHi=(sr,c)=>c*(1-P.attMax*ss(sr,P.att0,P.att1))*(1-P.uAttMax*ss(sr,P.uAtt0,P.uAtt1));
+  const attLo=(sr,c)=>c*(1-P.loAttMax*ss(sr,P.att0,P.att1))*(1-P.loUAttMax*ss(sr,P.uAtt0,P.uAtt1));
+  function cl(re,sr){
+    if(sr<=0)return 0;
+    const mx=clMax(sr);
+    if(re<50000){if(re<=30000)return 0;return attLo(sr,Math.min(Math.max(cl50(sr),0),mx)*s01((re-30000)/20000));}
+    if(re>=P.hiRe)return attHi(sr,Math.min(Math.max(clHi(sr),0),mx));
+    let hi=RES.length-1;for(let i=0;i<RES.length;i++)if(re<=RES[i]){hi=i;break;}
+    const lo=Math.max(hi-1,0),a=Math.max(0,CLS[lo](sr)),b=Math.max(0,CLS[hi](sr));
+    const w=RES[hi]!==RES[lo]?(re-RES[lo])/(RES[hi]-RES[lo]):0;
+    return attLo(sr,Math.min(Math.max(lerp(a,b,w),0),mx));
+  }
+  function spinDrag(sr,re){
+    if(sr<=0)return 1;
+    const relief=ss(sr,P.sdHi0,P.sdHi1)*(1-ss(re,P.sdRe0,P.sdRe1));
+    let cap=lerp(P.sdMax,P.sdHiMax,relief)+P.sdProgMax*ss(sr,P.sdProg0,P.sdProg1);
+    cap=lerp(cap,P.sdUltraMax,ss(sr,P.sdU0,P.sdU1));
+    return Math.min(1+P.sdK*sr*sr,cap);
+  }
+  function lowLaunch(la,sr,re){
+    const w=ss(P.llZero-la,0,P.llZero-P.llFull)*ss(re,P.llRe0,P.llRe1)*(1-ss(sr,P.llSr0,P.llSr1));
+    return w>0?lerp(1,P.llMax,w):1;
+  }
+  const highLaunch=(la,sr)=>lerp(1,P.hdMax,ss(la,P.hd0,P.hd1)*ss(sr,P.hdSr0,P.hdSr1));
+  const midBoost=sr=>{const t=ss(sr,P.mb0,P.mb1);return 1+P.mbMax*t*(1-t)*4;};
+  // drag and lift coefficients for an air speed s (yd/s), spin w (rad/s) and the launch angle la (degrees)
+  function coef(s,w,la,out){
+    const sm=s*YD;if(sm<0.5){out.cd=0;out.cl=0;return out;}
+    const sr=w*RAD/sm,re=RHO*sm*2*RAD/MU;
+    out.cd=cd(re)*spinDrag(sr,re)*highLaunch(la,sr);
+    out.cl=cl(re,sr)*lowLaunch(la,sr,re)*midBoost(sr);
+    return out;
+  }
+  // the ball's spin as it leaves the club: rate (rad/s), a horizontal axis square to the launch direction (pure backspin), launch angle
+  function launch(rpm,v){const h=Math.hypot(v.x,v.z)||1;return{w:rpm*RPM,ax:-v.z/h,az:v.x/h,la:Math.atan2(v.y,h)/D2R};}
+  const NONE={w:0,ax:0,az:0,la:0};
+  const C={cd:0,cl:0};
+  // one step of air on velocity v (yd/s, moved in place), against a wind {x,z}; decays the spin in air
+  function step(v,wind,air,dt){
+    const vx=v.x-wind.x,vy=v.y,vz=v.z-wind.z,s=Math.hypot(vx,vy,vz);
+    coef(s,air.w,air.la,C);
+    const d=KQ*C.cd*s,l=KQ*C.cl*s;
+    // lift along axis × air velocity (axis horizontal: (ax,0,az))
+    v.x+=(-d*vx-l*air.az*vy)*dt;
+    v.y+=(-d*vy+l*(air.az*vx-air.ax*vz)-G)*dt;
+    v.z+=(-d*vz+l*air.ax*vy)*dt;
+    if(air.w)air.w*=Math.exp(-dt/TAU);
+  }
+  return{YD,RHO,MU,KQ,TAU,RPM,NONE,cd,cl,coef,launch,step};
+})();
+// </aero>
 const CLUBS=[
   // dev: how far (radians) a full miss starts the ball off line; curve: sideways pull in flight; swing: needle speed at no pull and full pull
   // mishit: share of launch speed lost on the worst possible contact (see SwingModel). Long clubs punish a bad swing hardest, the wedge the least.
   // shape: sideways pull of a full draw/fade (yd/s²), set by pulling down-left or down-right
-  {name:'Hammer',carry:245,ang:13*D2R,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
-  {name:'3-Wood',carry:215,ang:15*D2R,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
-  {name:'Iron',  carry:155,ang:22*D2R,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', back:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  // rpm: backspin off a full swing (tour launch-monitor averages for a driver, 3-wood, 7-iron and wedge); it gives the ball its lift (see Aero) and scales with launch speed
+  {name:'Hammer',rpm:2700,carry:245,ang:13*D2R,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
+  {name:'3-Wood',rpm:3600,carry:215,ang:15*D2R,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
+  {name:'Iron',  rpm:7000,carry:155,ang:22*D2R,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
+  {name:'Wedge', rpm:9500,back:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
-function carryFlat(v0,a){let x=0,y=0,vx=v0*Math.cos(a),vy=v0*Math.sin(a),t=0;const dt=1/240;while(t<15){const s=Math.hypot(vx,vy);vx-=K*s*vx*dt;vy-=(G+K*s*vy)*dt;x+=vx*dt;y+=vy*dt;t+=dt;if(y<0&&vy<0)return x;}return x;}
+// still-air carry on flat ground at launch speed v0, angle a, backspin rpm: the same Aero.step the ball and the aiming arc take
+function carryFlat(v0,a,rpm=0){const v={x:0,y:v0*Math.sin(a),z:v0*Math.cos(a)},air=Aero.launch(rpm,v),dt=1/240;let z=0,y=0,t=0;while(t<15){Aero.step(v,{x:0,z:0},air,dt);z+=v.z*dt;y+=v.y*dt;t+=dt;if(y<0&&v.y<0)return z;}return z;}
+// spin(c,speed): a club's backspin at a launch speed (rpm). A full swing has the club's rpm; spin scales with speed, so the spin ratio stays the club's own
+const clubRpm=(c,s)=>c&&c.spv?c.spv*s:0;
 CLUBS.forEach(c=>{
   if(c.putt)return;
-  let lo=5,hi=300;for(let i=0;i<40;i++){const m=(lo+hi)/2;carryFlat(m,c.ang)<c.carry?lo=m:hi=m;}c.v0=lo;
-  c.table=[];for(let i=0;i<=48;i++){const v=4+(c.v0*1.06-4)*i/48;c.table.push([v,carryFlat(v,c.ang)]);}
+  let lo=5,hi=300;for(let i=0;i<40;i++){const m=(lo+hi)/2;carryFlat(m,c.ang,c.rpm)<c.carry?lo=m:hi=m;}c.v0=lo;c.spv=c.rpm/c.v0;
+  c.table=[];for(let i=0;i<=48;i++){const v=4+(c.v0*1.06-4)*i/48;c.table.push([v,carryFlat(v,c.ang,c.spv*v)]);}
 });
 function speedForCarry(c,D){const t=c.table;if(D<=t[0][1])return t[0][0]*Math.sqrt(D/Math.max(t[0][1],0.1));for(let i=1;i<t.length;i++)if(t[i][1]>=D){const f=(D-t[i-1][1])/(t[i][1]-t[i-1][1]);return mix(t[i-1][0],t[i][0],f);}return t[t.length-1][0];}
 function lieMult(lie,club){if(lie===SAND&&club===CLUBS[3])return 0.9;return SP[lie].lie;}
@@ -903,7 +1000,7 @@ const StanceModel=(()=>{
 // <ball-model>
 // Everything the ball does once it has left the club, kept apart from the renderer so it can be tested on its own (tests/ball.test.js reads this block out of this file).
 // The game hands it a terrain {H, normal, S} and the surface table SP; it moves a ball {p, v, spin, rolling, landed, resting, t, ...}. It never touches the scene.
-//   AIR     drag against the wind, gravity, and the sideways pull of a draw/fade. The aiming arc takes these same steps (with no wind), so in still air a shot lands where the arc said.
+//   AIR     drag and backspin lift against the wind (Aero: OpenFairway's wind-tunnel fits), gravity, and the sideways pull of a draw/fade. The aiming arc takes these same steps (with no wind), so in still air a shot lands where the arc said.
 //   IMPACT  worked out in the ground's own frame (along its slope) from how fast and how steeply the ball arrives:
 //             hop   leaves the ground at  e x (speed into the ground), a little less for hard hits; a hop too small to see just becomes a roll
 //             grab  the share of its run along the ground that survives = exp(-grip x (1+e) x tan(arrival angle)), never less than SP.floor
@@ -926,19 +1023,20 @@ const BallModel=(()=>{
   const BALL_RAD=0.0233;     // a real ball's radius in yards (the drawn ball, R, is bigger so it can be seen)
   const RPM=2*Math.PI/60;    // rpm -> rad/s
 
-  // one step of flight: drag (against the air, so wind matters), gravity, and the sideways pull of a shaped shot
-  function flightStep(p,v,spin,wind,dt){
-    const vx=v.x-wind.x,vy=v.y,vz=v.z-wind.z;const s=Math.hypot(vx,vy,vz);
-    v.x-=K*s*vx*dt;v.y-=(G+K*s*vy)*dt;v.z-=K*s*vz*dt;
+  // the backspin a club puts on a ball launched at velocity v (Aero's spin state; no club: none)
+  function air(club,v){return Aero.launch(clubRpm(club,Math.hypot(v.x,v.y,v.z)),v);}
+  // one step of flight: drag and lift (against the air, so wind matters), gravity, and the sideways pull of a shaped shot. a: the ball's spin state (from air), decayed in place
+  function flightStep(p,v,spin,wind,dt,a){
+    Aero.step(v,wind,a||Aero.NONE,dt);
     if(spin){const hv=Math.hypot(v.x,v.z);if(hv>1){const ux=-v.z/hv,uz=v.x/hv;v.x+=ux*spin*dt;v.z+=uz*spin*dt;}}
     p.x+=v.x*dt;p.y+=v.y*dt;p.z+=v.z*dt;
   }
   // fly from p/v (both are moved) until the ball meets the ground; returns that spot (a plain {x,y,z}) or null. Used by the aiming arc.
   // Near the top of the arc the ground cannot have risen to meet the ball within a few steps, so it is only sampled every 6th step there.
-  function trace(p,v,spin,wind,H,onPoint,every){
-    let k=0,skip=0;
+  function trace(p,v,spin,wind,H,onPoint,every,club){
+    let k=0,skip=0;const sa=air(club,v);
     for(let t=0;t<12;t+=STEP){
-      flightStep(p,v,spin,wind,STEP);
+      flightStep(p,v,spin,wind,STEP,sa);
       if(onPoint&&(k++%every===0))onPoint(p);
       if(skip>0){skip--;continue;}
       const a=p.y-R-H(p.x,p.z);
@@ -1010,13 +1108,13 @@ const BallModel=(()=>{
     b.t+=dt;
     if(b.resting)return;
     if(b.rolling){rollStep(b,dt,env);if(env.collide&&!b.resting)env.collide(b);return;}   // solid obstacles stop a rolling ball too
-    flightStep(b.p,b.v,b.spin,env.wind,dt);
+    flightStep(b.p,b.v,b.spin,env.wind,dt,b.air);
     if(env.collide)env.collide(b);
     const h=env.terrain.H(b.p.x,b.p.z);
     if(b.p.y-R<=h)land(b,h,env);
   }
   // call when a shot starts: remembers where it left from and clears the shot's record
-  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.back=0;if(b.club&&b.club.back&&b.club.v0){const f=Math.min(1,Math.hypot(b.v.x,b.v.y,b.v.z)/b.club.v0);b.back=b.club.back*f*f;}   // a part swing (a chip) puts on far less spin than a full one
+  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.air=air(b.club,b.v);b.back=0;if(b.club&&b.club.back&&b.club.v0){const f=Math.min(1,Math.hypot(b.v.x,b.v.y,b.v.z)/b.club.v0);b.back=b.club.back*f*f;}   // a part swing (a chip) puts on far less spin than a full one
   b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
   // what the shot did, from the ball's own record: carry to first contact, roll from there to rest, and the straight-line total from where it was hit
   function summary(b){
@@ -1024,18 +1122,18 @@ const BallModel=(()=>{
     return{carry:st.carry,roll:a?Math.hypot(b.p.x-a.x,b.p.z-a.z):0,total:Math.hypot(b.p.x-b.launch.x,b.p.z-b.launch.z),bounces:st.bounces,landSurf:st.landSurf};
   }
   // horizontal distance at which a still-air shot comes back down through a height dh above where it was hit from (dh=0: the flat carry); NaN if it never gets that high
-  function carryTo(ang,speed,dh=0){
-    const p={x:0,y:R,z:0},v={x:0,y:Math.sin(ang)*speed,z:Math.cos(ang)*speed};
-    for(let t=0;t<20;t+=STEP){flightStep(p,v,0,NO_WIND,STEP);if(v.y<0&&p.y-R<=dh)return p.z;}
+  function carryTo(ang,speed,dh=0,club){
+    const p={x:0,y:R,z:0},v={x:0,y:Math.sin(ang)*speed,z:Math.cos(ang)*speed},a=air(club,v);
+    for(let t=0;t<20;t+=STEP){flightStep(p,v,0,NO_WIND,STEP,a);if(v.y<0&&p.y-R<=dh)return p.z;}
     return NaN;
   }
   // "plays like": the flat-ground distance that would take the same swing to reach a target dist away and dh higher (negative: lower). Information only.
-  function playsLike(ang,dist,dh){
+  function playsLike(ang,dist,dh,club){
     let lo=1,hi=250;
-    for(let i=0;i<40;i++){const m=(lo+hi)/2,c=carryTo(ang,m,dh);(c>=dist)?hi=m:lo=m;}
-    return{speed:hi,plays:carryTo(ang,hi,0)};
+    for(let i=0;i<40;i++){const m=(lo+hi)/2,c=carryTo(ang,m,dh,club);(c>=dist)?hi=m:lo=m;}
+    return{speed:hi,plays:carryTo(ang,hi,0,club)};
   }
-  return{STEP,MAX_T,V_MAX,NO_WIND,flightStep,trace,step,rollStep,begin,summary,carryTo,playsLike};
+  return{STEP,MAX_T,V_MAX,NO_WIND,air,flightStep,trace,step,rollStep,begin,summary,carryTo,playsLike};
 })();
 // </ball-model>
 
@@ -2188,7 +2286,7 @@ const simP=new V3(),simV=new V3();
 // (no wind here on purpose: the arc and ring show where the swing sends the ball in still air, the wind arrow tells you what the air will do to it)
 function simArc(speed,yaw,pts,spin=0){
   simP.copy(ball.p);launchVel(speed,yaw,simV);
-  const l=BallModel.trace(simP,simV,spin,BallModel.NO_WIND,H,pts?p=>pts.push(p.clone()):null,6);
+  const l=BallModel.trace(simP,simV,spin,BallModel.NO_WIND,H,pts?p=>pts.push(p.clone()):null,6,CLUBS[clubIdx]);
   return l&&new V3(l.x,l.y,l.z);
 }
 // full pull lands on the target in still air (before lie penalties)

@@ -39,7 +39,7 @@ function arcLand(course, s, speed, yaw, spin) {
   const g = s.g, c = s.club, R = g.R;
   const p = { x: s.from.x, y: course.H(s.from.x, s.from.z) + R + 0.02, z: s.from.z };
   const v = { x: Math.sin(yaw) * Math.cos(c.ang) * speed, y: Math.sin(c.ang) * speed, z: Math.cos(yaw) * Math.cos(c.ang) * speed };
-  return g.BallModel.trace(p, v, spin, g.BallModel.NO_WIND, course.H, null, 1);
+  return g.BallModel.trace(p, v, spin, g.BallModel.NO_WIND, course.H, null, 1, c);
 }
 // the game's shapeYaw: a draw/fade starts off line so that it curves back to land on the aim line
 function shapeYaw(course, s, speed, spin) {
