@@ -58,7 +58,7 @@ test('play profile: each hole tunes its own copy of the surfaces, and the next h
   assert.ok(course.SP[g.GREENS].bite < g.SP[g.GREENS].bite && course.SP[g.FAIRWAY].bite < g.SP[g.FAIRWAY].bite, 'firm turf: shots bite less');
   hole.play = saved; course.prepHole(i);
   assert.equal(course.SP[g.FAIRWAY].bite, g.SP[g.FAIRWAY].bite, 'and putting the profile back restores the defaults');
-  for (const k in course.SP) assert.ok(course.SP[k].hold <= course.SP[k].dec / g.G + 1e-9, `surface ${k}: hold <= dec/G`);
+  for (const k in course.SP) if (course.SP[k].rr == null) assert.ok(course.SP[k].hold <= course.SP[k].dec / g.G + 1e-9, `surface ${k}: hold <= dec/G`);   // rr surfaces (OpenFairway friction): hold is static, not tied to rolling friction
 });
 
 test('stance: flat ground changes nothing; putts ignore slopes', () => {
@@ -99,7 +99,7 @@ test('surfaces: road runs out further than fairway; waste grabs and stops the ba
   assert.ok(roll(iron, g.ROAD) > roll(iron, g.FAIRWAY));
   assert.ok(roll(iron, g.WASTE) < 0.5 * roll(iron, g.FAIRWAY), 'the waste area stops a ball dead');
   assert.ok(g.SP[g.WASTE].lie < 1 && g.SP[g.ROAD].lie < 1, 'both are worse lies than fairway');
-  for (const k of [g.ROAD, g.WASTE]) assert.ok(g.SP[k].hold <= g.SP[k].dec / g.G + 1e-9);
+  assert.ok(g.SP[g.WASTE].hold <= g.SP[g.WASTE].dec / g.G + 1e-9);   // road now rolls on OpenFairway's Firm friction; its hold is static
 });
 
 test('obstacles: a wall turns back a ball in flight, stops one rolling into it, lets one fly over, and an unknown type is refused', () => {

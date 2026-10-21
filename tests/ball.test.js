@@ -37,11 +37,11 @@ function refCarry(club, speed, H, dt = 1 / 4000) {
 }
 
 // ---------------------------------------------------------------- the model itself
-test('the per-club roll factor is gone and every surface can hold a ball it is meant to (hold <= dec/G)', () => {
+test('the per-club roll factor is gone and every dec surface can hold a ball it is meant to (hold <= dec/G; rr surfaces use OpenFairway friction and a static hold)', () => {
   assert.ok(FULL.every(c => !('roll' in c)), 'CLUBS still carry a roll factor');
   assert.ok(!/club\.roll|c\.roll/.test(SRC), 'something still reads a per-club roll factor');
   for (const [k, s] of Object.entries(SP)) {
-    assert.ok(s.hold <= s.dec / G + 1e-9, `surface ${s.name}: hold ${s.hold} must not exceed dec/G ${(s.dec / G).toFixed(3)} or a ball could sit on a slope it would also slide down`);
+    if (s.rr == null) assert.ok(s.hold <= s.dec / G + 1e-9, `surface ${s.name}: hold ${s.hold} must not exceed dec/G ${(s.dec / G).toFixed(3)} or a ball could sit on a slope it would also slide down`);
     assert.ok(s.e >= 0 && s.e < 1 && s.bite > 0 && s.mu > 0 && s.bite >= 0 && s.mu >= 0, `surface ${s.name} parameters in range`);
   }
   assert.ok(SP[g.SAND].e < SP[g.ROUGH].e && SP[g.ROUGH].e < SP[g.FAIRWAY].e, 'bounce: sand < rough < fairway');

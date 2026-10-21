@@ -743,23 +743,27 @@ const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE};   // na
 // How each surface treats the ball (see BallModel for what these do):
 //   e      bounce: how lively the ground is, against fairway's 0.30 (it scales OpenFairway's restitution curve; see BallModel IMPACT)
 //   bite   grab on the FIRST impact;  mu: grab on every later bounce. Against fairway's (3.5 and 0.22): the share of run a bounce keeps is divided by bite/3.5 (mu/0.22)
-//   dec    rolling resistance, yd/s² (scaled by the ground's tilt);  hold: steepest grade (rise/run) a resting ball stays on; steeper and it slides. Invariant: hold <= dec/G
+//   rr, visc  OpenFairway's rolling friction and grass viscosity (SurfacePhysicsCatalog: Fairway for tee and fairway, Rough, Firm for road): see BallModel rollDec
+//   dec    rolling resistance, yd/s², for surfaces without rr (greens and fringe: putts are calibrated on it). Scaled by the ground's tilt
+//   hold   steepest grade (rise/run) a ball that has slowed to a stop stays on; steeper and it slides. Static, so it is not tied to the rolling
+//          friction: on rr surfaces a rolling ball runs on down any slope steeper than about rr (5 % on fairway) until it slows on flatter ground.
+//          On dec surfaces the old invariant still holds: hold <= dec/G
 //   lie    share of launch speed this lie costs
 //   crit, spinback, boost  the two numbers OpenFairway's bounce reads per surface (SurfacePhysicsCatalog: criticalAngle, spinbackResponseScale,
 //             spinbackThetaBoost*): Penner's critical angle (radians) and how strongly backspin takes run off a steep landing. A surface without them
 //             uses fairway's, as OpenFairway does. boost (greens only) raises the critical angle for a high-spin, fast landing, so a wedge checks up.
 //             Fringe, pine, sand, water and waste have no OpenFairway preset; road uses its Firm one. Its friction half (rolling, kinetic, grass drag) is not ported: dec stays.
 const SP={
-  [TEE]:    {e:.30,mu:.22,bite:3.5,dec:6.5,hold:.22,name:'Tee',     lie:1.00},
-  [FAIRWAY]:{e:.30,mu:.22,bite:3.5,dec:6.5,hold:.22,name:'Fairway', lie:1.00},
-  [ROUGH]:  {e:.15,mu:.45,bite:5.2,crit:.35,spinback:.70,dec:13, hold:.6, name:'Rough',   lie:0.85},
+  [TEE]:    {e:.30,mu:.22,bite:3.5,rr:.050,visc:.0017,hold:.22,name:'Tee',     lie:1.00},
+  [FAIRWAY]:{e:.30,mu:.22,bite:3.5,rr:.050,visc:.0017,hold:.22,name:'Fairway', lie:1.00},
+  [ROUGH]:  {e:.15,mu:.45,bite:5.2,crit:.35,spinback:.70,rr:.095,visc:.0032,hold:.6, name:'Rough',   lie:0.85},
   [FRINGE]: {e:.26,mu:.20,bite:3.6,dec:4,  hold:.22,name:'Fringe',  lie:0.97},
   [GREENS]: {e:.24,mu:.16,bite:3.8,dec:3.2,hold:.15,crit:.36,spinback:1.12,boost:{max:.12,rpm:[3500,5500],v:[8,20]},name:'Green',   lie:1.00},
   [SAND]:   {e:.05,mu:.90,bite:9.0,dec:30, hold:.5, name:'Bunker',  lie:0.70},
   [WATER]:  {e:0,  mu:1,  bite:9.0,dec:99, hold:.5, name:'Water',   lie:1.00},
   [PINE]:   {e:.22,mu:.35,bite:4.4,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
   // ROAD: hard and fast. Lively bounce, almost no grab, little rolling resistance: a ball that lands on it keeps going, and the lie off it is poor.
-  [ROAD]:   {e:.36,mu:.16,bite:2.6,crit:.25,spinback:.60,dec:5.0,hold:.2, name:'Road',     lie:0.80},
+  [ROAD]:   {e:.36,mu:.16,bite:2.6,crit:.25,spinback:.60,rr:.030,visc:.0010,hold:.2, name:'Road',     lie:0.80},
   // WASTE: sandy, scrubby native ground (not a bunker): no bounce, grabs hard so a ball dies where it lands, awkward lie.
   [WASTE]:  {e:.08,mu:.80,bite:7.5,dec:24, hold:.55,name:'Waste area',lie:0.82},
 };
@@ -1019,6 +1023,8 @@ const BallModel=(()=>{
   // Later bounces keep RO_LOW..RO_HIGH of the run as the spin ratio rises to RO_RATIO, bounce at RO_COR of the curve, and not at all below RO_KILL_V.
   const OF={A:.45,B:-.01,C:.0002,CAP:.25,CAP_V:20,KILL_V:2,RET_FLIGHT:.55,RET_MIN:.40,RET_SPIN:8000,PENNER_V:20,
     SC_LO:1500,SC_LOW:.30,SC_RANGE:1500,SC_ADD:.40,VS_LO:12,VS_MID:25,VS_LOW:.50,RO_LOW:.85,RO_HIGH:.70,RO_RATIO:.20,RO_COR:.5,RO_KILL_V:4};
+  // OpenFairway's RolloutProfile.Default (m/s, rpm); VISC: 6*pi*radius/mass of a real ball (per second, per Pa·s of grass viscosity)
+  const RO={CHIP_V:20,PITCH_V:35,VS_MIN:.60,VS_MAX:.87,LOW_RPM:1750,LOW_MAX:1.15,MID_MAX:2.25,HIGH_MAX:2.50,HIGH_RANGE:1000},VISC=6*Math.PI*0.021335/0.04592623;
   const E_REF=.30,BITE_REF=3.5,MU_REF=.22;   // fairway's e, bite and mu: the surface OpenFairway's profile stands for
   const V_STOP=0.07,V_MAX=32;// slower than V_STOP on ground that can hold it = at rest; nothing on the ground goes faster than V_MAX
   const LIFT=0.06;           // a rolling ball whose ground falls away by more than this leaves the ground
@@ -1068,7 +1074,7 @@ const BallModel=(()=>{
     const tx=v.x-vn*nx,ty=v.y-vn*ny,tz=v.z-vn*nz;         // velocity along the ground
     const ut=Math.hypot(tx,ty,tz),sp0=Math.hypot(un,ut);
     const unM=un/YD_M,sp0M=sp0/YD_M,first=!b.landed;
-    const w=first?((b.air&&b.air.w)||0):(b.w||0),rpm=w/RPM;   // spin (rad/s): backspin in flight, rolling spin after the first landing
+    const w=first?((b.air&&b.air.w)||0):(b.w||0),rpm=w/RPM;if(first)b.impRpm=rpm;   // spin (rad/s): backspin in flight, rolling spin after the first landing
     const eS=sp.e/E_REF;
     let vt,e;                                             // new run along the ground (negative: spins back), restitution
     if(first){
@@ -1104,6 +1110,18 @@ const BallModel=(()=>{
       if(env.onEv)env.onEv('land',surf);
     }
   }
+  // rolling resistance (yd/s²) on flat ground. A surface with OpenFairway's rolling friction (rr) and grass viscosity (visc) uses its ground model
+  // (BallPhysics.cs CalculateGroundForces, RolloutProfile.Default; MIT): rolling friction x a spin multiplier, plus grass drag that grows with speed.
+  // The multiplier reads the larger of the spin at the first landing and the ball's rolling spin (speed / radius): low spin x1..1.15,
+  // from 1750 rpm x2.25..2.5, its excess over 1 scaled down (0.60..0.87) for slow balls. The ball is taken as rolling, not slipping:
+  // the bounce leaves its spin matching its run. Surfaces without rr (greens, fringe, sand, pine, waste, water) keep their own dec.
+  function rollDec(b,sp,s){
+    if(sp.rr==null)return sp.dec;
+    const sM=s/YD_M,rpm=Math.max(b.impRpm||0,s/BALL_RAD/RPM);
+    const vs=sM<RO.CHIP_V?RO.VS_MIN+(RO.VS_MAX-RO.VS_MIN)*sM/RO.CHIP_V:sM<RO.PITCH_V?RO.VS_MAX+(1-RO.VS_MAX)*(sM-RO.CHIP_V)/(RO.PITCH_V-RO.CHIP_V):1;
+    const m=rpm<RO.LOW_RPM?1+rpm/RO.LOW_RPM*(RO.LOW_MAX-1):RO.MID_MAX+Math.min((rpm-RO.LOW_RPM)/RO.HIGH_RANGE,1)*(RO.HIGH_MAX-RO.MID_MAX);
+    return sp.rr*(1+(m-1)*vs)*G+VISC*sp.visc*s;
+  }
   // one step along the ground: gravity along the slope, rolling resistance, follow the terrain, rest when the ground can hold the ball
   function rollStep(b,dt,env){
     const T=env.terrain,p=b.p,v=b.v;
@@ -1114,7 +1132,7 @@ const BallModel=(()=>{
     let s=Math.hypot(v.x,v.y,v.z);
     const down=s>1e-9?(v.x*gx+v.y*gy+v.z*gz)/(G*tan*ny+1e-9):0;   // speed downhill (negative: climbing)
     v.x+=gx*dt;v.y+=gy*dt;v.z+=gz*dt;
-    let dec=sp.dec*ny;
+    let dec=rollDec(b,sp,s)*ny;
     // steeper than the surface can hold: a ball that is nearly still, or already heading downhill, is let go (friction gives way and it slides);
     // one still climbing keeps full friction, so a steeper bank never lets a ball run further up it
     if(tan>sp.hold&&(s<V_REL||down>0.25*s))dec=Math.min(dec,0.5*G*ny*sp.hold);
@@ -1138,7 +1156,7 @@ const BallModel=(()=>{
     if(b.p.y-R<=h)land(b,h,env);
   }
   // call when a shot starts: remembers where it left from and clears the shot's record
-  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.air=air(b.club,b.v);b.w=0;   // the backspin comes from Aero's spin state (it scales with launch speed, so a chip spins less)
+  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.air=air(b.club,b.v);b.w=0;b.impRpm=0;   // the backspin comes from Aero's spin state (it scales with launch speed, so a chip spins less)
   b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
   // what the shot did, from the ball's own record: carry to first contact, roll from there to rest, and the straight-line total from where it was hit
   function summary(b){
