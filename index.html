@@ -561,7 +561,7 @@ const HOLES=[
   town:[0.43,0.63],
   props:[{type:'sheds',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],d:8,h:7},
          {type:'building',x:-82,z:118,w:150,d:30,h:21,floors:6,rot:Math.PI/2,col:'#d4c3a2',roof:'#4b5058'}],
-  obstacles:[{type:'wall',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],t:1.2,h:7,e:0.25,look:false},{type:'wall',pts:[[-36,441],[-24,452],[-17.4,461.4],[-9.2,474.7],[-0.9,488.1],[7.6,501],[16.8,513.2],[26.1,525.4],[33,534]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
+  obstacles:[{type:'wall',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],t:1.2,h:7,e:0.2,f:0.2,fy:0.15,look:false},{type:'wall',pts:[[-36,441],[-24,452],[-17.4,461.4],[-9.2,474.7],[-0.9,488.1],[7.6,501],[16.8,513.2],[26.1,525.4],[33,534]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
   play:{firm:1.5,wind:[8,20],windPush:1.6,greens:{speed:1.15,firm:1.3}},
   // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)
   bunkers:[{pts:[[34.5,479.2],[32.5,478.8],[31.2,477],[30.2,476.5],[30.2,474.5],[28.2,471.5],[28.2,471],[30.5,468.8],[31.5,468.8],[32,468.2],[36.2,472],[36.2,473],[36.8,473.5],[36.2,474],[36.8,474.5],[36.8,478]],depth:2.6,lip:0.6},
@@ -706,7 +706,8 @@ function overWater(x,z,margin=0){for(const b of BODIES)if(b.sd(x,z)>-margin)retu
 // ---------------------------------------------------------------- solid obstacles
 // Things in the ball's way that are not the ground. A hole lists them in `obstacles`; the game hands obstacleHit to the ball model's `collide` hook
 // (next to the trees), which runs while the ball flies AND while it rolls, so a wall stops a rolling ball as well as a flying one.
-//   wall {pts:[[x,z]...], t, h, e}   a free-standing wall along a polyline: t yards thick, h yards high above the ground, e = how lively it kicks the ball back (0 dead .. 1)
+//   wall {pts:[[x,z]...], t, h, e, f}   a free-standing wall along a polyline: t yards thick, h yards high above the ground, e = how lively it kicks the ball back (0 dead .. 1),
+//                                       f, fy = share of the speed along the wall, and of the upward speed, that survives a strike (defaults 0.7 and 0.8; timber sheds are deader)
 // A ball above the top flies over. Anything else is pushed out of the wall and its speed into the wall is turned around (e) with the rest of its run damped.
 function nearOnPolyline(x,z,P){
   let best={d:1e18,x:0,z:0,tx:0,tz:1};
@@ -724,7 +725,7 @@ const OBSTACLES={
     let nx=p.x-q.x,nz=p.z-q.z;const l=Math.hypot(nx,nz);
     if(l>1e-6){nx/=l;nz/=l;}else{const s=Math.hypot(v.x,v.z)||1;nx=-v.x/s;nz=-v.z/s;}   // away from the wall's middle (dead center: back the way it came)
     const vn=v.x*nx+v.z*nz;
-    if(vn<0){const tx=v.x-vn*nx,tz=v.z-vn*nz;v.x=tx*0.7-o.e*vn*nx;v.z=tz*0.7-o.e*vn*nz;v.y*=0.8;if(onHit)onHit();}
+    if(vn<0){const tx=v.x-vn*nx,tz=v.z-vn*nz,f=o.f??0.7;v.x=tx*f-o.e*vn*nx;v.z=tz*f-o.e*vn*nz;v.y*=o.fy??0.8;if(onHit)onHit();}
     p.x=q.x+nx*half;p.z=q.z+nz*half;
   }},
 };
@@ -745,12 +746,13 @@ const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE};   // na
 //   floor  share of the along-the-ground speed that always survives an impact
 //   dec    rolling resistance, yd/s² (scaled by the ground's tilt);  hold: steepest grade (rise/run) a resting ball stays on; steeper and it slides. Invariant: hold <= dec/G
 //   lie    share of launch speed this lie costs
+//   spinback  how much a landing ball's backspin can grip this surface (0 none .. 1 a firm green): a wedge checks up or spins back, see BallModel IMPACT
 const SP={
   [TEE]:    {e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Tee',     lie:1.00},
   [FAIRWAY]:{e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Fairway', lie:1.00},
   [ROUGH]:  {e:.15,mu:.45,bite:5.2,floor:.06,dec:13, hold:.6, name:'Rough',   lie:0.85},
-  [FRINGE]: {e:.26,mu:.20,bite:3.6,floor:.12,dec:4,  hold:.22,name:'Fringe',  lie:0.97},
-  [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,name:'Green',   lie:1.00},
+  [FRINGE]: {e:.26,mu:.20,bite:3.6,floor:.12,dec:4,  hold:.22,spinback:.55,name:'Fringe',  lie:0.97},
+  [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,spinback:1,name:'Green',   lie:1.00},
   [SAND]:   {e:.05,mu:.90,bite:9.0,floor:0,  dec:30, hold:.5, name:'Bunker',  lie:0.70},
   [WATER]:  {e:0,  mu:1,  bite:9.0,floor:0,  dec:99, hold:.5, name:'Water',   lie:1.00},
   [PINE]:   {e:.22,mu:.35,bite:4.4,floor:.10,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
@@ -815,7 +817,7 @@ const CLUBS=[
   {name:'Hammer',carry:245,ang:13*D2R,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
   {name:'3-Wood',carry:215,ang:15*D2R,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
   {name:'Iron',  carry:155,ang:22*D2R,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Wedge', back:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 function carryFlat(v0,a){let x=0,y=0,vx=v0*Math.cos(a),vy=v0*Math.sin(a),t=0;const dt=1/240;while(t<15){const s=Math.hypot(vx,vy);vx-=K*s*vx*dt;vy-=(G+K*s*vy)*dt;x+=vx*dt;y+=vy*dt;t+=dt;if(y<0&&vy<0)return x;}return x;}
@@ -920,6 +922,9 @@ const BallModel=(()=>{
   const NY_MIN=0.05;         // guard against dividing by the tilt of a near-vertical bank
   const V_REL=1.0;           // a ball slower than this on ground steeper than SP.hold is let go; so is one already heading downhill
   const NO_WIND={x:0,z:0};
+  const CRIT=15.4*D2R;       // Penner's critical angle: below it a landing ball skids on, above it the spin grips
+  const BALL_RAD=0.0233;     // a real ball's radius in yards (the drawn ball, R, is bigger so it can be seen)
+  const RPM=2*Math.PI/60;    // rpm -> rad/s
 
   // one step of flight: drag (against the air, so wind matters), gravity, and the sideways pull of a shaped shot
   function flightStep(p,v,spin,wind,dt){
@@ -951,7 +956,17 @@ const BallModel=(()=>{
     const ut=Math.hypot(tx,ty,tz);
     const e=sp.e/(1+un/E_FALL);
     const grip=b.landed?sp.mu:sp.bite;
-    const k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
+    let k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
+    // BACKSPIN on the first landing (Penner's model, as OpenFairway uses it: github.com/digitalhand/openfairway, MIT): above a critical arrival angle the
+    // ball's spin bites, and with enough of it the run along the ground turns negative: the ball checks up or spins back. It only ever takes run away.
+    if(!b.landed&&b.back>0&&sp.spinback>0&&ut>1e-9){
+      const sp0=Math.hypot(un,ut),th=Math.atan2(un,ut);
+      if(th>CRIT&&sp0>8){
+        const ret=0.55*clamp(1-b.back/8000,0.4,1);
+        const vt=ret*sp0*Math.sin(th-CRIT)-BALL_RAD*2/7*b.back*RPM*sp.spinback;
+        k=Math.min(k,vt/ut);b.stats.spinback=vt;
+      }
+    }
     const hop=e*un;
     if(hop>HOP_MIN){v.x=tx*k+nx*hop;v.y=ty*k+ny*hop;v.z=tz*k+nz*hop;b.rolling=false;b.stats.bounces++;}
     else{v.x=tx*k;v.y=ty*k;v.z=tz*k;b.rolling=true;const s0=Math.hypot(v.x,v.y,v.z);if(s0>V_MAX){const f=V_MAX/s0;v.x*=f;v.y*=f;v.z*=f;}}   // the cap holds from the first rolling step, even landing on a steep slope
@@ -962,7 +977,7 @@ const BallModel=(()=>{
     p.y=h+R;
     impact(b,nx,ny,nz,env.sp[surf]);
     if(!b.landed){
-      b.landed=true;b.spin=0;b.landAt={x:p.x,y:p.y,z:p.z};
+      b.landed=true;b.spin=0;b.back=0;b.landAt={x:p.x,y:p.y,z:p.z};
       b.stats.carry=Math.hypot(p.x-b.launch.x,p.z-b.launch.z);b.stats.landSurf=surf;
       if(env.onEv)env.onEv('land',surf);
     }
@@ -1001,7 +1016,8 @@ const BallModel=(()=>{
     if(b.p.y-R<=h)land(b,h,env);
   }
   // call when a shot starts: remembers where it left from and clears the shot's record
-  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
+  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.back=0;if(b.club&&b.club.back&&b.club.v0){const f=Math.min(1,Math.hypot(b.v.x,b.v.y,b.v.z)/b.club.v0);b.back=b.club.back*f*f;}   // a part swing (a chip) puts on far less spin than a full one
+  b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
   // what the shot did, from the ball's own record: carry to first contact, roll from there to rest, and the straight-line total from where it was hit
   function summary(b){
     const st=b.stats||{carry:null,bounces:0},a=b.landAt;
