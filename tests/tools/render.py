@@ -63,6 +63,7 @@ def three_js() -> Path:
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0], epilog=__doc__.split('\n', 1)[1], formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('hole'); ap.add_argument('views', nargs='*')
+    ap.add_argument('--js', action='append', help='a JS expression evaluated inside the game after the hole loads; its value is printed (debugging)')
     ap.add_argument('--out', default=str(OUT_DEFAULT))
     ap.add_argument('--size', default='390x844'); ap.add_argument('--timeout', type=int, default=180)
     ap.add_argument('--scale', type=float, default=1.0)
@@ -95,7 +96,7 @@ def main():
         ctx.route('**/*', route)
         page = ctx.new_page(); page.set_default_timeout(a.timeout * 1000)
         page.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
-        page.on('console', lambda m: errors.append(f'console.{m.type}: {m.text}') if m.type == 'error' and 'Failed to load resource' not in m.text else None)
+        page.on('console', lambda m: errors.append(f'console.{m.type}: {m.text}') if m.type in ('error','warning') and 'Failed to load resource' not in m.text else None)
         page.on('requestfailed', lambda r: errors.append(f'request failed: {r.url[:100]}') if 'fonts.g' not in r.url else None)   # the web fonts are aborted on purpose
         page.goto(page_uri)
         page.wait_for_function("typeof window.__ev === 'function'")
@@ -119,6 +120,8 @@ def main():
               return { y: s.y, x: s.x, z: s.z, pinY: pin.y, pinOn: pin.z < 1 && pin.x > 0 && pin.x < innerWidth && pin.y > 0 && pin.y < innerHeight, vh: innerHeight, hud, safe: __ev('BALL_SAFE_PX'),
                        state: __ev('state'), d: Math.round(__ev('distToPin()')), lie: __ev("SP[lieNow()].name") }; }""")
 
+        for js in a.js or []:
+            print('js>', js[:80], '=>', ev(js))
         pin = ev('({x:PIN.x,z:PIN.z})'); tee_z = 0.0
         for v in views:
             name, _, arg = v.partition('=')
