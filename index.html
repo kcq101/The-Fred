@@ -2293,9 +2293,10 @@ function shoot(power,offset,sh=0,py=0){
   const st=stanceNow(),sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin);
   const yaw=aimYaw+sYaw+st.yaw+py+sw.yawErr;
   prevLie.copy(ball.p);strokes++;
-  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+st.spin+sw.spinErr});ball.lastOut.copy(ball.p);BallModel.begin(ball);stepAcc=0;
+  Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+st.spin+sw.spinErr});ball.lastOut.copy(ball.p);stepAcc=0;
   if(club.putt){ball.v.set(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed);ball.rolling=true;ball.p.y=H(ball.p.x,ball.p.z)+R;SND.putt();sfx('TAP',ball.p.clone(),{cls:'small',dy:-60});}
   else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();sfx(fb.word||club.word,ball.p.clone(),{dy:-110});aberrKick=7;shakeT=0.18;}
+  BallModel.begin(ball);   // after the launch velocity is set: begin reads it for the ball's backspin (before 2026-10-21 it ran first and saw a ball at rest, so a wedge never spun in the game)
   if(fb.tag||fb.note)setTimeout(()=>{if(fb.tag)sfx(fb.tag,null,{cls:fb.tagCls,dy:60,rot:4});if(fb.note)sfx(fb.note,null,{cls:fb.noteCls,dy:112,rot:-3});},180);
   flightDir.set(Math.sin(yaw),0,Math.cos(yaw));trailPts.length=0;
   setZoom(0);state='flight';
