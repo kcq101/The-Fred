@@ -311,7 +311,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
 (()=>{
 const V3 = THREE.Vector3;
 // Art direction locked in from the Look Lab: Golden hour paint, tuned
-const LOOK={ink:0.4,dots:0.2,mis:0.2,hatch:0.2,sat:1.05,grain:0.25,sun:34,forest:0.7,
+const LOOK={ink:0.4,dots:0.2,mis:0.2,hatch:0.2,sat:1.05,grain:0.25,sun:22,forest:0.7,
   pal:{sky:['#ffe6c4','#cfe4f2','#8ec2ea','#3d86d4'],sun:'#fff6ea',sunI:0.9,hemi:['#e8f2ff','#2f4a3a',0.5],fog:'#c4d6da',
    cloud:['#ffffff','#fbf3ea','#d8cfd2'],cloudInk:false,city:{far:'#b3c2d8',near:['#8496b4','#90a2bf','#7586a6','#9cadc8'],win:['#ffe0a0','#fff0c8'],lit:0.18},treeline:['#3f6e4e','#2f6040'],
    g:{tee:'#5aa83a',fw1:'#69b641',fw2:'#4c9a31',cut:'#3f8a30',rough:'#2a6e2c',deep:'#1d5826',fringe:'#4f9433',green1:'#86c96c',green2:'#5a9e48',sand:'#f6dcae',sandRim:'#c89a62',bed:'#3a7fa8',path:'#c4b090',pathEdge:'#9a8668'},
@@ -556,14 +556,18 @@ const HOLES=[
     {type:'rise',area:{x:19.3,z:477.3,rx:21,rz:10,rot:0.9},dh:0.8,edge:9},       // a narrow plateau green, 0.7 m above its apron (lidar; build's 431.7-479.6 ramp, +1, is this rise): the front and sides fall away
     {type:'cover',area:{pts:[[-30,433],[-18,439.5],[-10.1,453.2],[-2.2,466.9],[6,480.2],[14.6,493.2],[23.5,505.7],[32.7,517.9],[41.9,530.2]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road behind the green, on the lidar's flat strip below the green's back edge
   ],
-  obstacles:[{type:'wall',pts:[[-36,441],[-24,452],[-17.4,461.4],[-9.2,474.7],[-0.9,488.1],[7.6,501],[16.8,513.2],[26.1,525.4],[33,534]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
+  // the drive: over the corner of a run of dark timber sheds that stands across the right of the tee shot, folding in toward the line then out again.
+  // The front line is also a wall obstacle, so a drive that does not clear it hits the timber; the hotel stands behind, down the right
+  town:[0.43,0.63],
+  props:[{type:'sheds',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],d:8,h:7},
+         {type:'building',x:-82,z:118,w:150,d:30,h:21,floors:6,rot:Math.PI/2,col:'#d4c3a2',roof:'#4b5058'}],
+  obstacles:[{type:'wall',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],t:1.2,h:7,e:0.2,f:0.2,fy:0.15,look:false},{type:'wall',pts:[[-36,441],[-24,452],[-17.4,461.4],[-9.2,474.7],[-0.9,488.1],[7.6,501],[16.8,513.2],[26.1,525.4],[33,534]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
   play:{firm:1.5,wind:[8,20],windPush:1.6,greens:{speed:1.15,firm:1.3}},
   // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)
   bunkers:[{pts:[[34.5,479.2],[32.5,478.8],[31.2,477],[30.2,476.5],[30.2,474.5],[28.2,471.5],[28.2,471],[30.5,468.8],[31.5,468.8],[32,468.2],[36.2,472],[36.2,473],[36.8,473.5],[36.2,474],[36.8,474.5],[36.8,478]],depth:2.6,lip:0.6},
            {pts:[[46.5,399.8],[45.5,398.8],[41.5,398.2],[41,397.8],[39,397.8],[37.5,398.8],[34,398.8],[33,398.2],[31.8,396],[32.8,392.5],[34,390.8],[36.5,389.8],[39,387.8],[42,386.2],[46.5,386.8],[49.2,389.5],[49.2,391],[50.8,394],[50.8,395.5],[49.8,398],[48.5,399.2],[47,399.2]],depth:1.17,lip:0.25},
            {pts:[[43,417.8],[41.5,417.8],[40.5,416.2],[36.2,414.5],[36.2,413],[37.5,411.8],[38.8,411.5],[38.2,410],[36.2,408],[41,403.2],[43,402.2],[43.5,402.8],[45,402.2],[45.5,402.8],[47.5,402.8],[48,403.2],[48.5,402.8],[50.5,403.8],[52,403.8],[53,404.8],[54,404.8],[55.8,406.5],[55.8,407.5],[54.8,408.5],[55.2,409],[54.8,411.5],[52.5,413.8],[51.5,413.8],[51,414.2],[46.5,414.2],[46,413.8],[44.5,414.2],[44.2,414.5],[45.2,416]],depth:0.72,lip:0.25}],
   water:[],
-  clubhouse:{x:-95,z:120,rot:0},
   bbox:{x0:-130,x1:130,z0:-55,z1:536},
   trees:[],
   bushes:[{type:'shrub',n:90,zone:'sides',side:'both',d:[8,50],z:[0,436]}],
@@ -702,7 +706,8 @@ function overWater(x,z,margin=0){for(const b of BODIES)if(b.sd(x,z)>-margin)retu
 // ---------------------------------------------------------------- solid obstacles
 // Things in the ball's way that are not the ground. A hole lists them in `obstacles`; the game hands obstacleHit to the ball model's `collide` hook
 // (next to the trees), which runs while the ball flies AND while it rolls, so a wall stops a rolling ball as well as a flying one.
-//   wall {pts:[[x,z]...], t, h, e}   a free-standing wall along a polyline: t yards thick, h yards high above the ground, e = how lively it kicks the ball back (0 dead .. 1)
+//   wall {pts:[[x,z]...], t, h, e, f}   a free-standing wall along a polyline: t yards thick, h yards high above the ground, e = how lively it kicks the ball back (0 dead .. 1),
+//                                       f, fy = share of the speed along the wall, and of the upward speed, that survives a strike (defaults 0.7 and 0.8; timber sheds are deader)
 // A ball above the top flies over. Anything else is pushed out of the wall and its speed into the wall is turned around (e) with the rest of its run damped.
 function nearOnPolyline(x,z,P){
   let best={d:1e18,x:0,z:0,tx:0,tz:1};
@@ -720,7 +725,7 @@ const OBSTACLES={
     let nx=p.x-q.x,nz=p.z-q.z;const l=Math.hypot(nx,nz);
     if(l>1e-6){nx/=l;nz/=l;}else{const s=Math.hypot(v.x,v.z)||1;nx=-v.x/s;nz=-v.z/s;}   // away from the wall's middle (dead center: back the way it came)
     const vn=v.x*nx+v.z*nz;
-    if(vn<0){const tx=v.x-vn*nx,tz=v.z-vn*nz;v.x=tx*0.7-o.e*vn*nx;v.z=tz*0.7-o.e*vn*nz;v.y*=0.8;if(onHit)onHit();}
+    if(vn<0){const tx=v.x-vn*nx,tz=v.z-vn*nz,f=o.f??0.7;v.x=tx*f-o.e*vn*nx;v.z=tz*f-o.e*vn*nz;v.y*=o.fy??0.8;if(onHit)onHit();}
     p.x=q.x+nx*half;p.z=q.z+nz*half;
   }},
 };
@@ -741,12 +746,13 @@ const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE};   // na
 //   floor  share of the along-the-ground speed that always survives an impact
 //   dec    rolling resistance, yd/s² (scaled by the ground's tilt);  hold: steepest grade (rise/run) a resting ball stays on; steeper and it slides. Invariant: hold <= dec/G
 //   lie    share of launch speed this lie costs
+//   spinback  how much a landing ball's backspin can grip this surface (0 none .. 1 a firm green): a wedge checks up or spins back, see BallModel IMPACT
 const SP={
   [TEE]:    {e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Tee',     lie:1.00},
   [FAIRWAY]:{e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Fairway', lie:1.00},
   [ROUGH]:  {e:.15,mu:.45,bite:5.2,floor:.06,dec:13, hold:.6, name:'Rough',   lie:0.85},
-  [FRINGE]: {e:.26,mu:.20,bite:3.6,floor:.12,dec:4,  hold:.22,name:'Fringe',  lie:0.97},
-  [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,name:'Green',   lie:1.00},
+  [FRINGE]: {e:.26,mu:.20,bite:3.6,floor:.12,dec:4,  hold:.22,spinback:.55,name:'Fringe',  lie:0.97},
+  [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,spinback:1,name:'Green',   lie:1.00},
   [SAND]:   {e:.05,mu:.90,bite:9.0,floor:0,  dec:30, hold:.5, name:'Bunker',  lie:0.70},
   [WATER]:  {e:0,  mu:1,  bite:9.0,floor:0,  dec:99, hold:.5, name:'Water',   lie:1.00},
   [PINE]:   {e:.22,mu:.35,bite:4.4,floor:.10,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
@@ -811,7 +817,7 @@ const CLUBS=[
   {name:'Hammer',carry:245,ang:13*D2R,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
   {name:'3-Wood',carry:215,ang:15*D2R,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
   {name:'Iron',  carry:155,ang:22*D2R,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Wedge', back:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 function carryFlat(v0,a){let x=0,y=0,vx=v0*Math.cos(a),vy=v0*Math.sin(a),t=0;const dt=1/240;while(t<15){const s=Math.hypot(vx,vy);vx-=K*s*vx*dt;vy-=(G+K*s*vy)*dt;x+=vx*dt;y+=vy*dt;t+=dt;if(y<0&&vy<0)return x;}return x;}
@@ -916,6 +922,9 @@ const BallModel=(()=>{
   const NY_MIN=0.05;         // guard against dividing by the tilt of a near-vertical bank
   const V_REL=1.0;           // a ball slower than this on ground steeper than SP.hold is let go; so is one already heading downhill
   const NO_WIND={x:0,z:0};
+  const CRIT=15.4*D2R;       // Penner's critical angle: below it a landing ball skids on, above it the spin grips
+  const BALL_RAD=0.0233;     // a real ball's radius in yards (the drawn ball, R, is bigger so it can be seen)
+  const RPM=2*Math.PI/60;    // rpm -> rad/s
 
   // one step of flight: drag (against the air, so wind matters), gravity, and the sideways pull of a shaped shot
   function flightStep(p,v,spin,wind,dt){
@@ -947,7 +956,17 @@ const BallModel=(()=>{
     const ut=Math.hypot(tx,ty,tz);
     const e=sp.e/(1+un/E_FALL);
     const grip=b.landed?sp.mu:sp.bite;
-    const k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
+    let k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
+    // BACKSPIN on the first landing (Penner's model, as OpenFairway uses it: github.com/digitalhand/openfairway, MIT): above a critical arrival angle the
+    // ball's spin bites, and with enough of it the run along the ground turns negative: the ball checks up or spins back. It only ever takes run away.
+    if(!b.landed&&b.back>0&&sp.spinback>0&&ut>1e-9){
+      const sp0=Math.hypot(un,ut),th=Math.atan2(un,ut);
+      if(th>CRIT&&sp0>8){
+        const ret=0.55*clamp(1-b.back/8000,0.4,1);
+        const vt=ret*sp0*Math.sin(th-CRIT)-BALL_RAD*2/7*b.back*RPM*sp.spinback;
+        k=Math.min(k,vt/ut);b.stats.spinback=vt;
+      }
+    }
     const hop=e*un;
     if(hop>HOP_MIN){v.x=tx*k+nx*hop;v.y=ty*k+ny*hop;v.z=tz*k+nz*hop;b.rolling=false;b.stats.bounces++;}
     else{v.x=tx*k;v.y=ty*k;v.z=tz*k;b.rolling=true;const s0=Math.hypot(v.x,v.y,v.z);if(s0>V_MAX){const f=V_MAX/s0;v.x*=f;v.y*=f;v.z*=f;}}   // the cap holds from the first rolling step, even landing on a steep slope
@@ -958,7 +977,7 @@ const BallModel=(()=>{
     p.y=h+R;
     impact(b,nx,ny,nz,env.sp[surf]);
     if(!b.landed){
-      b.landed=true;b.spin=0;b.landAt={x:p.x,y:p.y,z:p.z};
+      b.landed=true;b.spin=0;b.back=0;b.landAt={x:p.x,y:p.y,z:p.z};
       b.stats.carry=Math.hypot(p.x-b.launch.x,p.z-b.launch.z);b.stats.landSurf=surf;
       if(env.onEv)env.onEv('land',surf);
     }
@@ -997,7 +1016,8 @@ const BallModel=(()=>{
     if(b.p.y-R<=h)land(b,h,env);
   }
   // call when a shot starts: remembers where it left from and clears the shot's record
-  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
+  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.back=0;if(b.club&&b.club.back&&b.club.v0){const f=Math.min(1,Math.hypot(b.v.x,b.v.y,b.v.z)/b.club.v0);b.back=b.club.back*f*f;}   // a part swing (a chip) puts on far less spin than a full one
+  b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
   // what the shot did, from the ball's own record: carry to first contact, roll from there to rest, and the straight-line total from where it was hit
   function summary(b){
     const st=b.stats||{carry:null,bounces:0},a=b.landAt;
@@ -1125,6 +1145,31 @@ function outlineMat(th,alpha=1){
     side:THREE.BackSide
   });
 }
+
+// Walls of props: vertical timber boards (boards:1) or a grid of windows on floors (win:1), painted in the shader from world position so any
+// box gets them without UVs; roofs and floors (faces pointing up or down) stay plain.
+function facadeMat(o){
+  const m=toon(0xffffff,{vertexColors:true});m.extensions={derivatives:true};m.customProgramCacheKey=()=>'facade'+JSON.stringify(o);
+  m.onBeforeCompile=sh=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vFP;varying vec3 vFN;').replace('#include <begin_vertex>','#include <begin_vertex>\nvFP=(modelMatrix*vec4(position,1.0)).xyz;vFN=normalize(mat3(modelMatrix)*normal);');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vFP;varying vec3 vFN;')
+     .replace('#include <color_fragment>',`#include <color_fragment>
+      vec3 fn=normalize(vFN);float side=1.0-smoothstep(0.4,0.7,abs(fn.y));
+      float u=abs(fn.x)>abs(fn.z)?vFP.z:vFP.x;float yy=vFP.y;
+      ${o.boards?`float bu=u/0.55;float bw=max(fwidth(bu),0.02);float seam=1.0-smoothstep(0.0,bw*1.5+0.06,abs(fract(bu)-0.5)*2.0-0.88);
+      diffuseColor.rgb*=1.0-0.28*(1.0-seam)*side;diffuseColor.rgb*=1.0+(fract(sin(floor(bu)*12.9898)*43758.5)-0.5)*0.12*side;`:''}
+      ${o.stones?`float sr=yy/0.32;float row=floor(sr);float su2=u/0.62+fract(sin(row*17.3)*91.1);
+      vec2 sc=vec2(fract(su2),fract(sr));float sw=max(fwidth(su2),0.02),sh2=max(fwidth(sr),0.02);
+      float mort=max(1.0-smoothstep(0.0,sw*1.5+0.06,min(sc.x,1.0-sc.x)),1.0-smoothstep(0.0,sh2*1.5+0.08,min(sc.y,1.0-sc.y)));
+      float tone=fract(sin(dot(vec2(floor(su2),row),vec2(12.99,78.23)))*43758.5);
+      diffuseColor.rgb*=mix(1.0,0.82+0.3*tone,side);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*0.55,mort*side);`:''}
+      ${o.win?`float fy=yy/${o.floor.toFixed(2)},fx=u/${o.bay.toFixed(2)};vec2 c=vec2(abs(fract(fx)-0.5),fract(fy));
+      float w=step(c.x,0.24)*step(0.3,c.y)*step(c.y,0.82)*step(0.6,fy);float lit=step(1.0-${(+o.lit).toFixed(2)},fract(sin(dot(floor(vec2(fx,fy)),vec2(7.13,3.71)))*4375.5));
+      vec3 wc=mix(${glv(o.glass||'#3b4658')},vec3(1.0,0.82,0.52),lit);diffuseColor.rgb=mix(diffuseColor.rgb,wc,w*side);
+      diffuseColor.rgb*=1.0-0.12*step(0.93,fract(fy))*side;`:''}`);
+  };
+  return m;
+}
 // Clean, unprinted material for the ball and its markers. Alpha 0 tells the post pass to leave these pixels alone.
 const sunDirV=new V3();
 function cleanMat(hex,shaded=false){
@@ -1146,6 +1191,80 @@ function cleanMat(hex,shaded=false){
   });
 }
 
+
+// ---------------------------------------------------------------- nature models (assets/nature: Quaternius' Stylized Nature MegaKit, CC0, packed by
+// tests/tools/nature.py). Loaded once at start-up; until they arrive, or if they cannot be fetched, the world uses its own simple shapes.
+const NATURE={ok:false,models:{},kits:{}};
+// how tall each kit stands in the game (yards, before a tree's own size jitter), whatever height the pack draws it at
+const NAT_H={oak:7.6,pine:7.8,cypress:8.2,dead:8,bush:1.25,bushflower:1.25,rock:1,fescue:0.75,tuft:0.5,fern:0.6,flowers:0.5};
+async function loadNature(){
+  try{
+    const base='assets/nature/';
+    const [idx,bin]=await Promise.all([fetch(base+'nature.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),fetch(base+'nature.bin').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer();})]);
+    const tl=new THREE.TextureLoader(),tex={};
+    await Promise.all(Object.keys(idx.textures).map(n=>new Promise((ok,no)=>tl.load(base+n,t=>{t.encoding=THREE.LinearEncoding;t.anisotropy=4;tex[n]=t;ok();},undefined,no))));
+    const mats={};
+    const matFor=pt=>{const k=pt.tex+(pt.alpha?'a':'');return mats[k]||(mats[k]=toon(0xffffff,{map:tex[pt.tex],vertexColors:true,alphaTest:pt.alpha?0.5:0,side:pt.alpha?THREE.DoubleSide:THREE.FrontSide}));};
+    for(const[name,m]of Object.entries(idx.models)){
+      const ext=[0,1,2].map(j=>m.hi[j]-m.lo[j]);
+      const parts=m.parts.map(pt=>{
+        const q=new Int16Array(bin,pt.pos,pt.n*3),P=new Float32Array(pt.n*3);
+        for(let i=0;i<pt.n*3;i++){const j=i%3;P[i]=m.lo[j]+(q[i]/32767+1)/2*ext[j]-(j===1?m.lo[1]:0)-(j!==1?(m.lo[j]+m.hi[j])/2:0);}   // base on the ground, centred on its trunk
+        const g=new THREE.BufferGeometry();
+        g.setAttribute('position',new THREE.BufferAttribute(P,3));
+        g.setAttribute('normal',new THREE.BufferAttribute(new Int8Array(bin,pt.nor,pt.n*3),3,true));
+        g.setAttribute('uv',new THREE.BufferAttribute(new Uint16Array(bin,pt.uv,pt.n*2),2,true));
+        g.setAttribute('color',new THREE.BufferAttribute(new Uint8Array(bin,pt.col,pt.n*3),3,true));
+        g.setIndex(new THREE.BufferAttribute(pt.big?new Uint32Array(bin,pt.idx,pt.ni):new Uint16Array(bin,pt.idx,pt.ni),1));
+        g.computeBoundingSphere();
+        return{geo:g,mat:matFor(pt),alpha:pt.alpha};
+      });
+      NATURE.models[name]={h:ext[1],parts};
+    }
+    for(const[k,names]of Object.entries(idx.kits)){const ms=names.map(n=>NATURE.models[n]).filter(Boolean);NATURE.kits[k]={variants:ms,h:ms.reduce((a,b)=>a+b.h,0)/ms.length};}
+    NATURE.ok=true;
+  }catch(e){console.warn('nature models not loaded, using simple shapes:',e&&e.message||e);}
+}
+
+// a strip of grass blades on a transparent card: white blades whose alpha is the silhouette (the grass shader colours them)
+let _blade=null;
+function bladeTex(){
+  if(_blade)return _blade;
+  const cv=document.createElement('canvas');cv.width=256;cv.height=128;const g=cv.getContext('2d'),r=rng(4242);
+  for(let i=0;i<34;i++){const x=4+r()*248,w=3+r()*5,h=60+r()*66,lean=(r()-0.5)*40;
+    g.beginPath();g.moveTo(x-w/2,128);g.quadraticCurveTo(x+lean*0.3,128-h*0.6,x+lean,128-h);g.quadraticCurveTo(x+lean*0.3+w*0.2,128-h*0.6,x+w/2,128);g.closePath();
+    g.fillStyle='#fff';g.fill();}
+  _blade=new THREE.CanvasTexture(cv);_blade.anisotropy=4;return _blade;
+}
+// a copy of a material whose geometry bends in the wind: the higher a vertex sits in its model, the further it moves (grass, fescue)
+const _sway=new Map();
+function swayMat(base){
+  if(_sway.has(base))return _sway.get(base);
+  const m=base.clone();m.opacity=0.75;m.alphaTest=0.4;m.customProgramCacheKey=()=>'nat-sway';   // opacity 0.75: the post pass treats it as ground (no ink outline round every blade)
+  m.onBeforeCompile=sh=>{sh.uniforms.uT=WT;sh.uniforms.uBall={value:ball.p};sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;uniform vec3 uBall;')
+    .replace('#include <begin_vertex>',`#include <begin_vertex>
+    #ifdef USE_INSTANCING
+      vec3 ip=instanceMatrix[3].xyz;
+    #else
+      vec3 ip=vec3(0.0);
+    #endif
+    float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.09*position.y;transformed.z+=sw*0.04*position.y;
+    transformed.y*=0.2+0.8*smoothstep(0.8,2.4,distance(ip.xz,uBall.xz));`);};
+  _sway.set(base,m);return m;
+}
+// Place a kit's models: items [{x,y,z,rot,s (uniform scale on top of the kit's height), sy?, v (variant), col?}]. One InstancedMesh per variant and
+// material; each item gets item.ims (its meshes) and item.idx (its slot in them) so it can be hidden (tree cutaway). Returns the meshes.
+function placeNature(kitName,items,add,{cast=true,target,sway=false}={}){
+  const kit=NATURE.kits[kitName],out=[];if(!kit)return out;
+  const unit=(target??NAT_H[kitName]??1)/kit.h,m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0),c=new THREE.Color();
+  kit.variants.forEach((vm,vi)=>{
+    const set=items.filter(it=>it.v%kit.variants.length===vi);if(!set.length)return;
+    const meshes=vm.parts.map(pt=>{const im=add(new THREE.InstancedMesh(pt.geo,sway?swayMat(pt.mat):pt.mat,set.length));im.castShadow=cast;im.receiveShadow=true;out.push(im);return im;});
+    set.forEach((it,i)=>{q.setFromAxisAngle(up,it.rot||0);m.compose(new V3(it.x,it.y,it.z),q,new V3(it.s*unit,(it.sy??it.s)*unit,it.s*unit));
+      meshes.forEach(im=>{im.setMatrixAt(i,m);if(it.col){c.copy(it.col);im.setColorAt(i,c);}});it.ims=meshes;it.idx=i;it.mat=m.clone();});
+  });
+  return out;
+}
 const glv=h=>{const c=new THREE.Color(h);return `vec3(${c.r.toFixed(3)},${c.g.toFixed(3)},${c.b.toFixed(3)})`;};
 // ---------------------------------------------------------------- lights + sky
 // sun from behind-left of the tee at the chosen height
@@ -1157,10 +1276,11 @@ sunL.shadow.bias=-0.0006;sunL.shadow.normalBias=0.25;
 scene.add(new THREE.HemisphereLight(PAL.hemi[0],PAL.hemi[1],PAL.hemi[2]));
 const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),new THREE.ShaderMaterial({
   side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{sk:{value:PAL.sky.map(c=>new THREE.Color(c))}},
   vertexShader:`varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-  fragmentShader:`varying vec3 vDir;void main(){
+  fragmentShader:`varying vec3 vDir;uniform vec3 sk[4];void main(){
     float y=vDir.y;
-    vec3 hor=${glv(PAL.sky[0])},warm=${glv(PAL.sky[1])},pink=${glv(PAL.sky[2])},top=${glv(PAL.sky[3])};
+    vec3 hor=sk[0],warm=sk[1],pink=sk[2],top=sk[3];
     vec3 c=mix(hor,warm,smoothstep(0.0,0.08,y));c=mix(c,pink,smoothstep(0.08,0.22,y));c=mix(c,top,smoothstep(0.22,0.6,y));
     gl_FragColor=vec4(c,1.0);}`
 }));
@@ -1207,6 +1327,24 @@ function paintBackdrop(theme){
         g.fillRect(x-w*0.3,baseY-h*0.2,w*0.6,h*0.2+2);x+=w*(0.35+r()*0.35);}
     }
   }
+  // an old stone town on the horizon: terraces of grey-sand houses with slate roofs and chimneys, a few towers and spires (look only)
+  function town(u0,u1,base){
+    const x0=u0*W,x1=u1*W,stone=['#c9bba0','#bfb096','#d3c6ad','#b4a68e'],slate=['#6f7480','#7a7f8a','#646a76'];
+    for(const layer of[0,1]){let x=x0;const f=layer?1:0.8;
+      while(x<x1){const w=(14+r()*26)*sx,h=(layer?10:16)+r()*14,t=(x-x0)/(x1-x0),env=0.55+0.45*Math.sin(Math.PI*t);const hh=h*env*f;
+        const top=base-hh*pxPerV;g.fillStyle=layer?stone[Math.floor(r()*4)]:'#a9b3c4';g.fillRect(x,top,w,base-top);
+        g.fillStyle=layer?slate[Math.floor(r()*3)]:'#97a2b6';g.beginPath();g.moveTo(x-1,top);g.lineTo(x+w*0.5,top-(6+r()*5)*pxPerV);g.lineTo(x+w+1,top);g.closePath();g.fill();
+        if(layer){g.strokeStyle='rgba(58,42,34,0.55)';g.lineWidth=1.4;g.strokeRect(x,top,w,base-top);
+          g.fillStyle='rgba(60,58,70,0.55)';for(let wy=top+4;wy<base-4;wy+=7)for(let wx=x+3;wx<x+w-4;wx+=7)if(r()<0.7)g.fillRect(wx,wy,2.4,3.2);
+          if(r()<0.5){g.fillStyle='#8a7e6c';g.fillRect(x+w*0.75,top-5*pxPerV,3,5*pxPerV);}}
+        x+=w+(r()<0.2?4:0);}
+    }
+    // towers and spires above the roofline
+    for(let k=0;k<5;k++){const x=mix(x0,x1,0.12+0.76*(k/4)+(r()-0.5)*0.08),h=34+r()*26,w=(5+r()*4)*sx,top=base-h*pxPerV;
+      g.fillStyle='#b7a98f';g.fillRect(x-w/2,top,w,base-top);g.strokeStyle='rgba(58,42,34,0.6)';g.lineWidth=1.5;g.strokeRect(x-w/2,top,w,base-top);
+      if(k%2===0){g.fillStyle='#6a707c';g.beginPath();g.moveTo(x-w/2-1,top);g.lineTo(x,top-(14+r()*10)*pxPerV);g.lineTo(x+w/2+1,top);g.closePath();g.fill();g.stroke();}
+      else{g.fillStyle='#a89a80';for(let c=-1;c<=1;c+=2)g.fillRect(x+c*w*0.35-2,top-4*pxPerV,4,4*pxPerV);}}
+  }
   if(theme==='coast'){
     hills(0.12,0.6,py(-6),150,250,'#a9b8d6',1.3);hills(0.22,0.5,py(-6),70,140,'#8697c2',4.1);
     treeRow(py(20),18,40,'#4a6e50',false,'pine',[[0.62,0.99]]);treeRow(py(6),16,34,'#3e6446',true,'round',[[0.6,1],[0,0.04]]);
@@ -1214,6 +1352,7 @@ function paintBackdrop(theme){
     treeRow(py(34),40,80,'#3a6448',false,'pine');treeRow(py(12),34,64,'#2c5638',true,'pine');
   }else if(theme==='links'){   // open, treeless ground under a big sky: low gold dunes on the horizon
     hills(0.02,0.98,py(-6),22,58,'#cdbf8c',2.2);hills(0.08,0.92,py(-6),10,32,'#b9aa74',5.1);
+    if(HOLE.town)town(HOLE.town[0],HOLE.town[1],py(-4));
   }else{
     treeRow(py(26),26,50,'#4a7656',false,'round');treeRow(py(8),20,40,'#3a6848',true,'round');
   }
@@ -1221,9 +1360,13 @@ function paintBackdrop(theme){
 }
 
 // ---------------------------------------------------------------- per-hole world
-const COL=Object.fromEntries(Object.entries(PAL.g).map(([k,v])=>[k,parseInt(v.slice(1),16)]));
+// ground palette per theme (a hole may override any entry with HOLE.g): links turf is drier and yellower than a parkland's, its rough straw-gold fescue
+const THEME_G={links:{tee:'#84b04a',fw1:'#8fb64e',fw2:'#7ba444',cut:'#79a345',rough:'#8e9450',deep:'#a2965a',fringe:'#7cab47',green1:'#9ccc66',green2:'#76ae4e',sand:'#efd6a2',sandRim:'#b48c58'}};
+let GP=PAL.g,COL={};
+function setGroundPalette(){GP=Object.assign({},PAL.g,THEME_G[HOLE.theme]||{},HOLE.g||{});COL=Object.fromEntries(Object.entries(GP).map(([k,v])=>[k,parseInt(v.slice(1),16)]));}
 const PINE_C=new THREE.Color('#9a6e40');   // pine straw under the trees
 const ROAD_C=new THREE.Color('#8f887b'),WASTE_C=new THREE.Color('#d8c28c');   // the road behind a green; sandy native waste
+const LGOLD=new THREE.Color('#c2ae66'),LMOSS=new THREE.Color('#6f8044');   // links rough: drifts of dry gold fescue and darker mossy hollows
 const ROCKFACE=['#7a4e34','#9a6440','#b88050','#6a4230'].map(h=>new THREE.Color(h));
 let world=null,TREES=[],FLAGSTICK=[],flag=null,flagG=null,flagBase=null;
 const WT={value:0};
@@ -1296,7 +1439,7 @@ function spotOK(x,z,clear){
   return true;
 }
 function buildWorld(){
-  disposeWorld();if(typeof hiddenTrees!=='undefined')hiddenTrees.clear();world=new THREE.Group();scene.add(world);
+  setGroundPalette();disposeWorld();if(typeof hiddenTrees!=='undefined')hiddenTrees.clear();world=new THREE.Group();scene.add(world);
   const add=o=>{world.add(o);return o;};
   const bb=HOLE.bbox;
   const cliffB=BODIES.find(b=>b.profile==='cliff');
@@ -1319,27 +1462,35 @@ function buildWorld(){
       else if(s===FRINGE)c.setHex(COL.fringe);
       else if(s===PINE){c.copy(PINE_C).offsetHSL(0,0,(jagN(x*2.3,z*2.3)*0.04));}
       else if(s===ROAD){c.copy(ROAD_C).offsetHSL(0,0,(jagN(x*3.1,z*3.1)*0.03));}
-      else if(s===WASTE){c.copy(WASTE_C).offsetHSL(0,0,(jagN(x*1.7,z*1.7)*0.06));if(jagN(x*0.9+3,z*0.9)>0.55)c.lerp(new THREE.Color(PAL.g.rough),0.55);}   // sand with tufts of wiregrass
+      else if(s===WASTE){c.copy(WASTE_C).offsetHSL(0,0,(jagN(x*1.7,z*1.7)*0.06));if(jagN(x*0.9+3,z*0.9)>0.55)c.lerp(new THREE.Color(GP.rough),0.55);}   // sand with tufts of wiregrass
       else if(s===SAND){let e=1;for(const b of BUNKERS)e=Math.min(e,ell(x,z,b));c.setHex(e>0.84?COL.sandRim:COL.sand);}
       else{c.setHex(dc>fairwayHalf(z)+18?COL.deep:(inFairway(x,z,3)?COL.cut:COL.rough));
-        if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}}
+        if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}
+        if(HOLE.theme==='links'&&!inFairway(x,z,3)){const n=jagN(x*0.35+11,z*0.35)*0.5+jagN(x*1.3,z*1.1+5)*0.25;c.lerp(n>0?LGOLD:LMOSS,Math.min(0.75,Math.abs(n)*0.9));}}
     };
-    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count);
+    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count);
+    const REV=BUNKERS.filter(b=>b.revet??HOLE.theme==='links');   // their sand and faces are drawn by a finer mesh of their own (below): the terrain leaves a hole for it
     for(let i=0;i<pos.count;i++){
       const x0=pos.getX(i),z0=pos.getZ(i),y0=H(x0,z0);pos.setY(i,y0);if(y0<lowH&&!overWater(x0,z0))lowH=y0;
       acc.setRGB(0,0,0);let fw=0;
       for(const[ox,oz]of[[-0.3,-0.3],[0.3,-0.3],[-0.3,0.3],[0.3,0.3]]){const xx=x0+ox,zz=z0+oz;colorAt(xx,zz);acc.r+=c.r/4;acc.g+=c.g/4;acc.b+=c.b/4;if(S(xx,zz)===FAIRWAY&&inFairway(xx,zz,-1.0))fw+=0.25;}
       cols[i*3]=acc.r;cols[i*3+1]=acc.g;cols[i*3+2]=acc.b;
-      fwA[i]=fw;uA[i]=x0-centerX(z0); // sideways distance from the centre line: mowing stripes run down the hole and bend with it
+      let bk=3;for(const b of REV)bk=Math.min(bk,ell(x0,z0,b));bkA[i]=bk;
+            fwA[i]=fw;uA[i]=x0-centerX(z0); // sideways distance from the centre line: mowing stripes run down the hole and bend with it
     }
-    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.computeVertexNormals();
+    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.setAttribute('aBk',new THREE.BufferAttribute(bkA,1));tg.computeVertexNormals();
+    { // relief shading: tilt each shading normal 3x so gentle links swales and banks read in the light (look only: the ball reads H, never the mesh)
+      const nA=tg.attributes.normal;for(let i=0;i<nA.count;i++){const v=new V3(nA.getX(i)*3,nA.getY(i),nA.getZ(i)*3).normalize();nA.setXYZ(i,v.x,v.y,v.z);}
+      tg.computeBoundingSphere();
+    }
     const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});tm.extensions={derivatives:true};
     tm.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;varying float vFw;varying float vU;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;');
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;attribute float aBk;varying float vFw;varying float vU;varying float vBk;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;vBk=aBk;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-        varying vec3 vWP;varying float vFw;varying float vU;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}`)
        .replace('#include <color_fragment>',`#include <color_fragment>
+        if(vBk<0.92)discard;
         float gn=vnoise(vWP.xz*0.05)*0.6+vnoise(vWP.xz*0.21)*0.3+vnoise(vWP.xz*1.7)*0.1;
         float fwm=smoothstep(0.35,0.65,vFw);
         // crisp lengthwise mowing stripes, anti-aliased so they fade to an even tone in the distance
@@ -1376,19 +1527,47 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
         vec2 cw=fwidth(cr),ew=max(cw*1.2,vec2(0.06));
         vec2 sq=smoothstep(0.25-ew,0.25+ew,abs(fract(cr)-0.5));
         float tone=0.5*(sq.x+sq.y);tone=mix(tone,0.5,smoothstep(0.3,0.7,max(cw.x,cw.y)));
-        vec3 c=mix(${glv(PAL.g.green2)},${glv(PAL.g.green1)},tone);
+        vec3 c=mix(${glv(GP.green2)},${glv(GP.green1)},tone);
         // grain: soft blended noise (no square cells) that fades out where it would shimmer, plus faint streaks along each pass
         float fw2=max(fwidth(wp.x),fwidth(wp.y));
         float fine=(gnz(wp*5.0)-0.5)*0.05*(1.0-smoothstep(0.08,0.2,fw2))+(gnz(wp*14.0+31.0)-0.5)*0.035*(1.0-smoothstep(0.03,0.07,fw2));
         float gr=fine+(gnz(vec2(cr.x*0.6,cr.y*14.0))-0.5)*0.04+(gnz(wp*0.35)-0.5)*0.06;
         c*=1.0+gr;
         float w=max(fwidth(e),0.002);
-        c=mix(c,${glv(PAL.g.fringe)}*(1.0+gr*0.8),smoothstep(0.99-w,1.01+w,e));
+        c=mix(c,${glv(GP.fringe)}*(1.0+gr*0.8),smoothstep(0.99-w,1.01+w,e));
         c=mix(c,${glv(PAL.ink)},(1.0-smoothstep(w*0.6,w*1.8,abs(e-1.0)))*0.12);
-        c=mix(c,${glv(PAL.g.cut)},(1.0-smoothstep(w*0.5,w*1.5,abs(e-1.2)))*0.25);
+        c=mix(c,${glv(GP.cut)},(1.0-smoothstep(w*0.5,w*1.5,abs(e-1.2)))*0.25);
         diffuseColor.rgb=c;`);
     };
     const gmesh=add(new THREE.Mesh(gg,gm));gmesh.receiveShadow=true;
+  }
+
+  // ---- revetted bunker faces (links: every bunker, or any bunker with revet:true): the wall from the lip down to the sand is built of stacked turf,
+  // drawn as layered bands of grass edge and dark soil on the same heights H gives the ball (look only)
+  for(const b of BUNKERS){
+    if(!(b.revet??HOLE.theme==='links'))continue;
+    const m=Math.max(b.rx,b.rz)+1.5,st=0.22,nx=Math.ceil(2*m/st),pos=[],eA=[],idx=[];
+    for(let j=0;j<=nx;j++)for(let i=0;i<=nx;i++){const x=b.x-m+i*st,z=b.z-m+j*st;pos.push(x,H(x,z)+0.025,z);eA.push(Math.min(ell(x,z,b),3));}
+    for(let j=0;j<nx;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,c=a+nx+1;const e=Math.min(eA[a],eA[a+1],eA[c],eA[c+1]),f=Math.max(eA[a],eA[a+1],eA[c],eA[c+1]);if(e>1.06)continue;idx.push(a,c,a+1,a+1,c,c+1);}
+    const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));rg.setAttribute('aE',new THREE.Float32BufferAttribute(eA,1));rg.setIndex(idx);rg.computeVertexNormals();
+    const rm=toon(0xffffff,{polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});rm.extensions={derivatives:true};rm.customProgramCacheKey=()=>'revet'+GP.sand;
+    const top=(H(b.x+b.rx+1,b.z)+H(b.x-b.rx-1,b.z)+H(b.x,b.z+b.rz+1)+H(b.x,b.z-b.rz-1))/4;
+    rm.onBeforeCompile=sh=>{
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aE;varying float vE;varying vec3 vRP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvE=aE;vRP=(modelMatrix*vec4(position,1.0)).xyz;');
+      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vE;varying vec3 vRP;')
+       .replace('#include <color_fragment>',`#include <color_fragment>
+        if(vE>1.02)discard;
+        float sg=fract(sin(dot(floor(vRP.xz*9.0),vec2(12.9898,78.233)))*43758.5453);
+        vec3 sand=${glv(GP.sand)}*(0.93+0.07*sg)*(1.0-0.18*smoothstep(0.35,0.62,vE));   // fine-grained sand, shaded darker toward the foot of the face
+        float dy=${top.toFixed(3)}-vRP.y;                       // depth below the lip
+        float L=dy/0.16+sin(vRP.x*1.7+vRP.z*1.3)*0.08;           // one turf layer every 0.16 yd, laid a little unevenly
+        float lw=max(fwidth(L),0.03);float seam=1.0-smoothstep(0.0,lw*1.5+0.12,abs(fract(L)-0.5)*2.0-0.6);
+        vec3 turf=mix(vec3(0.27,0.36,0.18),vec3(0.36,0.44,0.22),fract(sin(floor(L)*37.1)*91.7));
+        vec3 c=mix(turf,vec3(0.24,0.17,0.11),1.0-seam);
+        c=mix(c,vec3(0.47,0.58,0.29),1.0-smoothstep(0.9,0.99,1.0-vE+0.9));   // the grass lip on top
+        diffuseColor.rgb=mix(sand,c,smoothstep(0.6,0.66,vE));`);
+    };
+    const rmesh=add(new THREE.Mesh(rg,rm));rmesh.receiveShadow=true;
   }
   // ---- ground beyond the modelled area (follows the coastline on ocean holes)
   if(cliffB){
@@ -1445,7 +1624,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
   }
   // ---- free-standing walls (obstacles): a run of stone blocks with a lighter cap, standing on the ground along the wall's line
   for(const o of OBST){
-    if(o.type!=='wall')continue;
+    if(o.type!=='wall'||o.look===false)continue;   // look:false: a prop (sheds) draws it
     const parts=[],cA=new THREE.Color('#a79b87'),cB=new THREE.Color('#b9ad97'),cT=new THREE.Color('#cdc2ab');let k=0;
     for(let i=1;i<o.pts.length;i++){
       const a=o.pts[i-1],c=o.pts[i],len=Math.hypot(c[0]-a[0],c[1]-a[1]),n=Math.max(1,Math.ceil(len/2.2)),ang=Math.atan2(c[0]-a[0],c[1]-a[1]);
@@ -1455,7 +1634,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
         const cap=new THREE.BoxGeometry(o.t+0.25,0.22,L);cap.rotateY(ang);cap.translate(x,gy+o.h+0.05,z);parts.push([cap,cT]);
       }
     }
-    const geo=mergeGeos(parts),wm=add(new THREE.Mesh(geo,toon(0xffffff,{vertexColors:true})));wm.castShadow=true;wm.receiveShadow=true;
+    const geo=mergeGeos(parts),wm=add(new THREE.Mesh(geo,facadeMat({stones:1})));wm.castShadow=true;wm.receiveShadow=true;
     add(new THREE.Mesh(geo,outlineMat(0.07)));
   }
   // ---- rocks: in the surf below cliffs, plus a few in the rough
@@ -1464,10 +1643,12 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     if(cliffB)for(let k=0;k<12000&&rocks.length<n;k++){const x=mix(bb.x0,bb.x1,r()),z=mix(bb.z0,bb.z1,r());const s=cliffB.sd(x,z);if(s>0.4&&s<9){const sz=mix(1,4.2,Math.pow(r(),1.6));rocks.push([x,z,sz,cliffB.level+sz*mix(0.0,0.35,r())]);}}
     for(let k=0;k<45;k++){const z=mix(-10,PIN.z,r()),side=r()<0.5?-1:1,x=centerX(z)+side*(fairwayHalf(z)+5+r()*14);if(spotOK(x,z,2)&&S(x,z)===ROUGH){const sz=0.5+r()*1.1;rocks.push([x,z,sz,H(x,z)+sz*0.2]);}}
     if(rocks.length){
+      if(NATURE.ok)placeNature('rock',rocks.map(([x,z,sz,y])=>({x,y:y-sz*0.35,z,rot:r()*6.28,s:sz*1.1,sy:sz*0.8,v:Math.floor(r()*9)})),add);
+      else{
       const geo=new THREE.DodecahedronGeometry(1,0);const rm=add(new THREE.InstancedMesh(geo,toon((HOLE.rocks&&HOLE.rocks.col)||PAL.rock),rocks.length)),ro=add(new THREE.InstancedMesh(geo,outlineMat(0.12),rocks.length));
       const m=new THREE.Matrix4(),q=new THREE.Quaternion();
       rocks.forEach(([x,z,s,y],i)=>{q.setFromAxisAngle(new V3(r(),r(),r()).normalize(),r()*6);m.compose(new V3(x,y,z),q,new V3(s*1.4,s*0.75,s));rm.setMatrixAt(i,m);ro.setMatrixAt(i,m);});
-      rm.castShadow=true;
+      rm.castShadow=true;}
     }
   }
   // ---- trees
@@ -1489,14 +1670,26 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       }
     }
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0);
+    const NAT_TREE={pine:['pine',1],tallpine:['pine',1.8],oak:['oak',1],cypress:['cypress',1]};
     for(const type in byType){
       const{kit,list}=byType[type];if(!list.length)continue;
+      const nk=NATURE.ok&&NAT_TREE[type];
+      if(nk){   // hand-made models; the trees' sizes, spacing and collision (cy, r) are unchanged
+        const near=t=>Math.abs(t.x-centerX(clamp(t.z,0,PIN.z)))<fairwayHalf(t.z)+34||Math.hypot(t.x-GREEN.x,t.z-GREEN.z)<60;
+        const col=t=>new THREE.Color().setRGB(t.k*(1+t.j*0.05),t.k*(1+t.j*0.02),t.k*(1-t.j*0.04));
+        for(const cast of[true,false]){
+          const items=list.filter(t=>near(t)===cast).map((t,i)=>Object.assign(t,{v:Math.floor(t.rot*7),y0:t.y}));
+          placeNature(nk[0],items.map(t=>({t,x:t.x,y:t.y-0.2,z:t.z,rot:t.rot,s:t.s,sy:t.sy*nk[1],v:t.v,col:col(t)})).map(it=>{it.t.it=it;return it;}),add,{cast});
+          for(const t of items){t.ims=t.it.ims;t.idx=t.it.idx;t.mat=t.it.mat;delete t.it;}
+        }
+        continue;
+      }
       const mat=toon(0xffffff,{vertexColors:true}),om=outlineMat(0.13);
       const nearSet=list.filter(t=>Math.abs(t.x-centerX(clamp(t.z,0,PIN.z)))<fairwayHalf(t.z)+34||Math.hypot(t.x-GREEN.x,t.z-GREEN.z)<60),farSet=list.filter(t=>!nearSet.includes(t));
       for(const[set,cast]of[[nearSet,true],[farSet,false]]){
         if(!set.length)continue;
         const im=add(new THREE.InstancedMesh(kit.geo,mat,set.length)),io=add(new THREE.InstancedMesh(kit.geo,om,set.length));
-        set.forEach((t,i)=>{q.setFromAxisAngle(up,t.rot);m.compose(new V3(t.x,t.y-0.25,t.z),q,new V3(t.s,t.sy,t.s));im.setMatrixAt(i,m);io.setMatrixAt(i,m);t.im=im;t.io=io;t.idx=i;t.mat=m.clone();
+        set.forEach((t,i)=>{q.setFromAxisAngle(up,t.rot);m.compose(new V3(t.x,t.y-0.25,t.z),q,new V3(t.s,t.sy,t.s));im.setMatrixAt(i,m);io.setMatrixAt(i,m);t.ims=[im,io];t.idx=i;t.mat=m.clone();
           c.setRGB(t.k*(1+t.j*0.05),t.k*(1+t.j*0.02),t.k*(1-t.j*0.04));im.setColorAt(i,c);});
         im.castShadow=cast;im.receiveShadow=true;
       }
@@ -1511,6 +1704,11 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     for(const z of HOLE.bushes){const sample=zoneSampler(z,r);let placed=0;
       for(let k=0;k<z.n*12&&placed<z.n;k++){const[x,zz]=sample();if(!spotOK(x,zz,1.5))continue;if(TREES.some(t=>Math.abs(t.x-x)<2&&Math.abs(t.z-zz)<2))continue;
         const az=z.type==='azalea',s=az?mix(1.1,2.1,r()):mix(0.9,1.8,r());items.push([x,zz,s,PALS[z.type][Math.floor(r()*PALS[z.type].length)],az]);placed++;}}
+    if(NATURE.ok){   // green shrubs become the pack's bush model; azaleas keep their own pink lumps
+      const shrubs=items.filter(it=>!it[4]);
+      placeNature('bush',shrubs.map(([x,z,sz])=>({x,y:H(x,z)-0.15,z,rot:r()*6.28,s:sz*0.9,sy:sz*0.75,v:0,col:new THREE.Color().setHSL(0.27,0.35,0.42+r()*0.12).multiplyScalar(2)})),add);
+      items.splice(0,items.length,...items.filter(it=>it[4]));
+    }
     if(items.length){
       const bm=add(new THREE.InstancedMesh(lump,toon(0xffffff),items.length)),bo=add(new THREE.InstancedMesh(lump,outlineMat(0.1),items.length));
       const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0);
@@ -1518,21 +1716,85 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       bm.castShadow=true;bm.receiveShadow=true;
     }
   }
+
+  // ---- grass carpet: dense, low cards of grass blades along the rough beside the fairway and round the green, so the ground the camera sees close
+  // up is grass rather than a painted colour. Each card is three crossed quads with a blade-silhouette texture; colour runs from a dark base to a
+  // lighter tip that drifts across the hole, and the tips bend in the wind (the idea from FluffyGrass, github.com/thebenezer/FluffyGrass, MIT). Look only.
+  {
+    const r=rng(5+holeIdx*29),LINKS=HOLE.theme==='links',spots=[];
+    const NC=LINKS?16000:22000;
+    for(let i=0;i<NC*5&&spots.length<NC;i++){
+      let x,z;
+      if(r()<0.8){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.3+Math.pow(r(),1.4)*24);}
+      else{const a=r()*6.28,q=Math.max(GREEN.rx,GREEN.rz)+2+r()*22;x=GREEN.x+Math.cos(a)*q;z=GREEN.z+Math.sin(a)*q;}
+      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.sd(x,z)>-0.8))continue;spots.push([x,z]);
+    }
+    if(spots.length){
+      const pos=[],uv=[],nor=[],ix=[];
+      for(let k=0;k<3;k++){const a=k*Math.PI/3,cx=Math.cos(a)*0.5,cz=Math.sin(a)*0.5,b=pos.length/3;
+        pos.push(-cx,0,-cz, cx,0,cz, cx,1,cz, -cx,1,-cz);uv.push(0,0,1,0,1,1,0,1);nor.push(0,1,0,0,1,0,0,1,0,0,1,0);ix.push(b,b+1,b+2,b,b+2,b+3);}
+      const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));cg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));cg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));cg.setIndex(ix);
+      const base=new THREE.Color(GP.rough).multiplyScalar(0.55),tip1=new THREE.Color(LINKS?'#d9c47a':GP.rough).offsetHSL(0,0.05,LINKS?0:0.12),tip2=new THREE.Color(LINKS?'#9aa257':GP.fringe).offsetHSL(0,0,LINKS?0:0.04);
+      const gm=toon(0xffffff,{map:bladeTex(),opacity:0.75,alphaTest:0.3,side:THREE.DoubleSide});gm.customProgramCacheKey=()=>'grass-carpet';
+      gm.onBeforeCompile=sh=>{
+        Object.assign(sh.uniforms,{uT:WT,uBase:{value:base},uTip1:{value:tip1},uTip2:{value:tip2},uBall:{value:ball.p}});
+        sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;uniform vec3 uBall;varying vec3 vCW;varying float vH;')
+          .replace('#include <begin_vertex>',`#include <begin_vertex>
+          vec3 ip=instanceMatrix[3].xyz;vCW=ip;vH=uv.y;
+          transformed.y*=0.25+0.75*smoothstep(0.5,1.8,distance(ip.xz,uBall.xz));   // pressed down round the ball, so it never hides in the grass
+          float sw=sin(uT*1.7+ip.x*0.27+ip.z*0.19)*0.7+sin(uT*2.9+ip.z*0.8)*0.3;transformed.x+=sw*0.22*uv.y;transformed.z+=sw*0.1*uv.y;`);
+        sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+          uniform vec3 uBase;uniform vec3 uTip1;uniform vec3 uTip2;varying vec3 vCW;varying float vH;
+          float ch21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+          float cnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(ch21(i),ch21(i+vec2(1.0,0.0)),f.x),mix(ch21(i+vec2(0.0,1.0)),ch21(i+vec2(1.0,1.0)),f.x),f.y);}`)
+          .replace('#include <map_fragment>',`vec4 tA=texture2D(map,vUv);diffuseColor.a*=tA.a;
+          vec3 tip=mix(uTip1,uTip2,cnz(vCW.xz*0.09));diffuseColor.rgb=mix(uBase,tip,smoothstep(0.0,0.85,vH));`);
+      };
+      const cm=add(new THREE.InstancedMesh(cg,gm,spots.length));cm.receiveShadow=true;
+      const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0);
+      spots.forEach(([x,z],i)=>{const w=LINKS?0.9+r()*0.6:0.8+r()*0.5,h=LINKS?0.35+r()*0.3:0.22+r()*0.16;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.03,z),q,new V3(w,h,w));cm.setMatrixAt(i,m);});
+    }
+  }
   // ---- grass tufts and flowers in the rough
   {
-    const r=rng(99+holeIdx);const pos=[],nor=[];
-    for(let b=0;b<5;b++){const a=b/5*Math.PI*2+r()*0.6,lean=0.1+r()*0.12,h=0.26+r()*0.2,w=0.04;const cx=Math.cos(a),cz=Math.sin(a),px=-cz*w,pz=cx*w;pos.push(-px,0,-pz,px,0,pz,cx*lean,h,cz*lean);nor.push(0,1,0,0,1,0,0,1,0);}
+    const r=rng(99+holeIdx);const pos=[],nor=[];const LINKS=HOLE.theme==='links';
+    const NB=LINKS?9:5,HB=LINKS?[0.32,0.3]:[0.26,0.2];
+    for(let b=0;b<NB;b++){const a=b/NB*Math.PI*2+r()*0.6,lean=0.1+r()*(LINKS?0.22:0.12),h=HB[0]+r()*HB[1],w=LINKS?0.08:0.04;const cx=Math.cos(a),cz=Math.sin(a),px=-cz*w,pz=cx*w;pos.push(-px,0,-pz,px,0,pz,cx*lean,h,cz*lean);nor.push(0,1,0,0,1,0,0,1,0);}
     const tgeo=new THREE.BufferGeometry();tgeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));tgeo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
     const spots=[];
-    for(let i=0;i<22000&&spots.length<6000;i++){const z=mix(-20,PIN.z+40,r()),side=r()<0.5?-1:1,d=fairwayHalf(z)+0.6+Math.pow(r(),1.7)*72,x=centerX(z)+side*d;
-      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.sd(x,z)>-0.8))continue;spots.push([x,z]);}
-    const tufts=add(new THREE.InstancedMesh(tgeo,toon(0xffffff,{side:THREE.DoubleSide}),spots.length));
+    const NT=LINKS?16000:6000;for(let i=0;i<NT*4&&spots.length<NT;i++){const z=mix(-20,PIN.z+40,r()),side=r()<0.5?-1:1,d=fairwayHalf(z)+(LINKS?2.5:0.6)+Math.pow(r(),1.7)*(LINKS?95:72),x=centerX(z)+side*d;
+      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.sd(x,z)>-0.8))continue;
+      if(!LINKS){spots.push([x,z]);continue;}
+      // links: fescue grows in clumps, thickest in the gold drifts of the rough
+      if(jagN(x*0.35+11,z*0.35)<-0.2&&r()<0.7)continue;
+      const n=4+Math.floor(r()*10),rad=0.6+r()*1.4;
+      for(let k=0;k<n&&spots.length<NT;k++){const a=r()*6.28,q=rad*Math.sqrt(r()),xx=x+Math.cos(a)*q,zz=z+Math.sin(a)*q;if(S(xx,zz)===ROUGH)spots.push([xx,zz]);}}
+    // the blades sway in the wind: tips move most, each tuft a little out of step with its neighbours (look only)
+    const tuftM=toon(0xffffff,{side:THREE.DoubleSide});
+    tuftM.onBeforeCompile=sh=>{sh.uniforms.uT=WT;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;')
+      .replace('#include <begin_vertex>',`#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        vec3 ip=instanceMatrix[3].xyz;
+      #else
+        vec3 ip=vec3(0.0);
+      #endif
+      float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.16*position.y;transformed.z+=sw*0.07*position.y;`);};
+    tuftM.customProgramCacheKey=()=>'tuft-sway';
+    if(NATURE.ok&&LINKS){   // links fescue: the pack's wispy grass clumps, tinted from green to straw gold
+      const gold=['#ffe7a0','#f2d98a','#d8d488','#fff0c0'].map(h=>new THREE.Color(h));
+      // the hand-made clumps where the camera sees them close (along the fairway and round the green), the cheap blade tufts further out
+      const nearF=([x,z])=>Math.abs(x-centerX(z))<fairwayHalf(z)+26||Math.hypot(x-GREEN.x,z-GREEN.z)<40;
+      const close=spots.filter(nearF).slice(0,2600);
+      placeNature('fescue',close.map(([x,z])=>({x,y:H(x,z)-0.05,z,rot:r()*6.28,s:1.0+r()*0.7,v:Math.floor(r()*4),col:gold[Math.floor(r()*4)]})),add,{cast:false,sway:true});
+      const keep=spots.filter(p=>!close.includes(p));spots.length=0;spots.push(...keep);
+    }
+    const tufts=add(new THREE.InstancedMesh(tgeo,tuftM,Math.max(1,spots.length)));if(!spots.length)tufts.count=0;
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0),goldT=new THREE.Color('#b8a050');
-    spots.forEach(([x,z],i)=>{const s=0.9+r()*0.9;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.02,z),q,new V3(s,s*(0.8+r()*0.6),s));tufts.setMatrixAt(i,m);
-      c.set(PAL.g.rough).offsetHSL(0,0,(r()-0.5)*0.12);if(HOLE.gold&&cliffB)c.lerp(goldT,0.85*(1-smooth(2,18,-cliffB.sd(x,z))));tufts.setColorAt(i,c);});
+    spots.forEach(([x,z],i)=>{const s=LINKS?0.75+r()*0.55:0.9+r()*0.9;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.02,z),q,new V3(s,s*(0.8+r()*0.6),s));tufts.setMatrixAt(i,m);
+      if(LINKS){const k=r();c.set(k<0.45?'#c9b46a':k<0.75?'#a99c55':k<0.92?'#8c9450':'#d8c98a').offsetHSL(0,0,(r()-0.5)*0.08);}else c.set(GP.rough).offsetHSL(0,0,(r()-0.5)*0.12);if(HOLE.gold&&cliffB)c.lerp(goldT,0.85*(1-smooth(2,18,-cliffB.sd(x,z))));tufts.setColorAt(i,c);});
     tufts.receiveShadow=true;
     const fl=[];
-    for(let k=0;k<60;k++){const z=mix(-10,PIN.z+20,r()),side=r()<0.5?-1:1,x=centerX(z)+side*(fairwayHalf(z)+3+r()*10);if(S(x,z)!==ROUGH)continue;
+    for(let k=0;k<(LINKS?0:60);k++){const z=mix(-10,PIN.z+20,r()),side=r()<0.5?-1:1,x=centerX(z)+side*(fairwayHalf(z)+3+r()*10);if(S(x,z)!==ROUGH)continue;
       const col=[0xffffff,0xffe14d,0xff7ab8,0xb9a2ff][Math.floor(r()*4)];
       for(let j=0;j<6+Math.floor(r()*8);j++){const fx=x+(r()-0.5)*3,fz=z+(r()-0.5)*3;if(S(fx,fz)===ROUGH)fl.push([fx,fz,col]);}}
     if(HOLE.iceplant&&cliffB)for(let k=0;k<9000&&fl.length<1400;k++){const x=mix(bb.x0,bb.x1,r()),z=mix(bb.z0,bb.z1,r()),s=cliffB.sd(x,z);if(s<-0.8&&s>-5&&S(x,z)===ROUGH)fl.push([x,z,r()<0.7?0xe0408a:0xb04ad0]);}
@@ -1553,10 +1815,9 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     const po=add(new THREE.Mesh(pg,outlineMat(0.03)));po.position.copy(pole.position);
     FLAGSTICK.push(pole,po);
     const tb=new THREE.Group();
-    const lipG=new THREE.BoxGeometry(10.6,0.5,13.6);const lip=new THREE.Mesh(lipG,toon(PAL.teeSide));lip.position.y=-0.22;tb.add(lip);
-    const lipO=new THREE.Mesh(lipG,outlineMat(0.06));lipO.position.copy(lip.position);tb.add(lipO);
+    // no raised lip: the tee is mown into the ground (H already levels it), so only its grass top shows
     { // one even shade of green with soft grass grain, like the fairway (no stripes)
-      const tm=toon(PAL.g.tee);tm.extensions={derivatives:true};
+      const tm=toon(GP.tee);tm.extensions={derivatives:true};
       tm.onBeforeCompile=sh=>{
         sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vTP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvTP=(modelMatrix*vec4(position,1.0)).xyz;');
         sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
@@ -1567,7 +1828,7 @@ float tnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(th
           float g=(tnz(tp*0.6)-0.5)*0.08+(tnz(tp*3.0+7.0)-0.5)*0.06*(1.0-smoothstep(0.15,0.4,fw))+(tnz(vec2(tp.x*1.5,tp.y*9.0)+19.0)-0.5)*0.05*(1.0-smoothstep(0.05,0.12,fw));
           diffuseColor.rgb*=1.0+g;`);
       };
-      const top=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.06,13.4),tm);top.position.set(0,0.06,0);tb.add(top);
+      // the pad itself is the terrain's TEE colour: no box on top, so it sits in the ground like a real tee
     }
     const blk=new THREE.BoxGeometry(0.45,0.38,0.45);
     [-3.4,3.4].forEach(x=>{const b=new THREE.Mesh(blk,toon(0x8a5a35));b.position.set(x,0.25,2.4);b.castShadow=true;tb.add(b);const o=new THREE.Mesh(blk,outlineMat(0.05));o.position.copy(b.position);tb.add(o);});
@@ -1599,8 +1860,46 @@ float tnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(th
     for(let i=-4;i<=4;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.8,0.3),win);w.position.set(i*3.8,5,-7.1);g.add(w);}
     g.position.set(c.x,H(c.x,c.z),c.z);g.rotation.y=c.rot||0;add(g);
   }
+
+  // ---- props: buildings that frame a hole (HOLE.props). Each is look only unless the hole also lists a matching obstacle.
+  //   sheds    {pts:[[x,z]...], d, h}  a run of dark timber sheds with pitched slate roofs, built back (away from the tee) from the front line pts
+  //   building {x,z,w,d,h,rot, floors}  a big stone block with rows of windows and a slate roof (a hotel, a clubhouse)
+  for(const pr of HOLE.props||[]){
+    if(pr.type==='sheds'){
+      const parts=[],roofs=[],k0=pr.d||7,h=pr.h||5.5;
+      for(let i=1;i<pr.pts.length;i++){
+        const a=pr.pts[i-1],c=pr.pts[i],len=Math.hypot(c[0]-a[0],c[1]-a[1]),n=Math.max(1,Math.round(len/9)),ang=Math.atan2(c[0]-a[0],c[1]-a[1]);
+        // the run's outward normal (away from the tee): the side of the line with larger z
+        let nx=Math.cos(ang),nz=-Math.sin(ang);if(nz<0){nx=-nx;nz=-nz;}
+        for(let j=0;j<n;j++){
+          const t=(j+0.5)/n,x=mix(a[0],c[0],t)+nx*k0/2,z=mix(a[1],c[1],t)+nz*k0/2,gy=Math.min(H(x,z),H(x-nx*k0/2,z-nz*k0/2)),L=len/n+0.15,hh=h*(0.92+0.16*((i*7+j*3)%3)/2);
+          const box=new THREE.BoxGeometry(L,hh,k0);box.translate(0,hh/2,0);box.rotateY(ang+Math.PI/2);box.translate(x,gy,z);parts.push([box,(i+j)%2?'#26352c':'#2c3d32']);
+          const sh=new THREE.Shape([new THREE.Vector2(-k0/2-0.5,0),new THREE.Vector2(k0/2+0.5,0),new THREE.Vector2(0,k0*0.42)]);
+          const rf=new THREE.ExtrudeGeometry(sh,{depth:L+0.6,bevelEnabled:false});rf.translate(0,0,-(L+0.6)/2);rf.rotateY(ang);rf.translate(x,gy+hh,z);roofs.push([rf,'#4a4f56']);
+          const trim=new THREE.BoxGeometry(L+0.05,0.35,k0+0.05);trim.translate(0,hh-0.17,0);trim.rotateY(ang+Math.PI/2);trim.translate(x,gy,z);parts.push([trim,'#d8d2c0']);
+        }
+      }
+      const wg=mergeGeos(parts),rg=mergeGeos(roofs);
+      const wm=add(new THREE.Mesh(wg,facadeMat({boards:1.0})));wm.castShadow=true;wm.receiveShadow=true;add(new THREE.Mesh(wg,outlineMat(0.08)));
+      const rm=add(new THREE.Mesh(rg,toon(0xffffff,{vertexColors:true})));rm.castShadow=true;rm.receiveShadow=true;add(new THREE.Mesh(rg,outlineMat(0.08)));
+    }else if(pr.type==='building'){
+      const g=new THREE.Group(),fl=pr.floors||5,h=pr.h||fl*3.2;
+      const body=new THREE.BoxGeometry(pr.w,h,pr.d);body.translate(0,h/2,0);
+      const bm=new THREE.Mesh(mergeGeos([[body,pr.col||'#cbb89a']]),facadeMat({win:1,floor:h/fl,bay:pr.bay||3.4,glass:pr.glass||'#3b4658',lit:pr.lit??0.25}));bm.castShadow=true;bm.receiveShadow=true;g.add(bm);
+      g.add(new THREE.Mesh(body,outlineMat(0.14)));
+      const rs=new THREE.Shape([new THREE.Vector2(-pr.d/2-0.6,0),new THREE.Vector2(pr.d/2+0.6,0),new THREE.Vector2(pr.d/4,pr.d*0.32),new THREE.Vector2(-pr.d/4,pr.d*0.32)]);
+      const rf=new THREE.ExtrudeGeometry(rs,{depth:pr.w+1.2,bevelEnabled:false});rf.translate(0,0,-(pr.w+1.2)/2);rf.rotateY(Math.PI/2);rf.translate(0,h,0);
+      const rm=new THREE.Mesh(rf,toon(pr.roof||'#4b5058'));rm.castShadow=true;g.add(rm);g.add(new THREE.Mesh(rf,outlineMat(0.14)));
+      // a band of balconies or a cornice under the roof, so the block does not read as a plain box
+      const cor=new THREE.BoxGeometry(pr.w+0.8,0.6,pr.d+0.8);cor.translate(0,h-0.3,0);g.add(new THREE.Mesh(cor,toon('#e6dcc8')));
+      g.position.set(pr.x,H(pr.x,pr.z)-0.4,pr.z);g.rotation.y=pr.rot||0;add(g);
+    }
+  }
   backMesh.position.set(PIN.x/2,BACK.y0+BACK.h/2,PIN.z/2);
-  scene.fog.color.set(HOLE.theme==='coast'?'#c8d8e4':PAL.fog);
+  // sky and haze per theme: links get a low warm sun over the sea haze
+  const SKY={links:{sky:['#ffd2a0','#f6dcc0','#a6c8e6','#4f8ccc'],fog:'#e8d9bd'}}[HOLE.theme];
+  (SKY?SKY.sky:PAL.sky).forEach((c,i)=>sky.material.uniforms.sk.value[i].set(c));
+  scene.fog.color.set(SKY?SKY.fog:HOLE.theme==='coast'?'#c8d8e4':PAL.fog);
 }
 
 // ---------------------------------------------------------------- ball, markers, trail
@@ -2371,8 +2670,8 @@ function updateTreeCutaway(clear){
     let hide=false;
     if(!clear){const u=clamp(((t.x-ax)*ex+(t.z-az)*ez)/L2,0,1),dx=t.x-(ax+ex*u),dz=t.z-(az+ez*u);hide=Math.hypot(dx,dz)<2.2+t.r*0.7&&camera.position.y<t.y+t.cy-t.y+t.r*1.6;}
     const was=hiddenTrees.has(t);
-    if(hide&&!was){t.im.setMatrixAt(t.idx,_zero);t.io.setMatrixAt(t.idx,_zero);hiddenTrees.add(t);touched.add(t.im);touched.add(t.io);}
-    else if(!hide&&was){t.im.setMatrixAt(t.idx,t.mat);t.io.setMatrixAt(t.idx,t.mat);hiddenTrees.delete(t);touched.add(t.im);touched.add(t.io);}
+    if(hide&&!was){for(const im of t.ims){im.setMatrixAt(t.idx,_zero);touched.add(im);}hiddenTrees.add(t);}
+    else if(!hide&&was){for(const im of t.ims){im.setMatrixAt(t.idx,t.mat);touched.add(im);}hiddenTrees.delete(t);}
   }
   touched.forEach(m=>m.instanceMatrix.needsUpdate=true);
 }
@@ -2484,7 +2783,7 @@ function frame(now){
 }
 
 window.__fred={go:i=>loadHole(i),put:(dx,dz)=>{ball.p.set(PIN.x+dx,H(PIN.x+dx,PIN.z+dz)+R,PIN.z+dz);ballGroup.visible=true;setupAim();},ball:()=>ballScreen(),target:()=>screenOf(target),state:()=>state,skip:()=>{for(let i=0;i<6000&&state==='flight';i++)simulateFlight(1/60);}};
-resize();loadHole(0);$('intro').hidden=true; // hole 1 is built behind the menu so New game starts instantly
+resize();loadHole(0);$('intro').hidden=true;loadNature().then(()=>{if(NATURE.ok&&world)buildWorld();}); // hole 1 is built behind the menu so New game starts instantly
 requestAnimationFrame(frame);
 })();
 </script>
