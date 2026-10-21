@@ -1,6 +1,6 @@
 # Handoff: where The Fred stands
 
-Last updated 2026-10-21, at main `e87dffc` plus this document's PR. Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
+Last updated 2026-10-21 (evening), after PRs #18–#20. Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
 
 ## 1. The decision behind the latest work
 
@@ -30,7 +30,14 @@ What was decided (2026-10-21):
 | Tools | `render.py` serves the game's files, loads the models and takes `--js`. New: `tests/tools/nature.py` | `tests/README.md` |
 | Pipeline | New step 6b, **Dress the hole**: theme, props, backdrop, starting from the view from the tee. The template has a look table and a verdict line for the view from the tee | `docs/ICONIC-HOLES.md` §2; `docs/holes/TEMPLATE.md` |
 
-Tests: `node --test tests/*.test.js` gives 151 pass, 0 fail and 3 skipped. The skips are the lidar regressions, which skip without their tiles. Every hole's checks pass. In a shallow clone, one tools test needs older history (see §2, "Environment notes" in the pipeline doc).
+**Later the same day (PRs #18–#20):**
+
+| Area | Change | Where |
+|---|---|---|
+| Fairways | Softer mowing stripes that change light/dark with the view along the mowing; lusher and drier patches; smooth grain; a less lime base colour. Look only | the terrain shader; `docs/ICONIC-HOLES.md` §1.5, "Fairway turf" |
+| Riviera No. 6 | Bunker depths from the lidar (middle 0.46, front 0.68, back 0.61, left 0.48; lips 0.25). They were up to 2.8 × too deep and read as craters. Every hole's bunkers now come from lidar | `docs/holes/riviera-6.md` (end); pipeline doc §3.1 item 5 |
+
+Tests: `node --test tests/*.test.js` gives 153 pass, 0 fail and 3 skipped. The skips are the lidar regressions, which skip without their tiles. Every hole's checks pass. In a shallow clone, one tools test needs older history (see §2, "Environment notes" in the pipeline doc).
 
 ## 3. Open items to consider
 
@@ -46,7 +53,7 @@ In rough order of how much each would change what a player meets. None has been 
 3. **Rapier (3D physics) for ball-versus-prop contact.** This only matters if props multiply. Walls are polylines today, which is fine for sheds and stone walls.
 
 **The look**
-4. **The fairways still read as cartoonish.** The mowing stripes are strong and even.
+4. ~~**The fairways still read as cartoonish.**~~ Done (PR #18). If they still look too striped on a phone, the stripe strength is one number in the terrain shader.
 5. **Dress the other six holes** with step 6b:
    - Riviera No. 6's hedge and houses on the hill. Its signature view needs a `hedge` prop type, which doesn't exist yet.
    - Pebble's cliffs and sea view.
@@ -75,4 +82,5 @@ In rough order of how much each would change what a player meets. None has been 
   - open a PR through the REST API (`gh api repos/kcq101/The-Fred/pulls ...`; GraphQL is blocked);
   - merge it (`gh api -X PUT .../pulls/<n>/merge`);
   - re-sync the Project mirrors of the pipeline doc and the template if either changed.
+- **Lidar tiles** are never committed: `python3 tests/tools/lidar.py fetch --pin LAT,LON --download` puts one in `tests/tools/refs/` (needs `pip install --break-system-packages numpy scipy scikit-image tifffile pyproj imagecodecs`). The USGS site is reachable from the sandbox.
 - **Sandbox limits:** github.io, quaternius.com and opengameart.org are not reachable. The pack's mirror is in the pipeline doc's environment notes.
