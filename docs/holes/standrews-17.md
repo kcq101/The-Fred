@@ -181,7 +181,9 @@ the safe line to the wide front of the green holds it                          G
 | | Water, cliffs, structures, backdrop | **close** | The road behind the green and the stone wall behind the road, both playing; golden dunes beyond | — |
 | | Landmarks a player would name | **differs: fix** and **can't express yet** | The hotel is one small red-roofed `clubhouse` to the right of the drive; the real hotel is a long block and the sheds a black barn-like front | A building prop with size, colour and count (shared with Riviera No. 6) |
 
+**Visual pass (2026-10-21, PR #13).** The hole was the first one dressed with the look layer (`docs/ICONIC-HOLES.md` §1.5): a run of dark timber sheds across the right of the drive that folds in toward the line and out again (`props` sheds on `[[-3,31],[-15,22],[-31,28],[-52,19]]`, 7 yd high, with a dead `wall` collider on the same line: a drive aimed at (-30, 240) clears them, one aimed at (-40, 240) hits and drops back about 20 yd), the hotel as a 150 yd stone block down the right (`building`, replacing the red-roofed clubhouse), a stone-town skyline with spires, the links theme (dry turf, gold fescue, warm sky), the Road Hole bunker and the two short-left bunkers drawn with revetted stacked-turf faces, and a rubble-stone wall. Verdicts that change: *Landmarks a player would name* → **close** (sheds and hotel are there and the sheds play; sizes are by eye, not measured); *Tee and line* → **close** for the look, the drive is still not blind and there is still no OB along the hotel.
+
 **Open items**, most important first:
-1. The blind drive over the sheds, and OB along the hotel: the hole's first shot is not the real one (needs a blind-shot primitive and side OB).
-2. The hotel and sheds as buildings of the right size: a building prop.
-3. Trace the green and the Road Hole Bunker from an aerial.
+1. The blind drive and OB along the hotel: the sheds now block a low or wide drive, but the target is visible and there is no out of bounds (needs a blind-shot primitive and side OB).
+2. Trace the green and the Road Hole Bunker from an aerial.
+3. Measure the sheds' and the hotel's size and place from a photo (they are by eye).
