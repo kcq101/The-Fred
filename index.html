@@ -741,25 +741,27 @@ function obstacleHit(b,onHit){for(const o of OBST)OBSTACLES[o.type].hit(o,b,onHi
 const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6,PINE=7,ROAD=8,WASTE=9;
 const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE};   // names a hole spec can use (e.g. a cover feature's surf)
 // How each surface treats the ball (see BallModel for what these do):
-//   e      bounce: share of the speed into the ground that comes back out
-//   bite   grab on the FIRST impact (the ball still has backspin);  mu: grab on every later bounce (bigger = the run dies faster on a steep arrival)
-//   floor  share of the along-the-ground speed that always survives an impact
+//   e      bounce: how lively the ground is, against fairway's 0.30 (it scales OpenFairway's restitution curve; see BallModel IMPACT)
+//   bite   grab on the FIRST impact;  mu: grab on every later bounce. Against fairway's (3.5 and 0.22): the share of run a bounce keeps is divided by bite/3.5 (mu/0.22)
 //   dec    rolling resistance, yd/s² (scaled by the ground's tilt);  hold: steepest grade (rise/run) a resting ball stays on; steeper and it slides. Invariant: hold <= dec/G
 //   lie    share of launch speed this lie costs
-//   spinback  how much a landing ball's backspin can grip this surface (0 none .. 1 a firm green): a wedge checks up or spins back, see BallModel IMPACT
+//   crit, spinback, boost  the two numbers OpenFairway's bounce reads per surface (SurfacePhysicsCatalog: criticalAngle, spinbackResponseScale,
+//             spinbackThetaBoost*): Penner's critical angle (radians) and how strongly backspin takes run off a steep landing. A surface without them
+//             uses fairway's, as OpenFairway does. boost (greens only) raises the critical angle for a high-spin, fast landing, so a wedge checks up.
+//             Fringe, pine, sand, water and waste have no OpenFairway preset; road uses its Firm one. Its friction half (rolling, kinetic, grass drag) is not ported: dec stays.
 const SP={
-  [TEE]:    {e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Tee',     lie:1.00},
-  [FAIRWAY]:{e:.30,mu:.22,bite:3.5,floor:.12,dec:6.5,hold:.22,name:'Fairway', lie:1.00},
-  [ROUGH]:  {e:.15,mu:.45,bite:5.2,floor:.06,dec:13, hold:.6, name:'Rough',   lie:0.85},
-  [FRINGE]: {e:.26,mu:.20,bite:3.6,floor:.12,dec:4,  hold:.22,spinback:.55,name:'Fringe',  lie:0.97},
-  [GREENS]: {e:.24,mu:.16,bite:3.8,floor:.12,dec:3.2,hold:.15,spinback:1,name:'Green',   lie:1.00},
-  [SAND]:   {e:.05,mu:.90,bite:9.0,floor:0,  dec:30, hold:.5, name:'Bunker',  lie:0.70},
-  [WATER]:  {e:0,  mu:1,  bite:9.0,floor:0,  dec:99, hold:.5, name:'Water',   lie:1.00},
-  [PINE]:   {e:.22,mu:.35,bite:4.4,floor:.10,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
+  [TEE]:    {e:.30,mu:.22,bite:3.5,dec:6.5,hold:.22,name:'Tee',     lie:1.00},
+  [FAIRWAY]:{e:.30,mu:.22,bite:3.5,dec:6.5,hold:.22,name:'Fairway', lie:1.00},
+  [ROUGH]:  {e:.15,mu:.45,bite:5.2,crit:.35,spinback:.70,dec:13, hold:.6, name:'Rough',   lie:0.85},
+  [FRINGE]: {e:.26,mu:.20,bite:3.6,dec:4,  hold:.22,name:'Fringe',  lie:0.97},
+  [GREENS]: {e:.24,mu:.16,bite:3.8,dec:3.2,hold:.15,crit:.36,spinback:1.12,boost:{max:.12,rpm:[3500,5500],v:[8,20]},name:'Green',   lie:1.00},
+  [SAND]:   {e:.05,mu:.90,bite:9.0,dec:30, hold:.5, name:'Bunker',  lie:0.70},
+  [WATER]:  {e:0,  mu:1,  bite:9.0,dec:99, hold:.5, name:'Water',   lie:1.00},
+  [PINE]:   {e:.22,mu:.35,bite:4.4,dec:9,  hold:.5, name:'Pine straw',lie:0.80},
   // ROAD: hard and fast. Lively bounce, almost no grab, little rolling resistance: a ball that lands on it keeps going, and the lie off it is poor.
-  [ROAD]:   {e:.36,mu:.16,bite:2.6,floor:.18,dec:5.0,hold:.2, name:'Road',     lie:0.80},
+  [ROAD]:   {e:.36,mu:.16,bite:2.6,crit:.25,spinback:.60,dec:5.0,hold:.2, name:'Road',     lie:0.80},
   // WASTE: sandy, scrubby native ground (not a bunker): no bounce, grabs hard so a ball dies where it lands, awkward lie.
-  [WASTE]:  {e:.08,mu:.80,bite:7.5,floor:.01,dec:24, hold:.55,name:'Waste area',lie:0.82},
+  [WASTE]:  {e:.08,mu:.80,bite:7.5,dec:24, hold:.55,name:'Waste area',lie:0.82},
 };
 const BASE_SP=JSON.parse(JSON.stringify(SP));
 // A hole's play profile tunes the shared surfaces for that hole (all optional, 1 = as above):
@@ -911,7 +913,7 @@ const CLUBS=[
   {name:'Hammer',rpm:2700,carry:245,ang:13*D2R,dev:0.110,curve:6.60,mishit:0.23,shape:7,  swing:[1.1,3.4],word:'THWACK!'},
   {name:'3-Wood',rpm:3600,carry:215,ang:15*D2R,dev:0.100,curve:5.75,mishit:0.21,shape:6.4,swing:[1.05,3.2],word:'WHACK!'},
   {name:'Iron',  rpm:7000,carry:155,ang:22*D2R,dev:0.076,curve:3.95,mishit:0.17,shape:5.5,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', rpm:9500,back:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Wedge', rpm:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.85,mishit:0.14,shape:3.5,swing:[0.9,2.6],word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 // still-air carry on flat ground at launch speed v0, angle a, backspin rpm: the same Aero.step the ball and the aiming arc take
@@ -1002,16 +1004,22 @@ const StanceModel=(()=>{
 // The game hands it a terrain {H, normal, S} and the surface table SP; it moves a ball {p, v, spin, rolling, landed, resting, t, ...}. It never touches the scene.
 //   AIR     drag and backspin lift against the wind (Aero: OpenFairway's wind-tunnel fits), gravity, and the sideways pull of a draw/fade. The aiming arc takes these same steps (with no wind), so in still air a shot lands where the arc said.
 //   IMPACT  worked out in the ground's own frame (along its slope) from how fast and how steeply the ball arrives:
-//             hop   leaves the ground at  e x (speed into the ground), a little less for hard hits; a hop too small to see just becomes a roll
-//             grab  the share of its run along the ground that survives = exp(-grip x (1+e) x tan(arrival angle)), never less than SP.floor
-//             grip  is SP.bite on the first impact (the ball still has backspin) and SP.mu on every later bounce
-//           A steep arrival (wedge, a ball dropping onto lower ground, an uphill face) therefore stops quickly and a shallow one (driver, a ball landing on a rise) keeps running, with no per-club roll factor.
+//             OpenFairway's spin-dependent bounce (see impact): the hop's restitution falls with impact speed and with spin; the first landing keeps
+//             more of its run the less spin it has, and a steep, fast or high-spin landing takes Penner's path, where backspin can stop it or spin it back.
+//             SP scales it per surface (e, bite, mu against fairway's). A hop too small to see just becomes a roll. No per-club roll factor.
 //   ROLL    rolling resistance (scaled by the ground's tilt) plus gravity along the slope. A surface holds a resting ball only up to SP.hold; steeper than that the ball slides down.
 // Elevation is not adjusted anywhere else: a ball that lands on higher ground simply lands sooner, and on lower ground later. (playsLike only reports that, it never feeds back.)
 const BallModel=(()=>{
   const STEP=1/240;          // fixed physics step: live ball and aiming arc take identical steps, whatever the frame rate
   const HOP_MIN=0.6;         // yd/s: a bounce that would leave the ground slower than this becomes a roll
-  const E_FALL=100;          // restitution drops for hard hits: e / (1 + speed into the ground / E_FALL)
+  const YD_M=1.0936;         // yards per metre: OpenFairway's thresholds are in m/s
+  // OpenFairway's BounceProfile.Default (m/s, rpm). Restitution: A+B*v+C*v² of the speed into the ground, CAP above CAP_V, none below KILL_V.
+  // First landing keeps RET_FLIGHT*clamp(1-rpm/RET_SPIN, RET_MIN, 1) of its run; steeper than the surface's critical angle and faster than PENNER_V it takes Penner's path.
+  // Spin cuts restitution: up to SC_LOW below SC_LO rpm, up to SC_LOW+SC_ADD by SC_LO+SC_RANGE, the high-spin cut scaled from VS_LOW to 1 between VS_LO and VS_MID m/s.
+  // Later bounces keep RO_LOW..RO_HIGH of the run as the spin ratio rises to RO_RATIO, bounce at RO_COR of the curve, and not at all below RO_KILL_V.
+  const OF={A:.45,B:-.01,C:.0002,CAP:.25,CAP_V:20,KILL_V:2,RET_FLIGHT:.55,RET_MIN:.40,RET_SPIN:8000,PENNER_V:20,
+    SC_LO:1500,SC_LOW:.30,SC_RANGE:1500,SC_ADD:.40,VS_LO:12,VS_MID:25,VS_LOW:.50,RO_LOW:.85,RO_HIGH:.70,RO_RATIO:.20,RO_COR:.5,RO_KILL_V:4};
+  const E_REF=.30,BITE_REF=3.5,MU_REF=.22;   // fairway's e, bite and mu: the surface OpenFairway's profile stands for
   const V_STOP=0.07,V_MAX=32;// slower than V_STOP on ground that can hold it = at rest; nothing on the ground goes faster than V_MAX
   const LIFT=0.06;           // a rolling ball whose ground falls away by more than this leaves the ground
   const ROLL_T=12;           // after this long on the ground, rolling resistance ramps up so nothing can roll forever
@@ -1019,7 +1027,8 @@ const BallModel=(()=>{
   const NY_MIN=0.05;         // guard against dividing by the tilt of a near-vertical bank
   const V_REL=1.0;           // a ball slower than this on ground steeper than SP.hold is let go; so is one already heading downhill
   const NO_WIND={x:0,z:0};
-  const CRIT=15.4*D2R;       // Penner's critical angle: below it a landing ball skids on, above it the spin grips
+  const CRIT_DEF=.29,SB_DEF=.78;   // OpenFairway's fairway: Penner's critical angle (rad; below it a landing ball skids on) and spinback response
+  const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
   const BALL_RAD=0.0233;     // a real ball's radius in yards (the drawn ball, R, is bigger so it can be seen)
   const RPM=2*Math.PI/60;    // rpm -> rad/s
 
@@ -1045,26 +1054,41 @@ const BallModel=(()=>{
     }
     return null;
   }
-  // a ball arriving at the ground: split its velocity along and across the slope, lose speed, and either hop or start to roll
+  // a ball arriving at the ground: split its velocity along and across the slope, lose speed, and either hop or start to roll.
+  // OpenFairway's bounce (BounceCalculator.cs with BounceProfile.Default; github.com/digitalhand/openfairway at 4f3e11b, MIT), in yards, with the
+  // surface's character from SP as ratios to fairway (e/0.30 scales the restitution, bite/3.5 and mu/0.22 divide the run kept). Speeds are compared
+  // with OpenFairway's thresholds in m/s. The spin is the ball's own: Aero's backspin, decayed in flight, on the first landing; rolling spin after.
+  function cor(vn){                                        // OpenFairway's restitution curve, vn in m/s
+    if(vn>OF.CAP_V)return OF.CAP;if(vn<OF.KILL_V)return 0;return OF.A+OF.B*vn+OF.C*vn*vn;
+  }
   function impact(b,nx,ny,nz,sp){
     const v=b.v,vn=v.x*nx+v.y*ny+v.z*nz;
     if(vn>=0)return;
     const un=-vn;                                         // speed into the ground
     const tx=v.x-vn*nx,ty=v.y-vn*ny,tz=v.z-vn*nz;         // velocity along the ground
-    const ut=Math.hypot(tx,ty,tz);
-    const e=sp.e/(1+un/E_FALL);
-    const grip=b.landed?sp.mu:sp.bite;
-    let k=ut>1e-9?Math.max(sp.floor,Math.exp(-grip*(1+e)*un/ut)):0;   // share of the run that survives: falls smoothly with the tangent of the arrival angle
-    // BACKSPIN on the first landing (Penner's model, as OpenFairway uses it: github.com/digitalhand/openfairway, MIT): above a critical arrival angle the
-    // ball's spin bites, and with enough of it the run along the ground turns negative: the ball checks up or spins back. It only ever takes run away.
-    if(!b.landed&&b.back>0&&sp.spinback>0&&ut>1e-9){
-      const sp0=Math.hypot(un,ut),th=Math.atan2(un,ut);
-      if(th>CRIT&&sp0>8){
-        const ret=0.55*clamp(1-b.back/8000,0.4,1);
-        const vt=ret*sp0*Math.sin(th-CRIT)-BALL_RAD*2/7*b.back*RPM*sp.spinback;
-        k=Math.min(k,vt/ut);b.stats.spinback=vt;
-      }
+    const ut=Math.hypot(tx,ty,tz),sp0=Math.hypot(un,ut);
+    const unM=un/YD_M,sp0M=sp0/YD_M,first=!b.landed;
+    const w=first?((b.air&&b.air.w)||0):(b.w||0),rpm=w/RPM;   // spin (rad/s): backspin in flight, rolling spin after the first landing
+    const eS=sp.e/E_REF;
+    let vt,e;                                             // new run along the ground (negative: spins back), restitution
+    if(first){
+      const ret=OF.RET_FLIGHT*clamp(1-rpm/OF.RET_SPIN,OF.RET_MIN,1)*BITE_REF/sp.bite;
+      const sb=sp.spinback??SB_DEF,bo=sp.boost,crit=(sp.crit??CRIT_DEF)+(bo?bo.max*smooth((rpm-bo.rpm[0])/(bo.rpm[1]-bo.rpm[0]))*smooth((sp0M-bo.v[0])/(bo.v[1]-bo.v[0])):0);
+      const th=Math.atan2(un,ut),penner=th>=crit&&(sp0M>=OF.PENNER_V||bo||sb>1);   // a spinback surface (a green) takes Penner's path at any speed
+      if(penner){vt=ret*sp0*Math.sin(th-crit)-2/7*BALL_RAD*w*sb;b.stats.spinback=vt;}
+      else vt=ut*ret;
+      // a spinning ball sticks: restitution cut by up to 70 % for high spin, and less of that cut for a slow (chip) impact
+      const vs=unM<OF.VS_LO?OF.VS_LOW*unM/OF.VS_LO:unM<OF.VS_MID?OF.VS_LOW+(1-OF.VS_LOW)*(unM-OF.VS_LO)/(OF.VS_MID-OF.VS_LO):1;
+      const cut=rpm<OF.SC_LO?rpm/OF.SC_LO*OF.SC_LOW:(OF.SC_LOW+Math.min((rpm-OF.SC_LO)/OF.SC_RANGE,1)*OF.SC_ADD)*vs;
+      e=cor(unM)*(1-cut)*eS;
+    }else{
+      const ratio=sp0>1e-3?BALL_RAD*w/sp0:0;
+      vt=ut*Math.min(1,(ratio<OF.RO_RATIO?OF.RO_LOW+(OF.RO_HIGH-OF.RO_LOW)*ratio/OF.RO_RATIO:OF.RO_HIGH)*MU_REF/sp.mu);
+      e=unM<OF.RO_KILL_V?0:cor(unM)*OF.RO_COR*eS;          // small bounces on the roll are killed so the ball settles
     }
+    const k=ut>1e-9?Math.min(1,vt/ut):0;                  // share of the run kept (OpenFairway limits it to the run it had)
+    b.w=Math.abs(k*ut)/BALL_RAD;                          // the spin now matches the run (first landing) or keeps its size (later)
+    if(!first&&k>0)b.w=w;
     const hop=e*un;
     if(hop>HOP_MIN){v.x=tx*k+nx*hop;v.y=ty*k+ny*hop;v.z=tz*k+nz*hop;b.rolling=false;b.stats.bounces++;}
     else{v.x=tx*k;v.y=ty*k;v.z=tz*k;b.rolling=true;const s0=Math.hypot(v.x,v.y,v.z);if(s0>V_MAX){const f=V_MAX/s0;v.x*=f;v.y*=f;v.z*=f;}}   // the cap holds from the first rolling step, even landing on a steep slope
@@ -1075,7 +1099,7 @@ const BallModel=(()=>{
     p.y=h+R;
     impact(b,nx,ny,nz,env.sp[surf]);
     if(!b.landed){
-      b.landed=true;b.spin=0;b.back=0;b.landAt={x:p.x,y:p.y,z:p.z};
+      b.landed=true;b.spin=0;b.landAt={x:p.x,y:p.y,z:p.z};
       b.stats.carry=Math.hypot(p.x-b.launch.x,p.z-b.launch.z);b.stats.landSurf=surf;
       if(env.onEv)env.onEv('land',surf);
     }
@@ -1114,7 +1138,7 @@ const BallModel=(()=>{
     if(b.p.y-R<=h)land(b,h,env);
   }
   // call when a shot starts: remembers where it left from and clears the shot's record
-  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.air=air(b.club,b.v);b.back=0;if(b.club&&b.club.back&&b.club.v0){const f=Math.min(1,Math.hypot(b.v.x,b.v.y,b.v.z)/b.club.v0);b.back=b.club.back*f*f;}   // a part swing (a chip) puts on far less spin than a full one
+  function begin(b){b.launch={x:b.p.x,z:b.p.z};b.air=air(b.club,b.v);b.w=0;   // the backspin comes from Aero's spin state (it scales with launch speed, so a chip spins less)
   b.stats={carry:null,bounces:0,landSurf:null};b.rollT=0;b.landAt=null;}
   // what the shot did, from the ball's own record: carry to first contact, roll from there to rest, and the straight-line total from where it was hit
   function summary(b){

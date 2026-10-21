@@ -42,7 +42,7 @@ test('the per-club roll factor is gone and every surface can hold a ball it is m
   assert.ok(!/club\.roll|c\.roll/.test(SRC), 'something still reads a per-club roll factor');
   for (const [k, s] of Object.entries(SP)) {
     assert.ok(s.hold <= s.dec / G + 1e-9, `surface ${s.name}: hold ${s.hold} must not exceed dec/G ${(s.dec / G).toFixed(3)} or a ball could sit on a slope it would also slide down`);
-    assert.ok(s.e >= 0 && s.e < 1 && s.floor >= 0 && s.floor < 1 && s.bite >= 0 && s.mu >= 0, `surface ${s.name} parameters in range`);
+    assert.ok(s.e >= 0 && s.e < 1 && s.bite > 0 && s.mu > 0 && s.bite >= 0 && s.mu >= 0, `surface ${s.name} parameters in range`);
   }
   assert.ok(SP[g.SAND].e < SP[g.ROUGH].e && SP[g.ROUGH].e < SP[g.FAIRWAY].e, 'bounce: sand < rough < fairway');
   assert.ok(SP[g.ROUGH].bite > SP[g.FAIRWAY].bite && SP[g.SAND].bite > SP[g.ROUGH].bite, 'grab: fairway < rough < sand');
@@ -56,18 +56,24 @@ test('flight is unchanged: every club still carries its stated distance on flat 
   }
 });
 
-test('a steeper arrival keeps less of its run, and softer ground keeps less than firm ground', () => {
-  // one impact at a time: ball a hair above flat ground, same speed, different fall angles
-  const after = (angDeg, surf, speed = 40) => {
+test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps less, backspin and softer ground keep less, and the hop follows the ground', () => {
+  // one impact at a time: ball a hair above flat ground, same speed, different fall angles; rpm: backspin at that moment (Aero's spin state)
+  // OpenFairway's law is not monotone in angle: below the critical angle (fairway 0.29 rad) the run keeps 0.55 x its spin factor;
+  // above it Penner's path keeps 0.55 x speed x sin(angle - critical), which starts near zero and grows. Rewritten with the bounce port (PR #22).
+  const after = (angDeg, surf, rpm = 0, speed = 40) => {
     const a = angDeg * g.D2R, b = { p: { x: 0, y: R + 0.001, z: 0 }, v: { x: 0, y: -Math.sin(a) * speed, z: Math.cos(a) * speed }, rolling: false, landed: false, resting: false, t: 0, lipT: -9 };
-    BM.begin(b); BM.step(b, BM.STEP, { terrain: flat(surf), sp: SP, wind: { x: 0, z: 0 } });
+    BM.begin(b); b.air = { w: rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
+    BM.step(b, BM.STEP, { terrain: flat(surf), sp: SP, wind: { x: 0, z: 0 } });
     return { kept: Math.hypot(b.v.x, b.v.z) / (Math.cos(a) * speed), hop: b.v.y };
   };
-  let prev = 2;
-  for (const a of [8, 12, 16, 20, 25, 30, 40, 55]) { const k = after(a, g.FAIRWAY).kept; assert.ok(k <= prev + 1e-9, `kept share rose at ${a} deg`); prev = k; }
-  assert.ok(after(8, g.FAIRWAY).kept > 0.5 && after(55, g.FAIRWAY).kept <= SP[g.FAIRWAY].floor + 1e-9, 'shallow keeps most of its run, steep keeps only the floor');
-  for (const a of [12, 20, 40]) assert.ok(after(a, g.ROUGH).kept < after(a, g.FAIRWAY).kept && after(a, g.SAND).kept < after(a, g.ROUGH).kept, `softer ground keeps less at ${a} deg`);
+  for (const a of [8, 12]) assert.ok(Math.abs(after(a, g.FAIRWAY).kept - 0.55) < 0.01, `below the critical angle the run keeps 55 % (${a} deg: ${after(a, g.FAIRWAY).kept.toFixed(3)})`);
+  // with a real ball's spin; with none, a very steep drop (55 deg) keeps 0.6 of its horizontal run under Penner's formula, which is OpenFairway's behaviour too
+  for (const a of [20, 25, 30, 40, 55]) assert.ok(after(a, g.FAIRWAY, 3000).kept < after(12, g.FAIRWAY, 3000).kept, `steeper than critical keeps less than a skid (${a} deg)`);
+  for (const a of [12, 30, 45]) assert.ok(after(a, g.FAIRWAY, 6000).kept < after(a, g.FAIRWAY, 1000).kept, `more backspin keeps less run (${a} deg)`);
+  // not between the critical angles (fairway 16.6 deg, rough 20.1): a landing in that band skids on in rough but grips on fairway (OpenFairway's presets)
+  for (const a of [12, 30, 40]) assert.ok(after(a, g.ROUGH).kept < after(a, g.FAIRWAY).kept && after(a, g.SAND).kept < after(a, g.ROUGH).kept, `softer ground keeps less at ${a} deg`);
   assert.ok(after(30, g.SAND).hop < after(30, g.ROUGH).hop && after(30, g.ROUGH).hop < after(30, g.FAIRWAY).hop, 'hop: sand < rough < fairway');
+  assert.ok(after(40, g.FAIRWAY, 4000).hop < after(40, g.FAIRWAY, 500).hop, 'a spinning ball sticks: less hop');
 });
 
 // ---------------------------------------------------------------- the brief's scenarios

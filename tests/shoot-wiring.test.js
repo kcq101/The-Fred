@@ -69,7 +69,9 @@ test('putter: TAP, same PERFECT!/PUSHED/PULLED tags as before, no CHUNK, no spin
 
 test('a full wedge leaves with its backspin: begin() runs after the launch velocity is set (it used to see a ball at rest and give no spin)', () => {
   const w = world(3); w.shoot(1, 0.02);
-  assert.ok(w.ball.back > g.CLUBS[3].back * 0.8, `wedge backspin ${w.ball.back} rpm`);
+  // the spin now lives in Aero's spin state (rad/s), set by begin(); it scales with launch speed, so a chip (15 % pull: 39 % of the speed) spins less than half as much
+  const rpm = b => b.air.w * 60 / (2 * Math.PI);
+  assert.ok(rpm(w.ball) > g.CLUBS[3].rpm * 0.8, `wedge backspin ${rpm(w.ball)} rpm`);
   const c = world(3); c.shoot(0.15, 0.02);
-  assert.ok(c.ball.back > 0 && c.ball.back < w.ball.back * 0.3, `a chip spins far less (${c.ball.back.toFixed(0)} rpm)`);
+  assert.ok(rpm(c.ball) > 0 && rpm(c.ball) < rpm(w.ball) * 0.5, `a chip spins far less (${rpm(c.ball).toFixed(0)} rpm)`);
 });
