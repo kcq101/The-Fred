@@ -50,10 +50,10 @@ It differs from Augusta No. 12 (the other par 3 here) on purpose: no water, no w
 | Real feature | Game expression | Parameters | What it does to play |
 |---|---|---|---|
 | The green's outline | traced outline `green:{pts}` | 22.6 × 19.7 yd, 295 yd²: traced from the aerial, sized by the lidar (§8) | A wide, shallow-ish green running from a back-left arm (above the left bunker) to a rounded front-right end |
-| Pot bunker in the middle of the green | a traced bunker inside the green's outline (`S` checks bunkers before the green, `H` digs them into it) | 4.7 × 5.6 yd (the traced 2.4 × 2.8 yd ×2: §5), `depth` 1.3, `lip` 0.35 | The obvious target is sand; a ball aimed at it that is not caught rolls into a quadrant on either side |
-| Big two-lobed bunker short of the green | traced bunker | 11.9 × 15.7 yd, 98 yd² of sand round a grass tongue, `depth` 1.2, `lip` 0.35 | The miss short, under the pin |
-| Bunker behind the green | traced bunker | 6.7 × 5.1 yd, `depth` 0.9, `lip` 0.15 | The miss long: a downhill sand shot to a front pin |
-| Small bunker off the left end | traced bunker (new: the hole did not have it) | 2.5 × 5.5 yd, `depth` 0.6, `lip` 0.2 | The pull past the back-left quadrant |
+| Pot bunker in the middle of the green | a traced bunker inside the green's outline (`S` checks bunkers before the green, `H` digs them into it) | 4.7 × 5.6 yd (the traced 2.4 × 2.8 yd ×2: §5), `depth` 0.46, `lip` 0.25 (lidar 0.61 m) | The obvious target is sand; a ball aimed at it that is not caught rolls into a quadrant on either side |
+| Big two-lobed bunker short of the green | traced bunker | 11.9 × 15.7 yd, 98 yd² of sand round a grass tongue, `depth` 0.68, `lip` 0.25 (lidar 0.90 m) | The miss short, under the pin |
+| Bunker behind the green | traced bunker | 6.7 × 5.1 yd, `depth` 0.61, `lip` 0.25 (lidar 0.81 m) | The miss long: a downhill sand shot to a front pin |
+| Small bunker off the left end | traced bunker (new: the hole did not have it) | 2.5 × 5.5 yd, `depth` 0.48, `lip` 0.25 (lidar 0.64 m) | The pull past the back-left quadrant |
 | Back-to-front slope | green `tilt` | `z` 0.025, `x` 0.015: 2.9 %, rising toward back-left (the lidar: 4.9 % and 2.7 %) | Above the hole is the wrong side, and a putt from the back-left quadrant runs (§5) |
 | The ground from tee to green | `ramp` down, then up | −2.3 yd over z 20–95; +2.3 yd over z 112–134 | The tee sits level with the low pin area; the ground dips in front of the green complex and climbs back through the front bunker, as the lidar has it. The tee shot plays over a hollow |
 | The bank behind the green, up to the houses | `ramp` ×2 | +1.6 yd over z 150–164 (the apron round the back bunker); +16 yd over z 165–192 (about 40°) | A big miss long stops on the bank, 27 yd from the pin, instead of running 70 yd on (§6) |
@@ -240,3 +240,5 @@ The written sources had put the hole together well (a pot bunker in the middle, 
 6. The bank behind the tee (lidar: +7 yd), left out because it would sit under the tee camera.
 
 ~~The bank behind the green~~ and ~~the ground from tee to green~~: built from the lidar.
+
+**Bunker depths from the lidar** (2026-10-21). Riviera was left out of the 2026-10-20 pass that set the other holes' bunkers into the land; its depths were still the hand-set ones (middle 1.3, front 1.2, back 0.9, left 0.6; lips 0.15–0.35), up to 2.8 × the real ones, which read as craters. Measured with `lidar.py build riviera-6` (real m × 0.755): middle 0.61 m → 0.46, front 0.90 → 0.68, back 0.81 → 0.61, left 0.64 → 0.48, every lip 0.25. Shapes unchanged (the middle bunker stays ×2 wide). All checks still pass, including a pure iron at the middle finding the sand and a wedge out of it reaching the green; the baseline's middle plan for a sharp player now holds the green 57 % (was 100 %) for 3.16 (was 3.05), and the other plans move by 0.03 or less.
