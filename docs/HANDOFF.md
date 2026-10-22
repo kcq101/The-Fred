@@ -1,6 +1,6 @@
 # Handoff: where The Fred stands
 
-Last updated 2026-10-21 (late night, session 3 of the hole redesign), after PRs #18–#20 and #23 (the wedge-spin fix); PR #22 (the OpenFairway physics and the hole redesigns, sessions 1–3) is open, a draft. Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
+Last updated 2026-10-21 (late night), after PR #22 merged (the OpenFairway physics and the hole redesigns, sessions 1–3; merge `333fe14`). Earlier: PRs #18–#20 and #23 (the wedge-spin fix). Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
 
 ## 1. The decision behind the latest work
 
@@ -70,8 +70,8 @@ In rough order of how much each would change what a player meets. Item 1 is in p
    - *Augusta No. 12:* tailwind check rewritten (holds, 3.0 yd). Sunday pin, shaky clause: balls now stop at their pitch mark, so the shaky middle is 0.31 worse than the pin (limit was a quarter stroke either way); now "a shaky player gains less than half what a sharp one does" (0.31 against 0.92). `greens.firm` 1.3 would pass the old wording only by making the pin worse; not taken. Knife edge: the middle drowns 3 of 21 against the pin's 6, exactly half. 9 / 9.
    - *Riviera No. 6:* the higher flight clears the bank's top (arc at 200: 70 yd out). Flown into its 59 % face (arc at 175) the ball cannot rest and rolls back into the back bunker, 16.7 yd from the pin; the check now says that. Knife edge: an arc at 185 stays up top. 10 / 10.
    - Tests: 148 pass, 6 fail, 3 skip, of 157 (was 138 / 14 / 3 of 155: Sawgrass gained a shot and a strategy). Every hole's checks pass. The 6 left are the model tests below.
-   **Left for the owner to decide:** (a) wedge spin-back: try the green's boost from 3,000 rpm (a full wedge lands at ~3,360, below the 3,500 boost range) and look; (b) the 600-shot settle budget (12 s; the slowest is 17.7 s, flights alone last up to 6 s); (c) the other five model tests (driver run, wedge on a green, short shots, longer clubs less forgiving, wind independent of swing quality); (d) whether to merge #22.
-   Don't merge #22 without the owner's OK.
+   **Merged (2026-10-21, 23:15, at the owner's request): PR #22 is on main** (merge `333fe14`), with 6 model tests still failing (148 pass, 6 fail, 3 skip of 157). Every hole's checks pass. GitHub Pages now serves the new physics.
+   **Revisit next (the owner's list):** (a) Augusta 12's Sunday pin: the reworded shaky clause was taken; the alternative is `greens.firm` 0.75 → 1.3, which passes the old wording only by making the pin worse for a sharp player (2.28 → 2.60). (b) Wedge spin-back: start the green's boost at 3,000 rpm (a full wedge lands at ~3,360, below the 3,500 boost range) and look. (c) The 600-shot settle budget: 12 s; the slowest is 17.7 s, and flights alone last up to 6 s. (d) The other five failing model tests: driver run, wedge on a green, short shots, longer clubs less forgiving, wind independent of swing quality. Each is a behaviour test from main's physics: decide per test whether to rewrite it to OpenFairway's behaviour or change the physics.
 2. **Bunkers that take the pace off a ball** (gap #5 in the pipeline doc's §3.1). A ball landing on a steep grass face keeps its speed and can hop out. A plugging or soft-lip rule was tried once and dropped because it broke two holes. It needs a fresh design with its own tests.
 3. **Rapier (3D physics) for ball-versus-prop contact.** This only matters if props multiply. Walls are polylines today, which is fine for sheds and stone walls.
 
