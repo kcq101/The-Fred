@@ -82,11 +82,25 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 #hint{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 150px);transform:translateX(-50%) rotate(-1deg);width:min(330px,calc(100% - 32px));text-align:center;font-size:14px}
 
 #fx{position:absolute;inset:0;overflow:hidden}
-.sfx{position:absolute;font-family:var(--display);font-size:clamp(30px,8.5vw,58px);letter-spacing:.03em;line-height:.9;color:var(--caption);-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--magenta),-2px -1px 0 var(--cyan);white-space:nowrap;transform:translate(-50%,-50%) rotate(var(--r)) scale(0);animation:pop 1.2s steps(15,end) forwards}
-.sfx.small{font-size:clamp(20px,5.5vw,34px);color:var(--paper);-webkit-text-stroke:2px var(--ink)}
-.sfx.cyan{color:var(--cyan);text-shadow:3px 3px 0 var(--ink),-2px -1px 0 var(--magenta)}
-.sfx.hot{color:var(--magenta);text-shadow:3px 3px 0 var(--ink),-2px -1px 0 var(--cyan)}
+.sfx{position:absolute;font-family:var(--display);font-size:clamp(30px,8.5vw,58px);letter-spacing:.03em;line-height:.9;color:var(--caption);-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;text-shadow:3px 4px 0 var(--ink);white-space:nowrap;transform:translate(-50%,-50%) rotate(var(--r)) scale(0);animation:pop 1.2s steps(15,end) forwards}
+.sfx.small{font-size:clamp(22px,6vw,36px);color:#fff;-webkit-text-stroke:4.5px var(--ink)}
+.sfx.cyan{color:var(--cyan)}
+.sfx.hot{color:#ff5a3c}
 body.smooth .sfx{animation-timing-function:cubic-bezier(.2,.8,.3,1)}
+/* big impact words: a jagged burst behind heavy outlined lettering, 1960s comic style (boom()) */
+.boom{position:absolute;transform:translate(-50%,-50%) rotate(var(--r)) scale(0);animation:boom 1.25s steps(15,end) forwards;filter:drop-shadow(5px 6px 0 var(--ink))}
+body.smooth .boom{animation-timing-function:cubic-bezier(.2,.8,.3,1)}
+.boom svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.boom span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);line-height:1;letter-spacing:.02em;white-space:nowrap;color:var(--bt);-webkit-text-stroke:var(--bs) var(--ink);paint-order:stroke fill;transform:rotate(var(--tr)) skewX(-6deg);padding-top:.06em}
+@keyframes boom{
+  0%{transform:translate(-50%,-50%) rotate(var(--r)) scale(.25);opacity:1}
+  10%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1.18)}
+  18%{transform:translate(-50%,-50%) rotate(var(--r)) scale(.94)}
+  26%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1)}
+  76%{transform:translate(-50%,-52%) rotate(var(--r)) scale(1.02);opacity:1}
+  100%{transform:translate(-50%,-58%) rotate(var(--r)) scale(1.12);opacity:0}
+}
+@media (prefers-reduced-motion: reduce){.boom{animation-duration:1.6s}}
 @keyframes pop{
   0%{transform:translate(-50%,-50%) rotate(var(--r)) scale(.2);opacity:1}
   12%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1.3)}
@@ -2205,6 +2219,40 @@ function sfx(text,world,opts={}){
   el.style.left=clamp(x+(opts.dx||0),80,vw-80)+'px';el.style.top=clamp(y+(opts.dy||0),120,vh-180)+'px';
   fx.appendChild(el);setTimeout(()=>el.remove(),1500);
 }
+// big impact word on a jagged starburst. kind picks the colours: burst fill, its rim, the lettering
+const BOOM={
+  pow:   ['#e8202a','#ffe14d','#ffe14d'],  // the strike: yellow on red
+  cup:   ['#ffe14d','#ffffff','#e8202a'],  // holed: red on yellow
+  splash:['#1e7bff','#bfe6ff','#ffffff'],  // water: white on blue
+  hot:   ['#ff7a00','#ffe14d','#ffffff'],  // trees, walls, out: white on orange
+};
+function burstPts(n,rx,ry,inner,jit){
+  const pts=[],a0=Math.random()*Math.PI;
+  for(let i=0;i<n*2;i++){
+    const a=a0+i/(n*2)*Math.PI*2+(Math.random()-0.5)*0.12;
+    const r=i%2?inner*(1+(Math.random()-0.5)*0.1):1+(Math.random()-0.5)*jit;
+    pts.push((Math.cos(a)*rx*r).toFixed(1)+','+(Math.sin(a)*ry*r).toFixed(1));
+  }
+  return pts.join(' ');
+}
+function boom(text,world,opts={}){
+  const [fill,rim,ink]=BOOM[opts.kind||'pow'];
+  const w=Math.min(vw*(opts.size||0.72),420),h=w*0.7;
+  let x=vw/2,y=vh*0.4;
+  if(world){const v=world.clone().project(camera);if(v.z<1&&Math.abs(v.x)<1.3&&Math.abs(v.y)<1.3){x=(v.x+1)/2*vw;y=(1-v.y)/2*vh;}}
+  x=clamp(x+(opts.dx||0),w/2+6,vw-w/2-6);y=clamp(y+(opts.dy||0),110+h/2,vh-170-h/2);
+  const n=13+Math.floor(Math.random()*4),id='ht'+Math.random().toString(36).slice(2,8);
+  const el=document.createElement('div');el.className='boom';
+  el.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;--r:${(opts.rot??(Math.random()*14-7)).toFixed(1)}deg;--tr:${(Math.random()*8-4).toFixed(1)}deg;--bt:${ink};--bs:${Math.max(4,w*0.018).toFixed(1)}px`;
+  el.innerHTML=`<svg viewBox="-140 -100 280 200" aria-hidden="true">
+    <defs><pattern id="${id}" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="2" fill="#000" fill-opacity=".16"/></pattern></defs>
+    <polygon points="${burstPts(n,138,98,0.7,0.16)}" fill="${rim}" stroke="#170b33" stroke-width="5" stroke-linejoin="round"/>
+    <polygon points="${burstPts(n,112,78,0.74,0.14)}" fill="${fill}" stroke="#170b33" stroke-width="4" stroke-linejoin="round"/>
+    <ellipse rx="92" ry="60" fill="url(#${id})"/></svg><span></span>`;
+  const sp=el.querySelector('span');sp.textContent=text;
+  sp.style.fontSize=Math.min(h*0.36,w*1.12/Math.max(4,text.length))+'px';
+  fx.appendChild(el);setTimeout(()=>el.remove(),1500);
+}
 
 // ---------------------------------------------------------------- sound
 let AC=null;
@@ -2248,9 +2296,9 @@ function onEv(type,data){
     const words={[FAIRWAY]:'THUD',[TEE]:'THUD',[ROUGH]:'FWUMP',[FRINGE]:'PLOP',[GREENS]:'PLOP',[SAND]:'POOF!',[WASTE]:'FWUMP',[ROAD]:'CLACK!'};
     if(data===SAND||data===WASTE)SND.sand();else SND.land();
     sfx(words[data]||'THUD',p,{cls:'small',dy:-70});aberrKick=Math.max(aberrKick,3);
-  }else if(type==='tree'){SND.bonk();sfx('BONK!',p,{cls:'hot',dy:-70});aberrKick=6;shakeT=0.25;}
-  else if(type==='wall'){SND.bonk();sfx('CLANK!',p,{cls:'hot',dy:-70});aberrKick=5;shakeT=0.18;}
-  else if(type==='lip'){SND.lip();sfx('LIP OUT!',p,{cls:'hot',dy:-70});}
+  }else if(type==='tree'){SND.bonk();boom('BONK!',p,{kind:'hot',dy:-90,size:0.6});aberrKick=6;shakeT=0.25;}
+  else if(type==='wall'){SND.bonk();boom('CLANK!',p,{kind:'hot',dy:-90,size:0.6});aberrKick=5;shakeT=0.18;}
+  else if(type==='lip'){SND.lip();boom('LIP OUT!',p,{kind:'hot',dy:-90,size:0.66});}
 }
 // trees are the one thing in the air the ball model does not know about: a solid sphere that kills most of the speed
 function treeHit(b){
@@ -2294,17 +2342,17 @@ function simulateFlight(dt){
   }
 }
 function water(){
-  state='penalty';SND.splash();sfx('SPLASH!',ball.p.clone(),{cls:'cyan',dy:-40});aberrKick=8;shakeT=0.3;ballGroup.visible=false;shadow.visible=false;
+  state='penalty';SND.splash();boom('SPLASH!',ball.p.clone(),{kind:'splash',dy:-70});aberrKick=8;shakeT=0.3;ballGroup.visible=false;shadow.visible=false;
   later(1.3,()=>{const d=dropPoint();penaltyDrop(d.x,d.z,'+1 · DROP');});
 }
 // drop on the line back from where the ball last crossed into the hazard, on dry, flat, non-sand ground
 function dryOK(x,z){for(const b of BODIES)if(b.sd(x,z)>-2.5)return false;const s=S(x,z);if(s===SAND||s===WATER)return false;return normal(x,z).y>0.92;}
 function dropPoint(){const a=ball.lastOut,b=prevLie,n=Math.max(1,Math.ceil(hdist(a,b)));for(let i=0;i<=n;i++){const t=i/n,x=mix(a.x,b.x,t),z=mix(a.z,b.z,t);if(dryOK(x,z))return{x,z};}return{x:b.x,z:b.z};}
-function outOfBounds(){state='penalty';sfx('OUT!',null,{cls:'hot'});SND.bonk();later(1.2,()=>penaltyDrop(prevLie.x,prevLie.z,'+1 · REPLAY'));}
+function outOfBounds(){state='penalty';boom('OUT!',null,{kind:'hot',size:0.6});SND.bonk();later(1.2,()=>penaltyDrop(prevLie.x,prevLie.z,'+1 · REPLAY'));}
 function penaltyDrop(x,z,label){strokes++;ball.p.set(x,H(x,z)+R,z);ball.v.set(0,0,0);ballGroup.visible=true;shadow.visible=true;sfx(label,null,{cls:'small',rot:-4});setupAim();}
 function holed(){
   state='holed';ball.p.set(PIN.x,PIN_H-0.08,PIN.z);ball.v.set(0,0,0);
-  SND.cup();sfx('CLUNK!',new V3(PIN.x,PIN_H+0.5,PIN.z),{dy:-40});aberrKick=8;shakeT=0.2;
+  SND.cup();boom('CLUNK!',new V3(PIN.x,PIN_H+0.5,PIN.z),{kind:'cup',dy:-70,size:0.78});aberrKick=8;shakeT=0.2;
   later(0.15,()=>{ballGroup.visible=false;shadow.visible=false;});
   later(1.1,showCard);
 }
@@ -2455,9 +2503,9 @@ function shoot(power,offset,sh=0,py=0){
   prevLie.copy(ball.p);strokes++;
   Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+st.spin+sw.spinErr});ball.lastOut.copy(ball.p);stepAcc=0;
   if(club.putt){ball.v.set(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed);ball.rolling=true;ball.p.y=H(ball.p.x,ball.p.z)+R;SND.putt();sfx('TAP',ball.p.clone(),{cls:'small',dy:-60});}
-  else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();sfx(fb.word||club.word,ball.p.clone(),{dy:-110});aberrKick=7;shakeT=0.18;}
+  else{launchVel(speed,yaw,ball.v);ball.rolling=false;ball.p.y+=0.02;SND.hit();boom(fb.word||club.word,null,{kind:'pow',dy:vh*0.06});aberrKick=7;shakeT=0.18;}
   BallModel.begin(ball);   // after the launch velocity is set: begin reads it for the ball's backspin (before 2026-10-21 it ran first and saw a ball at rest, so a wedge never spun in the game)
-  if(fb.tag||fb.note)setTimeout(()=>{if(fb.tag)sfx(fb.tag,null,{cls:fb.tagCls,dy:60,rot:4});if(fb.note)sfx(fb.note,null,{cls:fb.noteCls,dy:112,rot:-3});},180);
+  if(fb.tag||fb.note)setTimeout(()=>{if(fb.tag)sfx(fb.tag,null,{cls:fb.tagCls,dy:-112,rot:4});if(fb.note)sfx(fb.note,null,{cls:fb.noteCls,dy:-62,rot:-3});},180);
   flightDir.set(Math.sin(yaw),0,Math.cos(yaw));trailPts.length=0;
   setZoom(0);state='flight';
   if(firstShot){firstShot=false;$('hint').hidden=true;}
