@@ -2479,7 +2479,10 @@ function groundAt(cx,cy){
   return null;
 }
 function screenOf(p){const v=p.clone().project(camera);return{x:(v.x+1)/2*vw,y:(1-v.y)/2*vh,z:v.z};}
-let drag=null,pendPhase=0,pendOffset=0;
+let drag=null,pendPhase=0,pendOffset=0,pendRate=0,pendT=0;
+// release lag: a phone reports a finger lift and shows a frame late, so the needle has moved on by the time the
+// release is read. The needle is read at the moment of the release (not the last frame), rewound by this much.
+const RELEASE_LAG=0.07;
 // <fan-geometry>
 // The accuracy meter: a rainbow arc lying on the grass around the ball, seen in the same perspective as the fairway
 // (a circle on the ground looks like a flattened ellipse), blue at dead center through green, yellow and orange to red at the ends.
@@ -2570,16 +2573,25 @@ function showPull(){
   be.setAttribute('cx',drag.bx+(drag.x-drag.x0));shapeNow=pullShape();be.setAttribute('cy',drag.by+Math.max(0,drag.y-drag.y0));
   [bl,be].forEach(e=>e.setAttribute('visibility','visible'));
 }
+function phaseOffset(ph){return 1-Math.abs(((ph+1)%4+4)%4-2);}
+// the needle where it was at time t (ms, performance.now clock), less the release lag
+function offsetAtRelease(t){
+  if(!pendRate||!pendT)return pendOffset;
+  const now=performance.now();if(!(t>0)||Math.abs(t-now)>1000)t=now; // a timestamp on another clock: use now
+  const ahead=clamp((t-pendT)/1000,0,0.1)-RELEASE_LAG;
+  return phaseOffset(pendPhase+pendRate*ahead);
+}
 function updatePendulum(dt){
   const power=pullPower();const sw=CLUBS[clubIdx].swing;
   // constant-speed sweep so the center is as catchable as the edges
-  pendPhase+=mix(sw[0],sw[1],power)*stanceNow().needle*dt;pendOffset=1-Math.abs(((pendPhase+1)%4+4)%4-2);
+  pendRate=mix(sw[0],sw[1],power)*stanceNow().needle;pendT=performance.now();
+  pendPhase+=pendRate*dt;pendOffset=phaseOffset(pendPhase);
   const pe=$('pend');pe.hidden=power<0.02;
   if(!pe.hidden)drawFan();
 }
-function endPull(fire){
+function endPull(fire,t){
   if(!drag||drag.kind!=='pull'){drag=null;return;}
-  const power=pullPower(),off=pendOffset,sh=pullShape(),py=puttYaw();drag=null;shapeNow=0;
+  const power=pullPower(),off=fire?offsetAtRelease(t):pendOffset,sh=pullShape(),py=puttYaw();drag=null;shapeNow=0;
   $('meter').hidden=true;$('pend').hidden=true;landRing.visible=false;
   ['bandLine','bandEnd'].forEach(id=>$(id).setAttribute('visibility','hidden'));
   updateHUD();
@@ -2614,7 +2626,7 @@ canvas.addEventListener('pointerdown',e=>{
   if(nearBall){
     $('hint').hidden=true;
     drag={kind:'pull',id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,bx:bs.x,by:bs.y};
-    pendPhase=Math.random()*4;showPull();
+    pendPhase=Math.random()*4;pendRate=0;pendT=0;showPull();
   }else{
     targetSnap=target.clone();
     drag={kind:'target',id:e.pointerId};
@@ -2628,7 +2640,7 @@ canvas.addEventListener('pointermove',e=>{
   if(drag.kind==='pull'){drag.x=e.clientX;drag.y=e.clientY;showPull();}
   else{const g=groundAt(e.clientX,e.clientY);if(g)setTarget(g.x,g.z);}
 });
-function lift(e,fire){touches.delete(e.pointerId);if(pinch){if(touches.size<2)pinch=null;return;}if(drag&&e.pointerId===drag.id){if(drag.kind==='pull')endPull(fire);else drag=null;}}
+function lift(e,fire){touches.delete(e.pointerId);if(pinch){if(touches.size<2)pinch=null;return;}if(drag&&e.pointerId===drag.id){if(drag.kind==='pull')endPull(fire,e.timeStamp);else drag=null;}}
 canvas.addEventListener('pointerup',e=>lift(e,true));
 canvas.addEventListener('pointercancel',e=>lift(e,false));
 canvas.addEventListener('wheel',e=>{e.preventDefault();if(state==='aim'&&!(drag&&drag.kind==='pull'))setZoom(zoomT+e.deltaY*0.0015);},{passive:false});
