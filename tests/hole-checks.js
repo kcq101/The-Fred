@@ -66,22 +66,30 @@ module.exports = {
     challenge: 'Pure distance and direction control to an island green, with the wind as the hidden variable.',
     shots: [
       { name: 'a well-struck iron holds the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'a shot carried 12 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 149] }, expect: { end: 'water' } },
+      { name: 'a shot carried 13 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 150] }, expect: { end: 'water' } },
       { name: 'a bad miss right is wet', shot: { club: 'Iron', offset: 0.6 }, expect: { end: 'water' } },
-      { name: 'ignore a 17 mph tailwind and the ball flies the green into the water', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } }, expect: { end: 'water' } },
-      { name: 'play the tailwind (arc on the island\'s front edge) and it finishes on the green', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } }, expect: { surf: ['GREENS'] } },
+      { name: 'with a 17 mph tailwind a stock shot barely flies further, lands flatter, and still holds the green', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 4 } },
+      { name: 'over-reading the tailwind (arc on the island\'s front edge) comes up short of the green', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['FRINGE'], minToPin: 9 } },
+      { name: 'where the tailwind costs you is long: 12 yards long holds in still air, but the same arc downwind goes over the back into the water', shot: { club: 'Iron', at: [-4, 149], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'water' } },
       { name: 'into a 17 mph headwind, a stock shot to a front pin comes up short and wet', shot: { club: 'Iron', at: [-4, 129], wind: { mph: 17, dir: 'head' } }, expect: { end: 'water' } },
       { name: 'into the same headwind, aiming the arc 11 yards past the pin, left of the pot bunker, finds the green', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
-      { name: 'the same arc straight over the pot bunker comes down short of the pin and kicks into it', shot: { club: 'Iron', at: [-4, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'the same arc straight over the pot bunker comes down short of the pin, in it', shot: { club: 'Iron', at: [-5, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
     ],
     strategies: [
-      { name: 'reading a following wind', plans: [
-          { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } } },
-          { name: 'read', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } } } ],
+      { name: 'reading a headwind', plans: [
+          { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'head' } } },
+          { name: 'read', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } } } ],
         expect: [
-          ['ignoring the wind is a disaster even for a sharp player', r => r.stock.sharp.hazard > 0.5],
-          ['reading the wind keeps a sharp player dry', r => r.read.sharp.hazard === 0],
+          ['ignoring the headwind is a disaster even for a sharp player', r => r.stock.sharp.hazard > 0.5],
+          ['reading it (the arc 11 yards past the pin) keeps a sharp player dry', r => r.read.sharp.hazard === 0],
           ['and saves strokes for everyone', r => r.read.sharp.score < r.stock.sharp.score - 1 && r.read.shaky.score < r.stock.shaky.score] ] },
+      { name: 'a following wind: play it stock or over-read it', plans: [
+          { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } } },
+          { name: 'over', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } } } ],
+        expect: [
+          ['over-reading the tailwind (arc on the front edge) is a disaster even for a sharp player', r => r.over.sharp.hazard > 0.5],
+          ['the stock shot keeps a sharp player dry', r => r.stock.sharp.hazard === 0],
+          ['and saves strokes for everyone', r => r.stock.sharp.score < r.over.sharp.score - 1 && r.stock.shaky.score < r.over.shaky.score] ] },
       { name: 'skill matters', plans: [ { name: 'pin', shot: { club: 'Iron' } } ],
         expect: [
           ['a sharp player always finds the island in still air', r => r.pin.sharp.hazard === 0],
@@ -127,7 +135,7 @@ module.exports = {
       { name: 'carried long over the left half of the green, the ball finds a back bunker', shot: { club: 'Iron', at: [2, 152] }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'an iron flown a club short of the pin (the wind misjudged) finds the creek', shot: { club: 'Iron', at: [-8, 128] }, expect: { end: 'water' } },
       { name: 'clubbing up for the headwind (arc past the pin) finishes on the putting surface or its edge', shot: { club: 'Iron', at: [-6, 150], wind: { mph: 14, dir: 'head' } }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 9 } },
-      { name: 'with a 14 mph tailwind, a stock shot flies the green into the back bunkers or beyond', shot: { club: 'Iron', wind: { mph: 14, dir: 'tail' } }, expect: { end: 'rest', surf: ['SAND', 'ROUGH'] } },
+      { name: 'with a 14 mph tailwind a stock shot barely flies further, lands flatter, and still holds the green', shot: { club: 'Iron', wind: { mph: 14, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 6 } },
     ],
     strategies: [
       { name: 'the Sunday pin: attack it by the creek, or play to the deep middle', plans: [
@@ -137,7 +145,7 @@ module.exports = {
           ['attacking the pin keeps a sharp player dry', r => r.pin.sharp.hazard === 0],
           ['a shaky player gets wet at least one time in four going at it', r => r.pin.shaky.hazard > 0.25],
           ['the middle is far safer for a shaky player', r => r.middle.shaky.hazard * 2 <= r.pin.shaky.hazard],
-          ['attacking pays a sharp player more than 0.4 strokes; for a shaky player the baseline puts the two plans within a quarter stroke of each other, either way, while the middle drowns far less (above)', r => r.pin.sharp.score + 0.4 < r.middle.sharp.score && Math.abs(r.pin.shaky.score - r.middle.shaky.score) < 0.25] ] },
+          ['attacking pays a sharp player more than 0.4 strokes; a shaky player gains less than half as much, while drowning twice as often (above)', r => r.pin.sharp.score + 0.4 < r.middle.sharp.score && (r.middle.shaky.score - r.pin.shaky.score) < 0.5 * (r.middle.sharp.score - r.pin.sharp.score)] ] },
     ],
   },
   'pinehurst-5': {
@@ -173,7 +181,7 @@ module.exports = {
       { name: 'aimed at the big front bunker, short of the pin, a pure iron finds the sand', shot: { club: 'Iron', at: [-3.5, 120.2] }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'aimed at the small bunker off the left end of the green, a pure iron finds the sand', shot: { club: 'Iron', at: [12.3, 144.1] }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'aimed past the green, a pure iron runs through it into the back bunker', shot: { club: 'Iron', at: [0, 160] }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'a full Hammer flown well past the green is stopped by the bank behind it, in the rough above the green', shot: { club: 'Hammer', at: [0, 200] }, expect: { end: 'rest', surf: ['ROUGH'], maxToPin: 35 } },
+      { name: 'a Hammer flown well past the green into the bank behind it is stopped by the bank and rolls back down into the back bunker', shot: { club: 'Hammer', at: [0, 175] }, expect: { end: 'rest', surf: ['SAND'], maxToPin: 20 } },
       { name: 'from the back-left quadrant, a wedge over the bunker finishes on the green close to the pin', shot: { from: [8, 149.5], club: 'Wedge', at: 'pin', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 9 } },
       { name: 'from the middle bunker, a wedge gets out and onto the green', shot: { from: [0, 144], club: 'Wedge', offset: 0.1 }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 12 } },
     ],
