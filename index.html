@@ -1583,7 +1583,7 @@ const ROAD_C=new THREE.Color('#8f887b'),WASTE_C=new THREE.Color('#d8c28c');   //
 const LGOLD=new THREE.Color('#c2ae66'),LMOSS=new THREE.Color('#6f8044');   // links rough: drifts of dry gold fescue and darker mossy hollows
 const ROCKFACE=['#7a4e34','#9a6440','#b88050','#6a4230'].map(h=>new THREE.Color(h));
 let world=null,TREES=[],FLAGSTICK=[],flag=null,flagG=null,flagBase=null;
-const WT={value:0};
+const WT={value:0},WIND_U={value:new THREE.Vector2(0,0.3)};   // WIND_U: where the wind blows, length 1 at 20 mph (look-only shading)
 function disposeWorld(){
   if(!world)return;scene.remove(world);
   world.traverse(o=>{if(o.geometry)o.geometry.dispose();const m=o.material;if(m)(Array.isArray(m)?m:[m]).forEach(mm=>mm.dispose());});
@@ -1682,27 +1682,29 @@ function buildWorld(){
         if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}
         if(HOLE.theme==='links'&&!inFairway(x,z,3)){const n=jagN(x*0.35+11,z*0.35)*0.5+jagN(x*1.3,z*1.1+5)*0.25;c.lerp(n>0?LGOLD:LMOSS,Math.min(0.75,Math.abs(n)*0.9));}}
     };
-    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count),dA=new Float32Array(pos.count);
+    const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count),dA=new Float32Array(pos.count),rfA=new Float32Array(pos.count);
     const REV=BUNKERS;   // every bunker's sand and faces are drawn by a finer mesh of its own (below): the terrain leaves a hole for it
     for(let i=0;i<pos.count;i++){
       const x0=pos.getX(i),z0=pos.getZ(i),y0=H(x0,z0);pos.setY(i,y0);if(y0<lowH&&!overWater(x0,z0))lowH=y0;
       acc.setRGB(0,0,0);let fw=0;
-      for(const[ox,oz]of[[-0.3,-0.3],[0.3,-0.3],[-0.3,0.3],[0.3,0.3]]){const xx=x0+ox,zz=z0+oz;colorAt(xx,zz);acc.r+=c.r/4;acc.g+=c.g/4;acc.b+=c.b/4;if(S(xx,zz)===FAIRWAY&&inFairway(xx,zz,-1.0))fw+=0.25;}
+      for(const[ox,oz]of[[-0.3,-0.3],[0.3,-0.3],[-0.3,0.3],[0.3,0.3]]){const xx=x0+ox,zz=z0+oz;colorAt(xx,zz);acc.r+=c.r/4;acc.g+=c.g/4;acc.b+=c.b/4;if(S(xx,zz)===FAIRWAY&&inFairway(xx,zz,-1.0))fw+=0.25;if(S(xx,zz)===ROUGH&&!inFairway(xx,zz,3))rfA[i]+=0.25;}
       cols[i*3]=acc.r;cols[i*3+1]=acc.g;cols[i*3+2]=acc.b;
       let bk=3;for(const b of REV)bk=Math.min(bk,ell(x0,z0,b));bkA[i]=bk;
             fwA[i]=fw;uA[i]=x0-centerX(z0); // sideways distance from the centre line: mowing stripes run down the hole and bend with it
       dA[i]=(centerX(z0+2)-centerX(z0-2))/4;  // the stripes' direction (dx per yard of z), so the shader knows which way each pass was mown
     }
-    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.setAttribute('aBk',new THREE.BufferAttribute(bkA,1));tg.setAttribute('aD',new THREE.BufferAttribute(dA,1));tg.computeVertexNormals();
+    tg.setAttribute('color',new THREE.BufferAttribute(cols,3));tg.setAttribute('aFw',new THREE.BufferAttribute(fwA,1));tg.setAttribute('aU',new THREE.BufferAttribute(uA,1));tg.setAttribute('aBk',new THREE.BufferAttribute(bkA,1));tg.setAttribute('aD',new THREE.BufferAttribute(dA,1));tg.setAttribute('aRf',new THREE.BufferAttribute(rfA,1));tg.computeVertexNormals();
     { // relief shading: tilt each shading normal 3x so gentle links swales and banks read in the light (look only: the ball reads H, never the mesh)
       const nA=tg.attributes.normal;for(let i=0;i<nA.count;i++){const v=new V3(nA.getX(i)*3,nA.getY(i),nA.getZ(i)*3).normalize();nA.setXYZ(i,v.x,v.y,v.z);}
       tg.computeBoundingSphere();
     }
     const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});tm.extensions={derivatives:true};
+    const HATCH=HOLE.theme==='links';tm.customProgramCacheKey=()=>HATCH?'terrain-links':'terrain';
     tm.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;attribute float aBk;attribute float aD;varying float vFw;varying float vU;varying float vBk;varying float vD;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;vBk=aBk;vD=aD;');
+      sh.uniforms.uWind=WIND_U;sh.uniforms.uT=WT;
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;attribute float aBk;attribute float aD;attribute float aRf;varying float vFw;varying float vU;varying float vBk;varying float vD;varying float vRf;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;vBk=aBk;vD=aD;vRf=aRf;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;varying float vD;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;varying float vD;varying float vRf;uniform vec2 uWind;uniform float uT;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}`)
        .replace('#include <color_fragment>',`#include <color_fragment>
         if(vBk<0.92)discard;
@@ -1723,7 +1725,45 @@ function buildWorld(){
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(dot(diffuseColor.rgb,vec3(0.3,0.59,0.11))),0.16*fwm);   // a little less saturated than the old cartoon lime
         float fpx=max(fwidth(vWP.x),fwidth(vWP.z));
         diffuseColor.rgb*=1.0+((vnoise(vWP.xz*3.0)-0.5)*0.07*(1.0-smoothstep(0.12,0.3,fpx))+(vnoise(vec2(su*14.0,vWP.z*0.9))-0.5)*0.04)*fwm;
-        diffuseColor.rgb*=1.0+(0.12*gn-0.06+(vnoise(vWP.xz*7.0)-0.5)*0.06)*(1.0-0.65*fwm);`);
+        diffuseColor.rgb*=1.0+(0.12*gn-0.06+(vnoise(vWP.xz*7.0)-0.5)*0.06)*(1.0-0.65*fwm);`+(HATCH?`
+        // links rough, drawn in the ground instead of with clump models (look only; vRf = how much of this spot is rough):
+        //   wind sheen: broad bands a shade lighter roll across the fescue downwind, faster in a stronger wind
+        //   painted clumps: patches a shade darker with a sunlit gold rim on the sun side, so the rough reads tufted from afar; they fade to
+        //     an even tone before they are small enough to flicker in a pan
+        //   ink tufts: a few small ticks right in front of the camera only (a light comic touch; nothing past ~12 yd)
+        {
+          float rough=smoothstep(0.5,0.95,vRf);
+          float fpx2=max(fwidth(vWP.x),fwidth(vWP.z));
+          vec2 wd=uWind/max(length(uWind),0.001);float ws=length(uWind);
+          float band=dot(vWP.xz,wd)*0.09-uT*(0.25+0.9*ws)+(vnoise(vWP.xz*0.03)-0.5)*4.0;
+          float sheen=smoothstep(0.55,1.0,sin(band))*(0.35+0.65*smoothstep(0.1,0.6,ws));
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.13,1.1,0.9),sheen*0.55*rough);
+          vec2 sunD=normalize(vec2(${SUN_OFF.x.toFixed(3)},${SUN_OFF.z.toFixed(3)}));
+          vec2 cp=vWP.xz*0.8+5.0,cs=sunD*0.32;
+          float cl0=smoothstep(0.5,0.78,vnoise(cp)*0.65+vnoise(cp*2.3+9.0)*0.35),cl1=smoothstep(0.5,0.78,vnoise(cp+cs)*0.65+vnoise((cp+cs)*2.3+9.0)*0.35);
+          float clFade=1.0-smoothstep(0.06,0.18,fpx2);
+          diffuseColor.rgb*=1.0-0.08*cl0*rough*clFade;
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.12,1.09,0.92),clamp((cl0-cl1)*1.5,0.0,1.0)*0.6*rough*clFade);
+          vec2 vd=vWP.xz-cameraPosition.xz;float vdl=length(vd);vd/=max(vdl,0.001);
+          float near=smoothstep(2.5,4.5,vdl)*(1.0-smoothstep(7.0,12.0,vdl))*(1.0-smoothstep(0.02,0.05,fpx2));
+          if(near*rough>0.01){
+            vec2 q=vWP.xz/0.8,ci=floor(q),f=q-ci;
+            if(h21(ci+19.0)<0.22){
+              vec2 root=vec2(0.3)+0.4*vec2(h21(ci+3.1),h21(ci+7.7));
+              float w=(fwidth(q.x)+fwidth(q.y))*0.6,ink=0.0;
+              vec2 fwd=normalize(vd+wd*ws*0.35);
+              for(int b=0;b<3;b++){
+                float sa=sin((float(b)-1.0)*0.55+(h21(ci+float(b)*5.3)-0.5)*0.3);
+                vec2 dir=normalize(fwd+vec2(-fwd.y,fwd.x)*sa*0.35);
+                float L=(0.3+0.12*h21(ci+float(b)*2.9))*(b==1?1.15:0.85);
+                vec2 d=f-root;float a=dot(d,dir),sd=dot(d,vec2(-dir.y,dir.x));
+                float dist=length(vec2(a-clamp(a,0.0,L),sd)),th=w*mix(1.2,0.35,clamp(a/L,0.0,1.0));
+                ink=max(ink,1.0-smoothstep(th,th+w,dist));
+              }
+              diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.09,0.05,0.2),ink*near*rough*0.4);
+            }
+          }
+        }`:'')+``);
     };
     const terrain=add(new THREE.Mesh(tg,tm));terrain.receiveShadow=true;
   }
@@ -1975,7 +2015,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
   // lighter tip that drifts across the hole, and the tips bend in the wind (the idea from FluffyGrass, github.com/thebenezer/FluffyGrass, MIT). Look only.
   {
     const r=rng(5+holeIdx*29),LINKS=HOLE.theme==='links',spots=[];
-    const NC=LINKS?16000:22000;
+    const NC=LINKS?0:22000;   // links: none; the ground shader draws that rough (the cards shimmered in camera pans)
     for(let i=0;i<NC*5&&spots.length<NC;i++){
       let x,z;
       if(r()<0.8){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.3+Math.pow(r(),1.4)*24);}
@@ -2033,7 +2073,8 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       #endif
       float sw=sin(uT*1.9+ip.x*0.31+ip.z*0.23)*0.6+sin(uT*3.1+ip.x*0.9)*0.25;transformed.x+=sw*0.16*position.y;transformed.z+=sw*0.07*position.y;`);};
     tuftM.customProgramCacheKey=()=>'tuft-sway';
-    if(NATURE.ok&&LINKS){   // links fescue: the pack's wispy grass clumps, tinted from green to straw gold
+    if(LINKS)spots.length=0;   // links rough is drawn by the ground shader instead (sheen, painted clumps, a few ink tufts): St Andrews 2.08 M -> ~0.5 M triangles
+    if(NATURE.ok&&LINKS&&spots.length){   // links fescue: the pack's wispy grass clumps, tinted from green to straw gold
       const gold=['#ffe7a0','#f2d98a','#d8d488','#fff0c0'].map(h=>new THREE.Color(h));
       // the hand-made clumps where the camera sees them close (along the fairway and round the green), the cheap blade tufts further out
       const nearF=([x,z])=>Math.abs(x-centerX(z))<fairwayHalf(z)+26||Math.hypot(x-GREEN.x,z-GREEN.z)<40;
@@ -3113,7 +3154,7 @@ function frame(now){
   const spd=state==='flight'?ball.v.length():0;aberrKick=Math.max(0,aberrKick-dt*22);
   // misprint grows a little with ball speed and on impacts
   let mis=LOOK.mis+Math.min(spd/60,0.25)+aberrKick/40;if(reduceMotion)mis=Math.min(mis,0.3);
-  postU.uMis.value=mis;postU.uTime.value=twos?stepN:Math.floor(clock*24);puttMat.uniforms.t.value=clock;arcMat.uniforms.t.value=clock;WT.value=clock;
+  postU.uMis.value=mis;postU.uTime.value=twos?stepN:Math.floor(clock*24);puttMat.uniforms.t.value=clock;WIND_U.value.set(Math.sin(windYaw),Math.cos(windYaw)).multiplyScalar(Math.min(windMph/20,1.5));arcMat.uniforms.t.value=clock;WT.value=clock;
   const camYaw=Math.atan2(camLook.x-camPos.x,camLook.z-camPos.z);
   $('windArrow').style.transform=`rotate(${-(windYaw-camYaw)}rad)`;
   if((state==='aim'||state==='flight'||state==='settle')&&distToPin()>30&&!targetPinned&&!(drag&&drag.kind==='pull')){
