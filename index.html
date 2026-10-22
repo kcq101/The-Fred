@@ -1615,7 +1615,7 @@ function buildWorld(){
         if(HOLE.theme==='links'&&!inFairway(x,z,3)){const n=jagN(x*0.35+11,z*0.35)*0.5+jagN(x*1.3,z*1.1+5)*0.25;c.lerp(n>0?LGOLD:LMOSS,Math.min(0.75,Math.abs(n)*0.9));}}
     };
     const fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count),dA=new Float32Array(pos.count);
-    const REV=BUNKERS.filter(b=>b.revet??HOLE.theme==='links');   // their sand and faces are drawn by a finer mesh of their own (below): the terrain leaves a hole for it
+    const REV=BUNKERS;   // every bunker's sand and faces are drawn by a finer mesh of its own (below): the terrain leaves a hole for it
     for(let i=0;i<pos.count;i++){
       const x0=pos.getX(i),z0=pos.getZ(i),y0=H(x0,z0);pos.setY(i,y0);if(y0<lowH&&!overWater(x0,z0))lowH=y0;
       acc.setRGB(0,0,0);let fw=0;
@@ -1699,18 +1699,31 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     const gmesh=add(new THREE.Mesh(gg,gm));gmesh.receiveShadow=true;
   }
 
-  // ---- revetted bunker faces (links: every bunker, or any bunker with revet:true): the wall from the lip down to the sand is built of stacked turf,
-  // drawn as layered bands of grass edge and dark soil on the same heights H gives the ball (look only)
+  // ---- bunkers: each on a fine mesh of its own (0.22 yd) on the same heights H gives the ball, so a small traced bunker reads as a smooth bowl, not the
+  // coarse terrain's jagged facets (look only). Revetted (links: every bunker, or any bunker with revet:true): the wall from the lip down to the sand is
+  // built of stacked turf, drawn as layered bands of grass edge and dark soil. Otherwise (parkland): sand flashed up the face, a soft shaded crease
+  // under a cut grass lip, as an American bunker is raked and edged
   for(const b of BUNKERS){
-    if(!(b.revet??HOLE.theme==='links'))continue;
+    const revet=b.revet??HOLE.theme==='links';
     const m=Math.max(b.rx,b.rz)+1.5,st=0.22,nx=Math.ceil(2*m/st),pos=[],eA=[],idx=[];
     for(let j=0;j<=nx;j++)for(let i=0;i<=nx;i++){const x=b.x-m+i*st,z=b.z-m+j*st;pos.push(x,H(x,z)+0.025,z);eA.push(Math.min(ell(x,z,b),3));}
     for(let j=0;j<nx;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,c=a+nx+1;const e=Math.min(eA[a],eA[a+1],eA[c],eA[c+1]),f=Math.max(eA[a],eA[a+1],eA[c],eA[c+1]);if(e>1.06)continue;idx.push(a,c,a+1,a+1,c,c+1);}
     const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));rg.setAttribute('aE',new THREE.Float32BufferAttribute(eA,1));rg.setIndex(idx);rg.computeVertexNormals();
-    const rm=toon(0xffffff,{polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});rm.extensions={derivatives:true};rm.customProgramCacheKey=()=>'revet'+GP.sand;
+    const rm=toon(0xffffff,{polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});rm.extensions={derivatives:true};rm.customProgramCacheKey=()=>(revet?'revet':'flash')+GP.sand+GP.rough;
     const top=(H(b.x+b.rx+1,b.z)+H(b.x-b.rx-1,b.z)+H(b.x,b.z+b.rz+1)+H(b.x,b.z-b.rz-1))/4;
     rm.onBeforeCompile=sh=>{
       sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aE;varying float vE;varying vec3 vRP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvE=aE;vRP=(modelMatrix*vec4(position,1.0)).xyz;');
+      if(!revet){sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vE;varying vec3 vRP;')
+       .replace('#include <color_fragment>',`#include <color_fragment>
+        if(vE>1.02)discard;
+        float sg=fract(sin(dot(floor(vRP.xz*9.0),vec2(12.9898,78.233)))*43758.5453);
+        float rk=0.5+0.5*sin(dot(vRP.xz,vec2(5.3,2.1))+sin(vRP.x*0.7)*1.5);                 // faint rake lines
+        vec3 sand=${glv(GP.sand)}*(0.94+0.05*sg+0.025*rk);
+        float ed=0.9+sin(vRP.x*2.3+vRP.z*1.9)*0.012+sin(vRP.x*0.9-vRP.z*1.4)*0.01;          // the cut edge, a little wavy
+        float w=max(fwidth(vE),0.004);
+        sand*=1.0-0.16*smoothstep(ed-0.2,ed,vE);                                            // the flashed face catches less light just under the lip
+        vec3 grass=${glv(GP.rough)}*mix(0.78,1.0,smoothstep(ed,1.0,vE));                      // the lip's grass, darker where it overhangs the sand
+        diffuseColor.rgb=mix(sand,grass,smoothstep(ed-w,ed+w,vE));`);return;}
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vE;varying vec3 vRP;')
        .replace('#include <color_fragment>',`#include <color_fragment>
         if(vE>1.02)discard;
