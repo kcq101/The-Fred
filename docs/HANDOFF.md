@@ -1,6 +1,6 @@
 # Handoff: where The Fred stands
 
-Last updated 2026-10-21 (late night), after PR #22 merged (the OpenFairway physics and the hole redesigns, sessions 1–3; merge `333fe14`). Earlier: PRs #18–#20 and #23 (the wedge-spin fix). Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
+Last updated 2026-10-22 (morning), after PRs #26–#30 (release lag, title menu count, comic starbursts, cache cleanup). Before that: 2026-10-21 (late night), after PR #22 merged (the OpenFairway physics and the hole redesigns, sessions 1–3; merge `333fe14`). Earlier: PRs #18–#20 and #23 (the wedge-spin fix). Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
 
 ## 1. The decision behind the latest work
 
@@ -37,6 +37,8 @@ What was decided (2026-10-21):
 | Fairways | Softer mowing stripes that change light/dark with the view along the mowing; lusher and drier patches; smooth grain; a less lime base colour. Look only | the terrain shader; `docs/ICONIC-HOLES.md` §1.5, "Fairway turf" |
 | Riviera No. 6 | Bunker depths from the lidar (middle 0.46, front 0.68, back 0.61, left 0.48; lips 0.25). They were up to 2.8 × too deep and read as craters. Every hole's bunkers now come from lidar | `docs/holes/riviera-6.md` (end); pipeline doc §3.1 item 5 |
 | Release lag (2026-10-22) | On a phone the needle had moved on by the time a release was read (touch and display delay, worst on drives), so ideal-looking releases missed left or right. The needle is now read at the release's own timestamp, rewound 70 ms (`RELEASE_LAG`). Input only; no hole check moved. If misses persist, the next step is measuring frame rate on the phone | `endPull`, `offsetAtRelease` in `index.html` |
+| Title menu count (2026-10-22) | The menu's "3 HOLES · PAR 12" was hard-coded; the script fixes it, but the screen isn't repainted until hole 1 builds behind the menu, so the stale text showed first. Static text now matches HOLES; `tests/title.test.js` fails if a hole is added without updating it | `#tCount`, `#tCourses` in `index.html` |
+| Comic starbursts (2026-10-22) | Impact words (club strike, CLUNK!, SPLASH!, CLANK!/BONK!, LIP OUT!, OUT!) are large jagged starbursts with halftone and heavy ink outlines (`boom()`, colours in `BOOM`); small words (THUD, PERFECT!, carry/roll) use a solid ink outline instead of pink/cyan offsets. Shot tags sit above the strike burst | `boom`, `sfx` in `index.html` |
 | Wedge backspin in the live game (#23) | `shoot()` called `BallModel.begin` before setting the launch velocity, so the backspin from PR #15 saw a ball at rest and never happened in the browser (the hole checks launched in the right order, so they never saw it). Fixed, with a regression test. No hole check moved | `shoot()` in `index.html`; `tests/shoot-wiring.test.js` |
 
 Tests: `node --test tests/*.test.js` gives 152 pass, 0 fail and 3 skipped (155 tests). The skips are the lidar regressions, which skip without their tiles. Every hole's checks pass. In a shallow clone, one tools test needs older history (see §2, "Environment notes" in the pipeline doc).
