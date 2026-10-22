@@ -501,7 +501,7 @@ const HOLES=[
     {type:'cover',area:{pts:[[26,70],[37,150],[47,230],[63,300],[75,365]],w:10},surf:'PINE'},       // pine straw under the trees left of the corner
     {type:'cover',area:{pts:[[95,428],[86,440],[74,449],[63,456],[54,468]],w:8},surf:'FAIRWAY'},  // the shaved bank between the creek and the green: anything short rolls back into the water
   ],
-  play:{wind:[3,12],firm:0.5,greens:{speed:1.25}},   // soft parkland turf (OpenFairway physics, 2026-10-21): the drive grips the sidehill at the valley's foot instead of running off it; docs/holes/augusta-13.md §6
+  play:{wind:[3,12],firm:0.6,greens:{speed:1.25}},   // softer parkland turf (OpenFairway physics, 2026-10-21): the drive grips the sidehill at the valley's foot instead of running off it; docs/holes/augusta-13.md §6
   // bunkers from the lidar: the front-left kidney and the back-right one (lidar.py build), the left and back-left ones from 3 m hollows (build merges them with the creek's bend)
   bunkers:[{pts:[[98,456.2],[96.5,456.2],[93.8,453.5],[92.8,451.5],[92.8,448],[93.8,446.5],[94.8,442.5],[96.2,439.5],[99,437.2],[102.5,437.2],[104.8,439.5],[104.8,440.5],[105.2,441],[103.5,444.2],[99.5,445.8],[98.8,447],[100.2,450],[100.2,453.5]],depth:0.52,lip:0.25},
            {x:95,z:478.7,rx:4.5,rz:4.2,rot:0,depth:0.5,lip:0.25},{x:82,z:500.2,rx:5.5,rz:5,rot:0,depth:0.45,lip:0.25},
