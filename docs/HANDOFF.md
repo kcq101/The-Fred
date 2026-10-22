@@ -1,6 +1,6 @@
 # Handoff: where The Fred stands
 
-Last updated 2026-10-22 (morning), after PRs #26–#30 (release lag, title menu count, comic starbursts, cache cleanup). Before that: 2026-10-21 (late night), after PR #22 merged (the OpenFairway physics and the hole redesigns, sessions 1–3; merge `333fe14`). Earlier: PRs #18–#20 and #23 (the wedge-spin fix). Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
+Last updated 2026-10-22 (mid-morning), after the frame profiler (`?fps=1`). Before that: 2026-10-22 (morning), after PRs #26–#30 (release lag, title menu count, comic starbursts, cache cleanup). Before that: 2026-10-21 (late night), after PR #22 merged (the OpenFairway physics and the hole redesigns, sessions 1–3; merge `333fe14`). Earlier: PRs #18–#20 and #23 (the wedge-spin fix). Start a new session by reading this file, then `docs/ICONIC-HOLES.md` (the pipeline) and `tests/README.md` (the tools).
 
 ## 1. The decision behind the latest work
 
@@ -39,6 +39,7 @@ What was decided (2026-10-21):
 | Release lag (2026-10-22) | On a phone the needle had moved on by the time a release was read (touch and display delay, worst on drives), so ideal-looking releases missed left or right. The needle is now read at the release's own timestamp, rewound 70 ms (`RELEASE_LAG`). Input only; no hole check moved. If misses persist, the next step is measuring frame rate on the phone | `endPull`, `offsetAtRelease` in `index.html` |
 | Title menu count (2026-10-22) | The menu's "3 HOLES · PAR 12" was hard-coded; the script fixes it, but the screen isn't repainted until hole 1 builds behind the menu, so the stale text showed first. Static text now matches HOLES; `tests/title.test.js` fails if a hole is added without updating it | `#tCount`, `#tCourses` in `index.html` |
 | Comic starbursts (2026-10-22) | Impact words (club strike, CLUNK!, SPLASH!, CLANK!/BONK!, LIP OUT!, OUT!) are large jagged starbursts with halftone and heavy ink outlines (`boom()`, colours in `BOOM`); small words (THUD, PERFECT!, carry/roll) use a solid ink outline instead of pink/cyan offsets. Shot tags sit above the strike burst | `boom`, `sfx` in `index.html` |
+| Frame profiler (2026-10-22) | Add `?fps=1` to the address (e.g. `kcq101.github.io/The-Fred/?fps=1`) for a small overlay: frame time, fps, p95, worst and hitches (> 50 ms) for each moment of play (aim, pull, flight, other); the CPU split (physics, the render call, the rest); and "gpu/wait", the rest of the frame (time on the GPU or waiting for the screen). Toggles switch pieces off live to show what each costs: shadows, grass (carpet + tufts), trees (and bushes), bunkers (their fine meshes), post (the comic pass) and hires (pixel ratio 2 → 1). **reset** clears the numbers; **copy** puts a text summary on the clipboard to paste into a chat. Without the flag, `PERF` is null and nothing runs. In headless Chromium the counts are St Andrews 2.10 M triangles / 45 draw calls and Pebble 1.49 M / 67, shadow pass included; with shadows, grass, trees, post and hires off, St Andrews drops to 0.35 M | `PERF` and the `frame()` timing in `index.html`; `userData.cost` tags set in `buildWorld` |
 | Wedge backspin in the live game (#23) | `shoot()` called `BallModel.begin` before setting the launch velocity, so the backspin from PR #15 saw a ball at rest and never happened in the browser (the hole checks launched in the right order, so they never saw it). Fixed, with a regression test. No hole check moved | `shoot()` in `index.html`; `tests/shoot-wiring.test.js` |
 
 Tests: `node --test tests/*.test.js` gives 152 pass, 0 fail and 3 skipped (155 tests). The skips are the lidar regressions, which skip without their tiles. Every hole's checks pass. In a shallow clone, one tools test needs older history (see §2, "Environment notes" in the pipeline doc).
@@ -85,7 +86,17 @@ In rough order of how much each would change what a player meets. Item 1 is in p
    - Riviera No. 6's hedge and houses on the hill. Its signature view needs a `hedge` prop type, which doesn't exist yet.
    - Pebble's cliffs and sea view.
    - Augusta's azaleas and pines. Azaleas, palms and the tee markers are still the old shapes, because the pack has no azalea or palm. Meshy could make these.
-6. **Phone performance has never been measured.** The busiest hole draws about 1.3 M triangles. If a phone stutters, the levers are the carpet count, the fescue count and the shadow map size. A quality setting may be worth adding.
+6. **Phone performance: measure it with `?fps=1`.** Steps:
+   - Play a hole with the overlay on.
+   - Tap **copy** after aiming, pulling and one shot, and paste the summary into a chat.
+   - Turn toggles off one at a time (tap **reset** after each) to see which piece buys the most frame time.
+
+   How to read it:
+   - **pull** is the frame time while the swing is drawn, which bears directly on the release-lag allowance (70 ms).
+   - A high gpu/wait with low cpu means the GPU is the limit: shadows, grass, post or hires.
+   - A high cpu render means too many draw calls.
+
+   The levers are the carpet count `NC`, the fescue count `NT`, the shadow map (2048²) and the pixel ratio. A quality setting is the likely follow-up, sized from these numbers.
 7. **First load is about 4 MB heavier** (the nature bundle). The old shapes show until it arrives, then the hole rebuilds; there may be a visible pop.
 
 **Missing primitives**
