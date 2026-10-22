@@ -2467,9 +2467,25 @@ function solveShot(){
   shotV=c.v0;
 }
 // a shaped shot starts off-line and curves back so it still lands on the aim line
-function shapeYaw(speed,spin){
+// warm (the aiming arc, every frame of a pull): start from the last frame's answer and its slope, so a frame costs one or two flights instead of
+// up to six, and hold it to 0.1 yd instead of 0.3 so the arc stays as close to the aim line as the shot. The shot itself is solved cold, as before.
+let shapeMemo=null;
+function shapeYaw(speed,spin,warm){
   if(!spin)return 0;
   const lat=y=>{const l=simArc(speed,aimYaw+y,null,spin);if(!l)return 0;return (l.x-ball.p.x)*Math.cos(aimYaw)-(l.z-ball.p.z)*Math.sin(aimYaw);};
+  if(warm){
+    const ctx=aimYaw+','+ball.p.x+','+ball.p.z+','+clubIdx+','+holeIdx,m=shapeMemo,tol=0.1;
+    let y0,f0,y1,f1;
+    // a change of start direction swings the landing round the ball, so the miss at y0 gives the next guess almost exactly
+    const fwd=y=>{const l=simArc(speed,aimYaw+y,null,spin);if(!l)return null;const dx=l.x-ball.p.x,dz=l.z-ball.p.z;return{f:dx*Math.cos(aimYaw)-dz*Math.sin(aimYaw),d:dx*Math.sin(aimYaw)+dz*Math.cos(aimYaw)};};
+    y0=m&&m.ctx===ctx&&Math.sign(m.y)===Math.sign(spin)?m.y:0;
+    const g=fwd(y0);f0=g?g.f:0;if(g&&Math.abs(f0)<=tol){shapeMemo={ctx,y:y0,k:m?m.k:0};return y0;}
+    y1=g&&g.d>1?clamp(y0-Math.atan2(f0,g.d),-0.5,0.5):(m&&m.ctx===ctx?clamp(y0-f0*m.k,-0.5,0.5):(spin>0?0.04:-0.04));
+    f1=lat(y1);
+    for(let i=0;i<5&&Math.abs(f1)>tol&&f1!==f0;i++){const y2=y1-f1*(y1-y0)/(f1-f0);y0=y1;f0=f1;y1=clamp(y2,-0.5,0.5);f1=lat(y1);}
+    const k=f1!==f0?(y1-y0)/(f1-f0):(m?m.k:0);shapeMemo={ctx,y:y1,k:isFinite(k)?k:0};
+    return y1;
+  }
   let y0=0,f0=lat(0),y1=spin>0?0.04:-0.04,f1=lat(y1);
   for(let i=0;i<4&&Math.abs(f1)>0.3&&f1!==f0;i++){const y2=y1-f1*(y1-y0)/(f1-f0);y0=y1;f0=f1;y1=clamp(y2,-0.5,0.5);f1=lat(y1);}
   return y1;
@@ -2480,15 +2496,39 @@ function stanceNow(){const play=HOLE.play||{};return StanceModel.effect(CLUBS[cl
 function shotSpeed(power){const c=CLUBS[clubIdx];const base=shotV*Math.sqrt(power);return c.putt?base:base*lieMult(lieNow(),c)*stanceNow().speed;}
 const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_s=new V3();
 function pxPer(d){return(vh/2)/(Math.max(d,0.1)*Math.tan(camera.fov*D2R/2));}
+// the arc only re-flies the ball when something that moves it has changed (aiming still: once, not every frame); the ribbon is redrawn every
+// frame because it faces the camera
+let guideMemo=null;
+function flatShapedArc(sp,spin,pts){
+  const ctx=aimYaw+','+ball.p.x+','+ball.p.z+','+clubIdx+','+holeIdx,m=shapeMemo;
+  let y=m&&m.ctx===ctx&&Math.sign(m.y)===Math.sign(spin)?m.y:0;
+  for(let i=0;i<4;i++){
+    pts.length=0;const l=simArc(sp,aimYaw+y,pts,spin);if(!l)return null;
+    const dx=l.x-ball.p.x,dz=l.z-ball.p.z,f=dx*Math.cos(aimYaw)-dz*Math.sin(aimYaw),d=dx*Math.sin(aimYaw)+dz*Math.cos(aimYaw);
+    if(Math.abs(f)<=0.1){shapeMemo={ctx,y,k:m&&m.ctx===ctx?m.k:0};fanYaw=aimYaw+y;return l;}
+    if(d<=1)return null;
+    y=clamp(y-Math.atan2(f,d),-0.5,0.5);
+  }
+  return null;                                            // not settling: fall back to the general solve
+}
 function drawGuide(power){
-  const c=CLUBS[clubIdx];const pts=[];let land;
+  const c=CLUBS[clubIdx];let pts=[];let land;
   if(c.putt){
     guide.count=0;guideOut.count=0;arcLine.visible=false;
     if(!(drag&&drag.kind==='pull')){puttLine.visible=false;return null;} // the putting line only shows once you start pulling back
     fanYaw=aimYaw+puttYaw();land=drawPuttLine(simPutt(shotSpeed(power),fanYaw));return land;
-  }else{puttLine.visible=false;const st=stanceNow(),sp=shotSpeed(power),spin=shapeSpin(shapeNow);const y=shapeYaw(sp,spin);fanYaw=aimYaw+y+st.yaw;land=simArc(sp,fanYaw,pts,spin+st.spin);}
+  }else{puttLine.visible=false;
+    const key=power+','+shapeNow+','+aimYaw+','+ball.p.x+','+ball.p.y+','+ball.p.z+','+clubIdx+','+holeIdx+','+shotV;
+    if(guideMemo&&guideMemo.key===key){fanYaw=guideMemo.fanYaw;land=guideMemo.land&&guideMemo.land.clone();pts=guideMemo.pts;}
+    else{const st=stanceNow(),sp=shotSpeed(power),spin=shapeSpin(shapeNow);
+      // a level lie (the tee, most fairway) adds nothing to the flight, so the drawn arc is itself the flight shapeYaw aims: start from last
+      // frame's answer, and the drawn flight is usually the only one flown
+      if(spin&&!st.yaw&&!st.spin)land=flatShapedArc(sp,spin,pts);
+      if(!land){pts=[];const y=shapeYaw(sp,spin,true);fanYaw=aimYaw+y+st.yaw;land=simArc(sp,fanYaw,pts,spin+st.spin);}
+      if(land)pts.push(land.clone());guideMemo={key,fanYaw,land:land&&land.clone(),pts};}
+  }
   guide.count=0;guideOut.count=0;
-  if(land)pts.push(land.clone());drawArc(pts);
+  drawArc(pts);
   return land;
 }
 // shot arc: a thin see-through ribbon, blue and white dashes drifting toward the landing spot
