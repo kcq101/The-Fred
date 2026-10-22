@@ -1,4 +1,5 @@
 {
+  "tee_shift": {"z_yd": 100, "date": "2026-10-21", "note": "The game tee was moved 100 yd forward along the hole for the OpenFairway physics (docs/holes/augusta-13.md §6): every z in the HOLES entry is 100 yd less than this frame gives (everything moved with the land; the frame holds the second leg only, see the spec's §8). Subtract 100 from z in lidar.py output before pasting it into the hole."},
  "id": "augusta-13",
  "lidar": {
   "source": "USGS 3DEP 1 m DEM, project GA_Statewide_2018_B18_DRRA (flown 2018, published 2022), tile USGS_1M_17_x40y371_GA_Statewide_2018_B18_DRRA.tif (public domain), from prd-tnm.s3.amazonaws.com; the same tile as Augusta 12. Not in the repo (351 MB): python3 tests/tools/lidar.py fetch --pin 33.497069,-82.025535 --download",

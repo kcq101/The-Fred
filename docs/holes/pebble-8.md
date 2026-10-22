@@ -8,7 +8,7 @@
 |---|---|
 | Real hole | Pebble Beach Golf Links, No. 8 |
 | Par / yardage (real) | Par 4, 428 yards |
-| Par / yardage (game) | Par 4, 376 yards (card unchanged) |
+| Par / yardage (game) | Par 4, **351 yards** since the OpenFairway physics (2026-10-21: the tee 25 yd forward, §6; `cards/card1.jpg`'s tag reads 351y); 376 before |
 | Sources | [Golfshake hole-by-hole guide](https://www.golfshake.com/news/view/13849/Pebble_Beach_Hole_by_Hole_Guide.html) |
 
 ## 2. What makes it iconic
@@ -33,8 +33,8 @@
 
 | Real feature | Game expression | Parameters | What it does to play |
 |---|---|---|---|
-| Uphill drive to a plateau | three `ramp`s from the 2017-18 USGS lidar, read along the fairway's left half | +6.6 yd over z 12→50, then +5.4 to the plateau's end (12 yd above the tee) | drives land sooner; a pure 3-wood stops 161 from the pin |
-| Fairway runs out at the cliff | the lidar's coastline as the ocean (`poly`, `cliff` profile), read on the cliff face at 7 m | the plateau ends at z ≈ 245; the cove runs to z ≈ 320 on the line | anything that rolls past ~245 yards falls into the sea |
+| Uphill drive to a plateau | three `ramp`s from the 2017-18 USGS lidar, read along the fairway's left half | +6.6 yd over z −13→25 (the tee now sits partway up the climb), then +5.4 to the plateau's end | drives land sooner; a pure 3-wood stops 142 from the pin |
+| Fairway runs out at the cliff | the lidar's coastline as the ocean (`poly`, `cliff` profile), read on the cliff face at 7 m | the plateau ends at z ≈ 220; the cove runs to z ≈ 295 on the line | anything that rolls past ~220 yards falls into the sea |
 | Land beyond the chasm is lower | `ramp`s from the lidar | −4.2 yd to the far shore, +2.4 to the green (3.2 below the plateau), +7.2 up the hill behind | the approach plays downhill |
 | Bank falling to the sea right of the green | a second ocean body brought in under the bank short-right of the green, below its front-right bunker (§5) | to about the 13 m contour | short-right that misses the bunker goes in the sea |
 | Bank in front of the green | `cover` → FAIRWAY | polygon z 346–368 | closely mown, so short balls roll back to the sea instead of stopping in rough |
@@ -48,7 +48,7 @@
 
 | Characteristic | Real | Game | Why |
 |---|---|---|---|
-| Run-out off the tee | longest hitters club down | a pure driver (and a 90% one) goes into the sea; a pure 3-wood stops ~16 yd short of the edge | makes club choice the tee decision, as it is for pros |
+| Run-out off the tee | longest hitters club down | a pure driver (and a 90% one) goes into the sea; a pure 3-wood stops ~12 yd short of the edge | makes club choice the tee decision, as it is for pros. Since the OpenFairway physics (a driver rolls 10 yd on flat fairway, main 41) this needs the tee 25 yd up the hole: 351 yd against the real 428 |
 | Chasm | carry over the cove | as the lidar has it (about 75 yd of sea on the line); a chunk pays | — |
 | The bank right of the green | falls 12 m to the sea at about 40 % | the sea brought in to about its 13 m contour, below the front-right bunker | the game's heights run along the hole only, so the real sideways bank is flat in the game and short-right balls stayed on it; this makes short-right wet past the bunker, as it is |
 | Shaved bank | rough slope | fairway-cut slope from the green to the cliff | short-right feeds into the sea |
@@ -65,15 +65,15 @@ All in `tests/hole-checks.js` → `pebble-8`.
 | Pure driver, down the middle | water |
 | 90% driver | water |
 | Pure 3-wood | fairway, short of the cliff |
-| Iron from (−5, 215), slight mishit (0.1) | green within 8 yd |
+| Iron from (−5, 190), slight mishit (0.1) | green within 8 yd |
 | Chunked iron (0.7) | water |
 | Thin-right iron (0.55) lands on the shaved bank | water |
 | Bail-out left around the cove (0.5 miss) | dry |
 
 | Decision | Must hold | Result |
 |---|---|---|
-| Tee club: driver / 3-wood / iron | driver wet more often than not; 3-wood dry and best for both skills; iron leaves 60+ yd more | driver wet 100% (sharp) / 57% (shaky); 3-wood best for both |
-| Approach: pin / bail left | pin brings the sea into play for a shaky player; sharp always greens it; bail is dry but costs 0.5+ strokes | pin wet 5 % for shaky; bail costs a sharp player 1.40 strokes |
+| Tee club: driver / 3-wood / iron | driver wet more often than not; 3-wood dry and best for both skills; iron leaves 50+ yd more | driver wet 100 % (sharp) / 62 % (shaky); 3-wood best for both (3.97 / 4.06); iron leaves 56 yd more (202 against 146) |
+| Approach: pin / bail left | pin brings the sea into play for a shaky player; sharp stays dry and greens it at least 9 times in 10; bail is dry but costs 0.5+ strokes | pin wet 5 % for shaky; sharp 19 in 21 on the green, 2 in the left bunker; bail costs a sharp player 1.15 strokes |
 
 **Check-change log**
 
@@ -84,36 +84,41 @@ All in `tests/hole-checks.js` → `pebble-8`.
 | Approach strategy, shaky player | wet more than 5 % going at the pin | wet at least once in 21 (`> 0`) | The traced front-right bunker sits between the green and the bank, so it catches most short-right misses that the invented sea used to take: 1 in 21 now. Moving the sea in further would put it under the bunker, which the photo shows sitting on dry land |
 | `tests/tools.test.js` slope bounds: the tilted-plane example | Pebble No. 8 (one plane in the 2.5–4 % band) | Augusta No. 13 (the lidar's 3.3 % plane) | Pebble's traced green tilts 5.1 % (the lidar), outside that band |
 | `tests/ball.test.js` bunker-drop test | Pebble's first bunker (short-left ellipse) | Pebble's first bunker, now the traced compact one behind the green | The test samples an ellipse ring inside `BUNKERS[0]`; the irregular traced bunkers (the left one has a grass tongue) give it under six targets in sand, so the compact back bunker is listed first |
+| **All shots and strategies (2026-10-21, OpenFairway physics)** | the tee at the old origin; drives aimed at (−5, 250), approaches from (−5, 215), the bail-out at (10, 356) | the tee 25 yd forward (everything moved with the land); every z 25 less: (−5, 225), (−5, 190), (10, 331) | Under OpenFairway's flight and bounce a pure driver stopped 142 yd from the pin, short of the plateau's end, and so did a 90 % one: driver against 3-wood was no choice. From +25 a pure driver, both of a sharp player's misses and a 90 % driver reach the chasm and a pure 3-wood stops 12 yd short of the edge (+20 left the 90 % driver dry; +28 put the pure 3-wood in the sea). The approaches stay on the same ground (161 yd out); a pure 3-wood now stops 19 yd nearer, at (−5.5, 209) |
+| Tee club: the iron lay-up | leaves 60+ yd more than the 3-wood | leaves 50+ yd more (56: 202 against 146) | OpenFairway's roll: a 3-wood runs 9 yd on flat fairway (main 26) and an iron 7, so the gap between them fell by about 17 yd. No tee position between +20 and +30 gives 60 |
+| Approach: a sharp player at the pin | hits the green every time | stays dry and holds the green at least 9 times in 10 | 19 in 21; the two most-pulled shots find the traced left bunker (−26, 342). The hole's base landform (`seed`, `roll`, `ridge`) is a function of absolute coordinates, so moving the tee re-rolls its small invented swells under the green complex; the lidar's ramps, the traced green, bunkers and coastline moved exactly. (At +22 every sharp approach held the green, but the 90 % driver was dry) |
 
 ## 7. Results
+
+After the OpenFairway redesign (2026-10-21: the tee 25 yd forward). "before" is the hole-report baseline (commit 548d49a with the signature stripped), not the branch before this change; that comparison is in §6's log and in PR #22.
 
 ```
 === Pebble Beach (pebble-8) — Distance control off the tee (the plateau ends at a cliff), then a forced carry over an ocean chasm to a small, back-to-front green.
 shot                                                                           before           after
-a pure driver runs off the end of the plateau into the chasm                   FAIRWAY 90y      WATER 135y
+a pure driver runs off the end of the plateau into the chasm                   FAIRWAY 90y      WATER 93y
 even a 90% driver still finds the chasm                                        FAIRWAY 107y     WATER 136y
-a pure 3-wood stops on the plateau, short of the cliff                         FAIRWAY 130y     FAIRWAY 161y
-from there a well-struck iron carries the chasm and holds the green            GREENS 3y        GREENS 2y
-a chunked approach comes up short in the chasm                                 ROUGH 39y        WATER 30y
-a ball short-right on the shaved bank feeds back down to the sea               ROUGH 29y        WATER 30y
-the bail-out left, around the head of the cove, stays dry                      ROUGH 35y        FAIRWAY 33y
+a pure 3-wood stops on the plateau, short of the cliff                         FAIRWAY 130y     FAIRWAY 142y
+from there a well-struck iron carries the chasm and holds the green            FAIRWAY 26y      GREENS 4y
+a chunked approach comes up short in the chasm                                 ROUGH 62y        WATER 29y
+a ball short-right on the shaved bank feeds back down to the sea               ROUGH 53y        WATER 26y
+the bail-out left, around the head of the cove, stays dry                      ROUGH 60y        ROUGH 36y
 
   strategy: tee club
   plan       skill   before: wet green score   after: wet green score
-  driver     sharp           0%   0% 3.82            100%   0% 5.92
-  driver     shaky           0%   0% 3.99             57%   0% 5.20
-  3-wood     sharp           0%   0% 3.92              0%   0% 4.04
-  3-wood     shaky           0%   0% 4.07              5%   0% 4.22
-  iron       sharp           0%   0% 4.26              0%   0% 4.35
-  iron       shaky           0%   0% 4.31             14%   0% 4.62
+  driver     sharp           0%   0% 3.81            100%   0% 5.85
+  driver     shaky           0%   0% 3.98             62%   0% 5.20
+  3-wood     sharp           0%   0% 3.92              0%   0% 3.97
+  3-wood     shaky           0%   0% 4.07              0%   0% 4.06
+  iron       sharp           0%   0% 4.26              0%   0% 4.20
+  iron       shaky           0%   0% 4.31              0%   0% 4.24
 
   strategy: approach line
   plan       skill   before: wet green score   after: wet green score
-  pin        sharp           0% 100% 2.35              0% 100% 2.38
-  pin        shaky           0%  43% 3.09              5%  43% 3.07
-  bail       sharp           0%   0% 3.70              0%   0% 3.78
-  bail       shaky           0%   0% 3.72              0%   0% 3.70
-  payoff of pin over bail (strokes saved): sharp 1.35 → 1.39, shaky 0.62 → 0.62   (before → after)
+  pin        sharp           0%   0% 3.44              0%  90% 2.66
+  pin        shaky           0%   0% 3.55              5%  38% 3.18
+  bail       sharp           0%   0% 3.80              0%   0% 3.81
+  bail       shaky           0%   0% 3.82              0%   0% 3.74
+  payoff of pin over bail (strokes saved): sharp 0.36 → 1.15, shaky 0.27 → 0.56   (before → after)
 
 "score" = expected strokes for the whole hole from that moment (tour-style baseline; water/OB = stroke and distance).
 ```
@@ -146,8 +151,11 @@ Expected strokes ("score") come from the baseline in `tests/hole-play.js`, inclu
 - Bunkers: **matches** — five, shapes from the photo, places and depths from the lidar.
 - Water and surroundings: **matches** for the coastline and the cove.
 
+**Tee move (2026-10-21, OpenFairway physics).** The tee went 25 yd forward along the hole with everything else moving with the land, so it now sits partway up the climb: the drive is still uphill and blind over the crest, with less slope in front of the tee (`docs/maps/pebble-8-tee.png`). The real tee at the tip of the point is 25 yd behind it; the lidar frame in `docs/holes/trace/pebble-8.json` is unchanged and its `tee_shift` says to subtract 25 from z. *Tee and direction* is now **differs on purpose** (§5) for the yardage, **matches** for the line.
+
 **Open items**
-1. A sideways height primitive (a bank across the hole), so the real fall to the sea right of the green replaces the moved shoreline.
+1. From where a pure 3-wood now stops (−5.5, 209), 142 yd out, a thin-right iron (0.55) finishes on the shaved bank, dry (from the checks' (−5, 190) it feeds to the sea). The bank and the sea under it are tuned for the longer approach; worth a look when the approach is next touched.
+2. A sideways height primitive (a bank across the hole), so the real fall to the sea right of the green replaces the moved shoreline.
 
 ### Earlier review-only pass
 

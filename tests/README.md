@@ -2,7 +2,7 @@
 
 Run from the repo root (Node 18+; no installs needed):
 
-    node --test tests/*.test.js    # 155 checks (32 swing/wiring/fan + 24 ball physics + 87 iconic holes + 12 authoring tools; the two lidar regressions skip without their tiles)
+    node --test tests/*.test.js    # 157 checks (32 swing/wiring/fan + 24 ball physics + 89 iconic holes + 12 authoring tools; the two lidar regressions skip without their tiles)
     node tests/swing-report.js     # before/after tables (legacy swing math vs SwingModel)
     node tests/ball-report.js      # Phase 2 before/after tables (frozen old physics vs BallModel), real-hole fuzz, Node-only CPU timing
     node tests/hole-report.js [ref] [--hole=id]   # Phase 3 before/after: every hole's checks on the current holes vs commit 548d49a (or any git ref); holes added after that commit are compared with the same land stripped of its signature. Needs history: `git fetch --unshallow` in a shallow clone

@@ -19,26 +19,30 @@ const grade = (s, z0) => (x, z) => s * Math.max(0, z - z0);        // constant g
 // fall angle of a still-air shot as it reaches the ground, from the model's own trace
 const arrivalAngle = (club, terrain, o = {}) => {
   const v = launch(club, o.power ?? 1), p = { x: 0, y: terrain.H(0, 0) + R + 0.02, z: 0 };
-  BM.trace(p, v, 0, BM.NO_WIND, terrain.H, null, 1);
+  BM.trace(p, v, 0, BM.NO_WIND, terrain.H, null, 1, club);
   return Math.atan2(-v.y, Math.hypot(v.x, v.z)) / g.D2R;
 };
-// independent still-air reference: its own tiny-step integrator (not BallModel), straight from the stated physics, to a terrain height function
+// independent still-air reference: its own tiny-step integrator (not BallModel or Aero.step), straight from the stated physics, to a terrain height function.
+// Only the wind-tunnel coefficients come from the game (Aero.coef); drag, lift (backspin, square to the air velocity in the vertical plane) and the spin's decay are written out here.
 function refCarry(club, speed, H, dt = 1 / 4000) {
-  let x = 0, y = H(0, 0) + R + 0.02, vx = Math.cos(club.ang) * speed, vy = Math.sin(club.ang) * speed;
+  const A = g.Aero; let x = 0, y = H(0, 0) + R + 0.02, vx = Math.cos(club.ang) * speed, vy = Math.sin(club.ang) * speed;
+  let w = club.spv * speed * A.RPM; const la = club.ang / g.D2R, c = { cd: 0, cl: 0 };
   for (let t = 0; t < 15; t += dt) {
-    const s = Math.hypot(vx, vy); vx -= K * s * vx * dt; vy -= (G + K * s * vy) * dt; x += vx * dt; y += vy * dt;
+    const s = Math.hypot(vx, vy); A.coef(s, w, la, c);
+    const ax = -A.KQ * c.cd * s * vx - A.KQ * c.cl * s * vy, ay = -A.KQ * c.cd * s * vy + A.KQ * c.cl * s * vx - G;
+    vx += ax * dt; vy += ay * dt; x += vx * dt; y += vy * dt; w *= Math.exp(-dt / A.TAU);
     if (t > 0.05 && y - R <= H(0, x)) return x;
   }
   return NaN;
 }
 
 // ---------------------------------------------------------------- the model itself
-test('the per-club roll factor is gone and every surface can hold a ball it is meant to (hold <= dec/G)', () => {
+test('the per-club roll factor is gone and every dec surface can hold a ball it is meant to (hold <= dec/G; rr surfaces use OpenFairway friction and a static hold)', () => {
   assert.ok(FULL.every(c => !('roll' in c)), 'CLUBS still carry a roll factor');
   assert.ok(!/club\.roll|c\.roll/.test(SRC), 'something still reads a per-club roll factor');
   for (const [k, s] of Object.entries(SP)) {
-    assert.ok(s.hold <= s.dec / G + 1e-9, `surface ${s.name}: hold ${s.hold} must not exceed dec/G ${(s.dec / G).toFixed(3)} or a ball could sit on a slope it would also slide down`);
-    assert.ok(s.e >= 0 && s.e < 1 && s.floor >= 0 && s.floor < 1 && s.bite >= 0 && s.mu >= 0, `surface ${s.name} parameters in range`);
+    if (s.rr == null) assert.ok(s.hold <= s.dec / G + 1e-9, `surface ${s.name}: hold ${s.hold} must not exceed dec/G ${(s.dec / G).toFixed(3)} or a ball could sit on a slope it would also slide down`);
+    assert.ok(s.e >= 0 && s.e < 1 && s.bite > 0 && s.mu > 0 && s.bite >= 0 && s.mu >= 0, `surface ${s.name} parameters in range`);
   }
   assert.ok(SP[g.SAND].e < SP[g.ROUGH].e && SP[g.ROUGH].e < SP[g.FAIRWAY].e, 'bounce: sand < rough < fairway');
   assert.ok(SP[g.ROUGH].bite > SP[g.FAIRWAY].bite && SP[g.SAND].bite > SP[g.ROUGH].bite, 'grab: fairway < rough < sand');
@@ -48,22 +52,28 @@ test('flight is unchanged: every club still carries its stated distance on flat 
   for (const c of FULL) {
     const r = shot(c, flat(g.FAIRWAY));
     assert.ok(Math.abs(r.summary.carry - c.carry) <= 0.6, `${c.name}: stated ${c.carry}, carried ${r.summary.carry.toFixed(1)}`);
-    assert.ok(Math.abs(BM.carryTo(c.ang, c.v0) - c.carry) <= 0.8, `${c.name}: carryTo ${BM.carryTo(c.ang, c.v0).toFixed(1)}`);
+    assert.ok(Math.abs(BM.carryTo(c.ang, c.v0, 0, c) - c.carry) <= 0.8, `${c.name}: carryTo ${BM.carryTo(c.ang, c.v0, 0, c).toFixed(1)}`);
   }
 });
 
-test('a steeper arrival keeps less of its run, and softer ground keeps less than firm ground', () => {
-  // one impact at a time: ball a hair above flat ground, same speed, different fall angles
-  const after = (angDeg, surf, speed = 40) => {
+test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps less, backspin and softer ground keep less, and the hop follows the ground', () => {
+  // one impact at a time: ball a hair above flat ground, same speed, different fall angles; rpm: backspin at that moment (Aero's spin state)
+  // OpenFairway's law is not monotone in angle: below the critical angle (fairway 0.29 rad) the run keeps 0.55 x its spin factor;
+  // above it Penner's path keeps 0.55 x speed x sin(angle - critical), which starts near zero and grows. Rewritten with the bounce port (PR #22).
+  const after = (angDeg, surf, rpm = 0, speed = 40) => {
     const a = angDeg * g.D2R, b = { p: { x: 0, y: R + 0.001, z: 0 }, v: { x: 0, y: -Math.sin(a) * speed, z: Math.cos(a) * speed }, rolling: false, landed: false, resting: false, t: 0, lipT: -9 };
-    BM.begin(b); BM.step(b, BM.STEP, { terrain: flat(surf), sp: SP, wind: { x: 0, z: 0 } });
+    BM.begin(b); b.air = { w: rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
+    BM.step(b, BM.STEP, { terrain: flat(surf), sp: SP, wind: { x: 0, z: 0 } });
     return { kept: Math.hypot(b.v.x, b.v.z) / (Math.cos(a) * speed), hop: b.v.y };
   };
-  let prev = 2;
-  for (const a of [8, 12, 16, 20, 25, 30, 40, 55]) { const k = after(a, g.FAIRWAY).kept; assert.ok(k <= prev + 1e-9, `kept share rose at ${a} deg`); prev = k; }
-  assert.ok(after(8, g.FAIRWAY).kept > 0.5 && after(55, g.FAIRWAY).kept <= SP[g.FAIRWAY].floor + 1e-9, 'shallow keeps most of its run, steep keeps only the floor');
-  for (const a of [12, 20, 40]) assert.ok(after(a, g.ROUGH).kept < after(a, g.FAIRWAY).kept && after(a, g.SAND).kept < after(a, g.ROUGH).kept, `softer ground keeps less at ${a} deg`);
+  for (const a of [8, 12]) assert.ok(Math.abs(after(a, g.FAIRWAY).kept - 0.55) < 0.01, `below the critical angle the run keeps 55 % (${a} deg: ${after(a, g.FAIRWAY).kept.toFixed(3)})`);
+  // with a real ball's spin; with none, a very steep drop (55 deg) keeps 0.6 of its horizontal run under Penner's formula, which is OpenFairway's behaviour too
+  for (const a of [20, 25, 30, 40, 55]) assert.ok(after(a, g.FAIRWAY, 3000).kept < after(12, g.FAIRWAY, 3000).kept, `steeper than critical keeps less than a skid (${a} deg)`);
+  for (const a of [12, 30, 45]) assert.ok(after(a, g.FAIRWAY, 6000).kept < after(a, g.FAIRWAY, 1000).kept, `more backspin keeps less run (${a} deg)`);
+  // not between the critical angles (fairway 16.6 deg, rough 20.1): a landing in that band skids on in rough but grips on fairway (OpenFairway's presets)
+  for (const a of [12, 30, 40]) assert.ok(after(a, g.ROUGH).kept < after(a, g.FAIRWAY).kept && after(a, g.SAND).kept < after(a, g.ROUGH).kept, `softer ground keeps less at ${a} deg`);
   assert.ok(after(30, g.SAND).hop < after(30, g.ROUGH).hop && after(30, g.ROUGH).hop < after(30, g.FAIRWAY).hop, 'hop: sand < rough < fairway');
+  assert.ok(after(40, g.FAIRWAY, 4000).hop < after(40, g.FAIRWAY, 500).hop, 'a spinning ball sticks: less hop');
 });
 
 // ---------------------------------------------------------------- the brief's scenarios
@@ -100,7 +110,7 @@ test('elevation is applied once: carry over raised/lowered ground matches an ind
 
 test('playsLike: higher targets play longer, lower ones shorter, and swinging at that speed lands on the target', () => {
   for (const c of FULL) for (const dh of [-6, -3, 3, 6]) {
-    const dist = c.carry * 0.9, pl = BM.playsLike(c.ang, dist, dh);
+    const dist = c.carry * 0.9, pl = BM.playsLike(c.ang, dist, dh, c);
     assert.ok(dh > 0 ? pl.plays > dist : pl.plays < dist, `${c.name} dh ${dh}: plays ${pl.plays.toFixed(1)} vs ${dist.toFixed(1)}`);
     // terrain whose height at `dist` is dh, reached well before the ball arrives; the ball must land on `dist`
     const t = makeTerrain((x, z) => dh * ss(dist * 0.3, dist * 0.6, z), g.FAIRWAY);
@@ -151,7 +161,9 @@ test('ground that cannot hold the ball lets it slide to flatter ground and rest;
     return { b, moved: Math.abs(b.p.z - 10) };
   };
   for (const gr of [0.05, 0.1, 0.2]) { const d = drop(gr); assert.ok(d.b.resting && d.moved < 0.05 && d.b.t < 0.1, `fairway grade ${gr} holds the ball`); }
-  for (const gr of [0.3, 0.5, 0.7, 1.0, 1.4]) { const d = drop(gr); assert.ok(d.b.resting && d.moved > 20 && d.b.p.z > 58 && d.b.t < 15, `fairway grade ${gr}: slid ${d.moved.toFixed(0)} yd, rest ${d.b.resting} at ${d.b.t.toFixed(1)}s`); }
+  // it slides off the bank onto the flat below and rests within the game's shot limit. (Was: within 15 s. On OpenFairway's fairway friction a ball
+  // off a steep bank rolls a long way across the flat; the late-roll ramp, now from 8 s, ends it. PR #22.)
+  for (const gr of [0.3, 0.5, 0.7, 1.0, 1.4]) { const d = drop(gr); assert.ok(d.b.resting && d.moved > 20 && d.b.p.z > 58 && d.b.t < BM.MAX_T, `fairway grade ${gr}: slid ${d.moved.toFixed(0)} yd, rest ${d.b.resting} at ${d.b.t.toFixed(1)}s`); }
   assert.ok(drop(0.8, g.SAND).b.resting && drop(0.8, g.SAND).moved > 10, 'sand lets go of a ball on a 0.8 grade too (steeper than its hold)');
 });
 
@@ -191,7 +203,7 @@ test('the aiming arc lands exactly where the live ball first touches down in sti
   for (const t of terrains) for (const c of FULL) for (let i = 0; i < 6; i++) {
     const power = 0.25 + 0.75 * rng(), yaw = (rng() - 0.5) * 0.3, spin = (rng() - 0.5) * 2 * c.shape;
     const v = launch(c, power, yaw), p = { x: 0, y: t.H(0, 0) + R + 0.02, z: 0 }, pv = { ...v };
-    const pre = BM.trace(p, pv, spin, BM.NO_WIND, t.H, null, 1);
+    const pre = BM.trace(p, pv, spin, BM.NO_WIND, t.H, null, 1, c);
     const live = runBall(g, t, { v, spin, club: c, maxT: 40 }).ball.landAt;
     assert.ok(pre && live, 'both land');
     assert.ok(Math.hypot(pre.x - live.x, pre.z - live.z) < 1e-6, `${c.name}: arc ${pre.x.toFixed(3)},${pre.z.toFixed(3)} vs live ${live.x.toFixed(3)},${live.z.toFixed(3)}`);
@@ -316,7 +328,7 @@ test('real holes: wedge shots dropped into a bunker end in that bunker, at rest,
     // find the launch speed whose first touchdown is the target, by bisection on the real terrain
     const yaw = Math.atan2(tx - from.x, tz - from.z), D = Math.hypot(tx - from.x, tz - from.z);
     let lo = 5, hi = 60;
-    const land = sp => { const p = { x: from.x, y: course.H(from.x, from.z) + R + 0.02, z: from.z }, v = { x: Math.sin(yaw) * Math.cos(wedge.ang) * sp, y: Math.sin(wedge.ang) * sp, z: Math.cos(yaw) * Math.cos(wedge.ang) * sp }; const l = BM.trace(p, v, 0, BM.NO_WIND, course.H, null, 1); return Math.hypot(l.x - from.x, l.z - from.z); };
+    const land = sp => { const p = { x: from.x, y: course.H(from.x, from.z) + R + 0.02, z: from.z }, v = { x: Math.sin(yaw) * Math.cos(wedge.ang) * sp, y: Math.sin(wedge.ang) * sp, z: Math.cos(yaw) * Math.cos(wedge.ang) * sp }; const l = BM.trace(p, v, 0, BM.NO_WIND, course.H, null, 1, wedge); return Math.hypot(l.x - from.x, l.z - from.z); };
     for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; land(m) < D ? lo = m : hi = m; }
     const sp = (lo + hi) / 2;
     const r = runBall(g, course.terrain, { start: from, v: { x: Math.sin(yaw) * Math.cos(wedge.ang) * sp, y: Math.sin(wedge.ang) * sp, z: Math.cos(yaw) * Math.cos(wedge.ang) * sp }, club: wedge, maxT: 30 });

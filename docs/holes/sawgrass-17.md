@@ -89,19 +89,21 @@ All in `tests/hole-checks.js` → `sawgrass-17`.
 | Shot | Expected | Result |
 |---|---|---|
 | Well-struck iron (0.1) | green within 8 yd | ✅ 5 yd |
-| Carried 12 yd long | water | ✅ |
+| Carried 13 yd long | water | ✅ 15 yd (12 yd long stops a yard short of the back edge, 14 yd from the pin) |
 | Bad miss right (0.6) | water | ✅ |
-| Stock shot into a 17 mph following wind | water | ✅ |
-| The arc on the island's front edge, same wind | green | ✅ 4 yd |
+| Stock shot with a 17 mph following wind | barely further (+1.2 yd carry), 10° flatter (35° against 45°): rests on the green within 4 yd | ✅ 1.7 yd |
+| Over-reading it: the arc on the island's front edge, same wind | rests short of the green, on the front fringe, 9+ yd | ✅ FRINGE 11.5 yd |
+| The tailwind's real cost: the arc 12 yd long, same wind | water (+2.6 yd carry; in still air the same arc holds) | ✅ |
 | Stock shot to a front pin into a 17 mph headwind | water | ✅ |
 | Arc 11 yd past the pin, left of the pot bunker, into that headwind | green within 6 yd | ✅ 4 yd |
-| The same arc straight over the pot bunker | rests in the sand | ✅ 5 yd |
+| The same arc straight over the pot bunker, aim (−5, 148) | rests in the sand | ✅ 5.3 yd |
 
 **Strategies** (rates and gaps, as the baseline can show them):
 
 | Decision | Plans | Must hold | Result (wet %, green %, expected score) |
 |---|---|---|---|
-| Reading a following wind | stock / read (arc on the island's front edge) | stock wet > 50 % for a sharp player; read keeps a sharp player dry; read saves a sharp player more than a stroke and a shaky player something | stock: sharp 95 % wet / 4.85, shaky 67 % / 4.31 · read: sharp 0 % wet, 86 % green / 2.66, shaky 48 % / 3.80 · payoff of reading: sharp 2.19, shaky 0.51 |
+| Reading a headwind (17 mph) | stock (arc at the pin) / read (arc 11 yd past it, at (−2, 148)) | stock wet > 50 % for a sharp player; read keeps a sharp player dry; read saves a sharp player more than a stroke and a shaky player something | stock: 100 % wet for both, 4.93 · read: sharp 0 % wet, 67 % green (29 % in the pot bunker) / 2.78, shaky 52 % wet / 3.93 · payoff of reading: sharp 2.15, shaky 1.00 |
+| A following wind (17 mph): play it stock or over-read it | stock (arc at the pin) / over (arc on the island's front edge, (0, 125)) | over wet > 50 % for a sharp player; stock keeps a sharp player dry; stock saves a sharp player more than a stroke and a shaky player something | stock: sharp 0 % wet, 95 % green / 2.28, shaky 33 % / 3.37 · over: sharp 71 % wet, 0 % green / 4.44, shaky 90 % / 4.77 · payoff of playing it stock: sharp 2.16, shaky 1.40 |
 | Skill in still air | at the pin | sharp never wet; shaky wet at least 1 in 7 | sharp 0 % (95 % green), shaky 38 % |
 
 **Check-change log**
@@ -111,6 +113,12 @@ All in `tests/hole-checks.js` → `sawgrass-17`.
 | Play the tailwind (shot and the `read` plan) | arc at (−4, 123) | arc at (0, 125), "on the island's front edge" | The tracing moved the island's front: (−4, 123) was dry on the old 38 × 31 ellipse (front at z 121.5) and is water on the real island, whose front at x −4 is the bunker mound's tip at z 127. The aim is still "land it short and let the wind carry it": the front edge of the real island. The outcome required (on the green) is unchanged |
 | Arc 11 yd past the pin into the headwind (shot) | aim (−4, 148) | aim (−2, 148), "left of the pot bunker" | The tracing moved the pot bunker onto the line: it sits 6 yd short of the pin and 1.6 yd right of it, where the old one was 11 yd right. The old aim now lands on the mound and kicks into the sand (the next row). The outcome required (green within 6 yd) is unchanged |
 | The same arc straight over the pot bunker (shot) | — | new: rests in the sand | What the bunker's real position does to the old line, kept as a check. It held only once the mound the lidar finds round the bunker was built: without it the ball stopped on the fringe, so the check was not tuned in, the mound was measured in |
+| Carried long (shot), 2026-10-21, OpenFairway physics | 12 yd long, aim (−4, 149): water | 13 yd long, aim (−4, 150): water | An iron now lands at 47° and 26 yd/s (main: 24° and 44 yd/s, running 5 yd) and runs 2 yd after its pitch mark, not off the back: 12 yd long lands 3 yd short of the back edge on the line and stops a yard from it (GREENS, 14 yd from the pin). 13 yd long bounces over the bulkhead. **Knife edge**: the dry depth behind the pin is now 12 yd, not 11; one yard more of run would put 12 long back in the water |
+| Stock shot in a 17 mph tailwind (shot), same day | flies the green into the water | barely flies further (+1.2 yd), lands flatter (35° against 45°), and still holds the green (≤ 4 yd) | Under OpenFairway's drag and lift a tailwind barely lengthens an iron (main: +9 yd, carry 146 and wet; the lift falls with airspeed; `windPush` 1 was set to match main's headwind loss, not its tailwind gain: PR #22). It also does not run further on this green: the flatter, faster landing keeps 0.5 yd of run against 2. Same pattern as St Andrews No. 17's tailwind check. 1.7 yd from the pin |
+| Play the tailwind (shot), same day | arc on the island's front edge, (0, 125): finishes on the green | the same arc **over-reads** it: rests on the front fringe, 9+ yd away | With 1.2 yd of help, landing it on the front edge leaves it on the front edge (FRINGE 11.5 yd). Taking a club less downwind is now the mistake, not the read |
+| The tailwind's cost at the back edge (shot), same day | — | new: the arc 12 yd long, with the tailwind, is wet | What a tailwind does now: +2.6 yd of carry at that length turns the still-air 12-long (dry, above) into water. **Knife edge**: 11 yd long with the tailwind holds (carry 150.5, stops 14 yd from the pin) |
+| The same arc straight over the pot bunker (shot), same day | aim (−4, 148), "kicks into it" | aim (−5, 148), "comes down in it" | Into the headwind the ball now lands at 60°, so it does not kick: from (−4, 148) it pitched on the bunker's back lip (x −3.6, z 132.3; the sand ends at x −3.5) and stopped on the green 3.1 yd away. One yard right, straight over the bunker's middle, it lands in the sand (5.3 yd from the pin); (−5, 147) and (−4, 147) do too. The other side of the decision, (−2, 148) left of the bunker, is unchanged and passes (GREENS 2.6 yd) |
+| Reading a following wind (strategy), same day | stock (ignore it) wet > 50 % sharp; read (arc on the front edge) dry and better by a stroke | **split in two.** "Reading a headwind": stock wet > 50 % sharp, read (arc 11 past, (−2, 148)) dry for a sharp player and better by more than a stroke (sharp) and something (shaky). "A following wind": the same three assertions with the plans reversed: over-reading wet > 50 %, stock dry and better | The old plans traded places: the stock shot is now dry for a sharp player (2.28) and the front-edge read is 71 % wet (4.44). The hole is still about reading the wind; under real flight the headwind is what has to be read (−18 yd: the stock shot never reaches the island), and a tailwind is what must not be over-read |
 
 **Visual checks**: `node tests/hole-map.js sawgrass-17`, `node tests/tools/slope.js sawgrass-17`, `python3 tests/tools/render.py sawgrass-17` (tee +185 px clear of the HUD, bird's-eye +29 px, approach +124 px; pin in view). The key shot by hand is not done: it needs a person with the game open.
 

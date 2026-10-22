@@ -19,13 +19,14 @@ function loadGame(src = SRC) {
   const between_ = (a, b) => between(a, b, src);
   const prelude = 'const D2R=Math.PI/180;const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));const mix=(a,b,t)=>a+(b-a)*t;';
   const surfaces = between_('const TEE=0,FAIRWAY=1', 'function S(x,z)');
-  const physics = between_('const G=10.7,K=0.0011,R=0.05;', 'function lieMult');
+  // from the constants line on: 'const G=10.7,R=0.05;' and the Aero block since the 2026-10-21 flight port, 'const G=10.7,K=0.0011,R=0.05;' before it
+  const physics = between_('const G=10.7,', 'function lieMult');
   const lieFn = between_('function lieMult', '\n');
   const swing = between_('// <swing-model>', '// </swing-model>');
   const ball = between_('// <ball-model>', '// </ball-model>');
   const stance = src.includes('// <stance-model>') ? between_('// <stance-model>', '// </stance-model>') : 'const StanceModel=null;';
   const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n${stance}\n${ball}\n` +
-    'return {G,K,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE:typeof PINE===\'undefined\'?undefined:PINE,ROAD:typeof ROAD===\'undefined\'?undefined:ROAD,WASTE:typeof WASTE===\'undefined\'?undefined:WASTE,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
+    'return {G,K:typeof K===\'undefined\'?undefined:K,Aero:typeof Aero===\'undefined\'?undefined:Aero,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE:typeof PINE===\'undefined\'?undefined:PINE,ROAD:typeof ROAD===\'undefined\'?undefined:ROAD,WASTE:typeof WASTE===\'undefined\'?undefined:WASTE,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
   return new Function(body)();
 }
 

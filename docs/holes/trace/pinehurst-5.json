@@ -1,4 +1,5 @@
 {
+  "tee_shift": {"z_yd": 15, "date": "2026-10-21", "note": "The game tee was moved 15 yd forward along the hole for the OpenFairway physics (docs/holes/pinehurst-5.md §6): every z in the HOLES entry is 15 yd less than this frame gives (everything moved with the land). Subtract 15 from z in lidar.py output before pasting it into the hole."},
  "id": "pinehurst-5",
  "lidar": {
   "source": "USGS NED 1/9 arc-second (about 3.4 m), NC statewide 2003 (ned19_n35x25_w079x50_nc_statewide_2003, public domain), from prd-tnm.s3.amazonaws.com; no 1 m DEM covers this pin. Resampled (bilinear) to a 1 m EPSG:26917 GeoTIFF, NED19_2003_pinehurst5_utm17_1m.tif, 2.4 km square round the pin. Flown before the 2010-11 restoration. Not in the repo",

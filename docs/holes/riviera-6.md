@@ -106,7 +106,7 @@ Written into `tests/hole-checks.js` under `riviera-6` before any tuning (commit 
 | Aimed at the big front bunker, short of the pin | In the sand |
 | Aimed at the small bunker off the left end | In the sand |
 | Aimed past the green | Runs through into the back bunker |
-| A full Hammer flown well past the green | Stopped by the bank behind it: rough, ≤ 35 yd from the pin (27; it ran 71 yd without the bank) |
+| A Hammer flown well past the green into the bank, arc at (0, 175) | Stopped by the bank, rolls back down into the back bunker, ≤ 20 yd from the pin (16.7) |
 | From the back-left quadrant, a wedge | Over the bunker, on the green, ≤ 9 yd |
 | From the middle bunker, a wedge | Out, on the green, ≤ 12 yd |
 
@@ -141,6 +141,7 @@ No water on this hole, so the hazard rate is 0 for every plan; the rates that ma
 | Aimed at the deep front-left bunker (shot) | aim (13, 131), "front-left" | "the big front bunker, short of the pin", aim (−3.5, 120.2) | The visual review moved the bunker: traced from both photos it sits short of the green in front of the pin (centroid (0.9, 119.7)), not front-left at (13, 129.5). The aim is the middle of its right lobe; the outcome (in the sand) is unchanged |
 | Aimed at the small bunker off the left end (shot) | — | new: in the sand | The bunker is new, found in the photos; the check says it plays as a bunker |
 | A full Hammer flown well past the green (shot) | — | new: stopped by the bank, rough, ≤ 35 yd | The bank was built from the lidar, and it changes what a long miss meets (it was §8's first open item). No existing check changed with the lidar update: all nine passed as written, with the figures in the strategy row above |
+| A Hammer flown past the green (shot), 2026-10-21, OpenFairway physics | a full Hammer, arc at (0, 200): stopped by the bank, in the rough above the green, ≤ 35 yd | arc at (0, 175), into the bank's face: stopped by it, rolls back down into the back bunker, ≤ 20 yd | Main's driver came in at 7° and struck the bank's face (carry 182), stopping 27 yd out. Under OpenFairway's flight the ball comes down at 20–24°, so the arc at (0, 200) clears the bank's top (z 192) and rests on the flat above it, 70 yd from the pin. Flown into the face itself (arcs at 170–180) it cannot rest there: the face is about 59 % and a fairway or rough ball stops on nothing steeper than ~5 %, so it rolls back down into the back bunker, 16–18 yd from the pin (SAND). The bank still stops the long miss; it now hands it to the bunker. **Knife edge**: an arc at 185 lands near the top and stays up there (ROUGH 49 yd) |
 
 Not check changes but tuning, recorded in §5: before the visual review the middle bunker was enlarged to meet the "aiming at the middle finds the sand ≥ 50 %" check (the review then showed that check needed a bunker the photos do not support, and the check changed, above); the bunkers' depths were set for the shared hop guard; the plane tilt was cut so the green clears the flat-pockets bound.
 
