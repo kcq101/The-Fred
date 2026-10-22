@@ -287,7 +287,8 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
     <div class="tSide">
     <div class="tMast">
       <h1 class="tLogo"><span class="the">THE</span><span class="fred">FRED</span></h1>
-      <div class="tFacts"><div class="cap" id="tCount">3 HOLES · PAR 12</div><div class="cap" id="tCourses">Arcade golf</div></div>
+      <div class="tFacts"><!-- these two lines are filled from HOLES when the script runs; keep the static text in step (tests/title.test.js) so the menu is right before the first hole has built -->
+      <div class="cap" id="tCount">7 HOLES · PAR 27</div><div class="cap" id="tCourses">Pebble · Augusta · TPC · St Andrews · Pinehurst · Riviera</div></div>
     </div>
     <div class="tMenu">
       <div class="tHoles" id="tHoles" hidden></div>
