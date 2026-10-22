@@ -1284,10 +1284,63 @@ let vw=1,vh=1;
 function resize(){
   vw=innerWidth;vh=innerHeight;renderer.setSize(vw,vh,false);
   camera.aspect=vw/vh;camera.fov=camera.aspect<1?56:46;camera.updateProjectionMatrix();
-  const w=Math.floor(vw*DPR),h=Math.floor(vh*DPR);makeRT(w,h);
+  const pr=renderer.getPixelRatio(),w=Math.floor(vw*pr),h=Math.floor(vh*pr);makeRT(w,h);
   postMat.uniforms.res.value.set(w,h);postMat.uniforms.tColor.value=rt.texture;postMat.uniforms.tDepth.value=rt.depthTexture;
 }
 addEventListener('resize',resize);
+
+// ---------------------------------------------------------------- frame profiler: only with ?fps=1 in the address, otherwise PERF is null and costs nothing
+// Shows frame time (the gap between frames: 16.7 ms = 60 fps) per moment of play (aim, pull, flight), the CPU spent in the frame (physics, the render
+// call, the rest), and what is left: waiting on the GPU or the screen. Toggles switch costly pieces off live (look only) to see what each one costs;
+// COPY puts a plain-text summary on the clipboard to paste into a chat.
+const PERF=(()=>{
+  if(!/[?&]fps=1(&|$)/.test(location.search))return null;
+  const N=240,B={},ORDER=['aim','pull','flight','other'];
+  const mk=()=>({iv:new Float32Array(N),cpu:new Float32Array(N),ph:new Float32Array(N),rd:new Float32Array(N),n:0,i:0,hitch:0});
+  const on={shadows:true,grass:true,trees:true,bunkers:true,post:true,hires:true};
+  let last=0,tri=0,calls=0,lastPaint=0;
+  const el=document.createElement('div');el.id='perf';
+  el.style.cssText='position:fixed;left:4px;top:calc(env(safe-area-inset-top,0px) + 176px);z-index:20;pointer-events:auto;background:rgba(10,6,24,.78);color:#e8ffe8;font:10px/1.3 ui-monospace,Menlo,monospace;padding:4px 5px;border-radius:4px;max-width:calc(100vw - 8px);white-space:pre';
+  const txt=document.createElement('div'),row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;white-space:normal';
+  el.append(txt,row);document.body.appendChild(el);
+  const btn=(label,fn)=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='font:10px ui-monospace,monospace;padding:3px 5px;border:1px solid #9f9;background:#132;color:#cfc;border-radius:3px';b.onclick=e=>{e.stopPropagation();fn(b);};b.onpointerdown=e=>e.stopPropagation();row.appendChild(b);return b;};
+  const reset=()=>{for(const k in B)delete B[k];};
+  const applyVis=()=>{if(!world)return;world.children.forEach(o=>{const k=o.userData.cost;if(k&&k in on)o.visible=on[k];});};
+  const toggles={};
+  const setLab=k=>{toggles[k].textContent=k+(on[k]?'':' OFF');toggles[k].style.opacity=on[k]?1:0.55;};
+  for(const k of Object.keys(on))toggles[k]=btn(k,()=>{on[k]=!on[k];setLab(k);
+    if(k==='shadows')sunL.castShadow=on[k];
+    else if(k==='hires'){renderer.setPixelRatio(on[k]?DPR:1);postU.dpr.value=renderer.getPixelRatio();resize();}
+    else applyVis();
+    reset();});
+  btn('reset',reset);
+  const stat=(a,n)=>{const v=Array.from(a.slice(0,n)).sort((x,y)=>x-y);let s=0;for(const x of v)s+=x;return{avg:s/n,p95:v[Math.min(n-1,Math.floor(n*0.95))],max:v[n-1]};};
+  const report=()=>{
+    const pr=renderer.getPixelRatio();
+    const head=`${HOLE?HOLE.id:'-'}  ${Math.floor(innerWidth*pr)}x${Math.floor(innerHeight*pr)} @${pr}  tris ${(tri/1e6).toFixed(2)}M  calls ${calls}`;
+    const off=Object.keys(on).filter(k=>!on[k]);
+    const lines=[head+(off.length?'  OFF: '+off.join(','):'')];
+    for(const k of ORDER){const b=B[k];if(!b||b.n<10)continue;const n=b.n,iv=stat(b.iv,n),cpu=stat(b.cpu,n),ph=stat(b.ph,n),rd=stat(b.rd,n);
+      lines.push(`${k.padEnd(6)} ${(1000/iv.avg).toFixed(0).padStart(3)}fps  frame ${iv.avg.toFixed(1)} p95 ${iv.p95.toFixed(1)} max ${iv.max.toFixed(0)}  hitch ${b.hitch}`);
+      lines.push(`       cpu ${cpu.avg.toFixed(1)} (phys ${ph.avg.toFixed(1)} render ${rd.avg.toFixed(1)} rest ${(cpu.avg-ph.avg-rd.avg).toFixed(1)})  gpu/wait ~${Math.max(0,iv.avg-cpu.avg).toFixed(1)}`);}
+    if(lines.length===1)lines.push('collecting... (aim, pull, hit a shot)');
+    return lines.join('\n');
+  };
+  btn('copy',b=>{const t=report()+'\n'+navigator.userAgent;
+    const done=()=>{b.textContent='copied';setTimeout(()=>b.textContent='copy',1200);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>prompt('Copy this:',t));else prompt('Copy this:',t);});
+  return{
+    get noPost(){return !on.post;},
+    built:applyVis,                                   // called at the end of buildWorld, so a new hole keeps the toggles
+    info(r){tri=r.triangles;calls=r.calls;},
+    frame(now,k,cpu,ph,rd){
+      const iv=last?now-last:0;last=now;if(!iv||iv>1000)return;  // first frame after the menu or a background tab
+      const b=B[k]||(B[k]=mk());b.iv[b.i]=iv;b.cpu[b.i]=cpu;b.ph[b.i]=ph;b.rd[b.i]=rd;b.i=(b.i+1)%N;b.n=Math.min(N,b.n+1);if(iv>50)b.hitch++;
+      if(now-lastPaint>250){lastPaint=now;txt.textContent=report();}
+    },
+    pause(now){last=0;}
+  };
+})();
 
 // ---------------------------------------------------------------- materials
 const grad=(()=>{const d=new Uint8Array([105,105,105,255,160,160,160,255,212,212,212,255,255,255,255,255]);const t=new THREE.DataTexture(d,4,1,THREE.RGBAFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.generateMipmaps=false;t.needsUpdate=true;return t;})();
@@ -1601,7 +1654,7 @@ function spotOK(x,z,clear){
 }
 function buildWorld(){
   setGroundPalette();disposeWorld();if(typeof hiddenTrees!=='undefined')hiddenTrees.clear();world=new THREE.Group();scene.add(world);
-  const add=o=>{world.add(o);return o;};
+  let tag=null;const add=o=>{if(tag)o.userData.cost=tag;world.add(o);return o;};
   const bb=HOLE.bbox;
   const cliffB=BODIES.find(b=>b.profile==='cliff');
   let lowH=0;   // lowest dry ground in the modelled area: the ground beyond it must sit below this, or it would cover a deep valley
@@ -1714,6 +1767,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     const gmesh=add(new THREE.Mesh(gg,gm));gmesh.receiveShadow=true;
   }
 
+  tag='bunkers';
   // ---- bunkers: each on a fine mesh of its own (0.22 yd) on the same heights H gives the ball, so a small traced bunker reads as a smooth bowl, not the
   // coarse terrain's jagged facets (look only). Revetted (links: every bunker, or any bunker with revet:true): the wall from the lip down to the sand is
   // built of stacked turf, drawn as layered bands of grass edge and dark soil. Otherwise (parkland): sand flashed up the face, a soft shaded crease
@@ -1754,6 +1808,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     };
     const rmesh=add(new THREE.Mesh(rg,rm));rmesh.receiveShadow=true;
   }
+  tag=null;
   // ---- ground beyond the modelled area (follows the coastline on ocean holes)
   if(cliffB){
     // a sheet of land out to the horizon with the sea cut out of it. The coast is read from the water bodies' own distance (sd > 0 = sea), whichever way
@@ -1847,6 +1902,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       rm.castShadow=true;}
     }
   }
+  tag='trees';
   // ---- trees
   TREES=[];
   {
@@ -1913,6 +1969,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     }
   }
 
+  tag='grass';
   // ---- grass carpet: dense, low cards of grass blades along the rough beside the fairway and round the green, so the ground the camera sees close
   // up is grass rather than a painted colour. Each card is three crossed quads with a blade-silhouette texture; colour runs from a dark base to a
   // lighter tip that drifts across the hole, and the tips bend in the wind (the idea from FluffyGrass, github.com/thebenezer/FluffyGrass, MIT). Look only.
@@ -1999,6 +2056,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       fl.forEach(([x,z,col],i)=>{m.compose(new V3(x,H(x,z)+0.2,z),new THREE.Quaternion(),new V3(1.4,0.8,1.4));fm.setMatrixAt(i,m);c.setHex(col);fm.setColorAt(i,c);});
     }
   }
+  tag=null;
   // ---- cup, flagstick, raised tee box
   FLAGSTICK=[];
   {
@@ -2096,6 +2154,7 @@ float tnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(th
   const SKY={links:{sky:['#ffd2a0','#f6dcc0','#a6c8e6','#4f8ccc'],fog:'#e8d9bd'}}[HOLE.theme];
   (SKY?SKY.sky:PAL.sky).forEach((c,i)=>sky.material.uniforms.sk.value[i].set(c));
   scene.fog.color.set(SKY?SKY.fog:HOLE.theme==='coast'?'#c8d8e4':PAL.fog);
+  if(PERF)PERF.built();
 }
 
 // ---------------------------------------------------------------- ball, markers, trail
@@ -2920,7 +2979,8 @@ function updateTreeCutaway(clear){
 }
 let lastT=performance.now();
 function frame(now){
-  if(titleOpen){lastT=now;requestAnimationFrame(frame);return;}
+  if(titleOpen){lastT=now;if(PERF)PERF.pause();requestAnimationFrame(frame);return;}
+  const pf0=PERF?performance.now():0;
   const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;clock+=dt;
   for(let i=timers.length-1;i>=0;i--)if(clock>=timers[i].t){const f=timers[i].fn;timers.splice(i,1);f();}
   if(state==='aim'){
@@ -2932,7 +2992,9 @@ function frame(now){
   const zp=Math.max(0,zoomV);scene.fog.near=430+zp*500;scene.fog.far=1450+zp*700;
   const zt=$('zoomTag');zt.hidden=!(state==='aim'&&Math.abs(zoomT)>0.05&&!(drag&&drag.kind==='pull'));
   if(!zt.hidden)zt.innerHTML=(zoomT<0?`ZOOM IN ${Math.round(-zoomT*100)}%`:(zoomT>0.5?"BIRD'S EYE":`ZOOM OUT ${Math.round(zoomT*100)}%`))+'<br><small>TAP THE GOLD RING TO GO BACK</small>';
+  const pfA=PERF?performance.now():0;
   if(state==='flight')simulateFlight(dt);
+  const pfPhys=PERF?performance.now()-pfA:0;
   updateCamera(dt);
   shakeT=Math.max(0,shakeT-dt);
   const stepN=Math.floor(clock*12);const stepped=stepN!==lastStep;if(stepped)lastStep=stepN;
@@ -3020,8 +3082,13 @@ function frame(now){
   else $('pinTag').hidden=true;
   if(state==='flight'&&stepped){$('dist').textContent=Math.round(distToPin())+' yds to pin';pinHUD(ball.landed?lieNow():-1,distToPin());$('lie').textContent=ball.landed?SP[lieNow()].name.toUpperCase():'IN THE AIR';$('liePen').textContent='';}
 
+  const pfR=PERF?performance.now():0;
+  if(PERF&&PERF.noPost){renderer.setRenderTarget(null);renderer.render(scene,camera);PERF.info(renderer.info.render);}
+  else{
   renderer.setRenderTarget(rt);renderer.render(scene,camera);
-  renderer.setRenderTarget(null);renderer.render(postScene,postCam);
+  if(PERF)PERF.info(renderer.info.render);
+  renderer.setRenderTarget(null);renderer.render(postScene,postCam);}
+  if(PERF){const t=performance.now();PERF.frame(now,state==='aim'&&drag&&drag.kind==='pull'?'pull':(state==='flight'||state==='settle')?'flight':state==='aim'?'aim':'other',t-pf0,pfPhys,t-pfR);}
   requestAnimationFrame(frame);
 }
 

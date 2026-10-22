@@ -46,6 +46,8 @@ Authoring tools, in `tests/tools/` (each file opens with its full usage and flag
 - `legacy-ball.js` — the pre-Phase-2 ball physics (verbatim), used only as the "before" in `ball-report.js`.
 - `legacy.js` — the swing math from commit `11d2b3f`, kept only as the "before" for the report.
 
+In the browser, `index.html?fps=1` shows the frame profiler overlay (frame time per moment of play, CPU split, live toggles for shadows, grass, trees, bunkers, the comic pass and resolution; `docs/HANDOFF.md` §2).
+
 ## What these are not
 
 - Not the live game. three.js is loaded from a CDN, so nothing here renders, runs the real terrain, trees, water, HUD or touch input. The look layer (props, nature models, grass, revetted faces) is checked only by eye in `render.py`.
