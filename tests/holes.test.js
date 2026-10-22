@@ -266,7 +266,7 @@ test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary 
   // the lidar sets both about level with the green (no knoll above them, as the game's design had), so neither has a face to climb: docs/holes/pebble-8.md §6
   assert.ok(rec(beside) < 0.2 && rec(front) < 0.2, 'shallow bunkers level with the green are within the lie charge');
   course.prepHole(idx('pinehurst-5'));
-  assert.equal(recovery(course, { x: 24, z: 432 }, 'FAIRWAY'), 0, 'the lay-up to the elevated plateau is an ordinary wedge');
+  assert.equal(recovery(course, { x: 24, z: 417 }, 'FAIRWAY'), 0, 'the lay-up to the elevated plateau is an ordinary wedge');
 });
 
 test('recovery: expected() adds it for balls off the green, opts.recovery=false removes it, and evaluate() reports the mean charge', () => {

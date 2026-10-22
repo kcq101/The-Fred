@@ -6,7 +6,7 @@
 |---|---|
 | Real hole | Pinehurst No. 2, hole 5 |
 | Par / yardage (real) | Par 5, 576 yards (Golf Today) to 588 yards (AP, 2024 U.S. Open). It played as a long par 4 in the 1999 and 2005 Opens and has been a par 5 since 2014. |
-| Par / yardage (game) | Par 5, 504 yards tee → pin. A good drive leaves about 220; a 3-wood, run up the front, reaches. Otherwise lay up to about 65 yards. |
+| Par / yardage (game) | Par 5, **489 yards** tee → pin since the OpenFairway physics (2026-10-21: the tee 15 yd forward, §6; `cards/card6.jpg`'s tag reads 489y); 504 before. A good drive leaves about 215; a 3-wood, run up the front, reaches. Otherwise lay up to about 65 yards. |
 | Sources | See below |
 
 - [Golf Today — 5th hole, 576 yards, par 5](https://golftoday.co.uk/?p=231000)
@@ -43,9 +43,10 @@
 | Internal movement on the green | two small `hollow` swales and one low bump inside the plateau | Gentle breaks between flatter pockets, like the map |
 | Green on a diagonal | green ellipse rotated so its long axis runs front-right → back-left | The approach from the right plays to a shallow target |
 | Raised green | the DEM's rise along the line (about 5 yd over the last 100 yd) under the plateau `hollow`; the old 1.2 yd `rise` removed (it stacked on the DEM's) | Long-left leaves a pitch from below; right falls away |
-| Short, firm runoffs | `cover` FAIRWAY ring around the green, then WASTE beyond | Balls run off the edges and keep going |
+| Short, firm runoffs | `cover` FAIRWAY ring around the green, then WASTE beyond; `greens.firm` 2.2 (1.0 before 2026-10-21) | Balls run off the edges and keep going; a flown 3-wood has to land short and release, as the real hole's is run up the front |
 | Wiregrass and sand | `WASTE` bands along both sides of the fairway | A poor lie, not a lost ball |
-| Slanted fairway | `tilt` over the second-shot landing zone, falling to the left (2003 DEM) | Ball above the feet: StanceModel hooks the second shot left |
+| Slanted fairway | `tilt` over the second-shot landing zone, falling to the left (2003 DEM), a box x −32…40, z 195–355 since 2026-10-21 (a band round x −9 before) | Ball above the feet: StanceModel hooks the second shot left |
+| A drive kicks left on the slant | `cover` FAIRWAY band left of the fairway over the landing (x ≈ −15–34, z 185–400); the left wiregrass moved off it and back in beyond it (§6) | Under OpenFairway's friction nothing stops on a 10 % slant: a drive runs left until something grabs it. It now runs onto fairway, on the same slant, and finishes there with the ball above the feet, not in the waste |
 | Rolls, dips, then rises and turns left | thirteen `ramp`s from the 2003 NC DEM (`lidar.py build`): ±1 yd of roll, a 3.5 yd dip at 250–360, then 5 yd up to the green; route bends left | |
 
 **Capability gap closed**: a crown with a level top was not expressible (a negative `hollow` is a dome, steepest halfway out). `hollow` gains an optional `flat` (0–1): the share of the area's radius that stays at full depth before the falloff starts. Default 0 keeps every existing hole identical.
@@ -56,7 +57,7 @@
 
 | Characteristic | Real | Game | Why this amount |
 |---|---|---|---|
-| Length | 576–588 yd | 504 yd | Reachable in two with a good drive and a 3-wood run up the front, which is the real hole's question for tour players |
+| Length | 576–588 yd | 489 yd (504 before 2026-10-21) | Reachable in two with a good drive and a 3-wood run up the front, which is the real hole's question for tour players |
 | Plateau | steep at the edges, gentle inside | `hollow` depth −0.75, `flat:0.62` over an 18.5 × 13 yd area, on the DEM's rise (the 1.2 yd `rise` was removed, 2026-10-20); the green is 30 × 20 yd | On the slope map (`node tests/tools/slope.js pinehurst-5` → `docs/maps/pinehurst-5-slope.png`, same colour bands as Kevin's map): 34% of the surface steeper than 4% (the edge ring), 14% at 2.5–4%, 43% at 1–2.5%, 10% under 1% |
 | Movement on top | several flat pockets with gentle slopes between | green `tilt` about 1.3% plus a low crown (−0.07) and three soft pockets (0.06–0.07) | Earlier tries: small 0.1–0.12 pockets made steep rings inside the green; a dead-flat top (no tilt) read as a table |
 | Fairway slant | falls 4–6 % to the left (2003 DEM) | `tilt` grade −0.10 over the second-shot zone | Doubled so the lie, not the DEM's downhill run along the line, decides the stance at (−8, 288) (at −0.08 the stance read DOWNHILL). A full 3-wood at the pin finishes 17 yd away; aimed right of the pin, on the green |
@@ -80,7 +81,7 @@
 | A pushed drive | Waste |
 | The second shot sits on a sidehill lie | Stance: ball above the feet |
 | A full 3-wood aimed straight at the pin from the slanted fairway | Hooked left by the lie: 10+ yd from the pin |
-| The same 3-wood aimed right of the pin, at (25, 505), allowing for the slant | On the green, ≤ 8 yd |
+| The same 3-wood aimed right of and short of the pin, at (25, 482), allowing for the slant and the firm green | On the green, ≤ 8 yd |
 | A lay-up with an iron | Fairway, wedge distance left |
 | A well-struck wedge at the pin from the lay-up | Holds the plateau, close |
 | A wedge aimed at the green's edge | Runs off the falloff |
@@ -88,7 +89,7 @@
 
 | Decision | Plans | Must hold |
 |---|---|---|
-| Second shot | go for it with a 3-wood aimed at (25,505), right of the pin, to allow for the slant / lay up with an iron aimed at (13,432) | A sharp player holds the green ≥ 50% going for it, a shaky one ≤ 35%; going for it saves a sharp player ≥ 0.5 strokes; a shaky player gains under three quarters as much |
+| Second shot | go for it with a 3-wood aimed at (25,482), right of and short of the pin, to allow for the slant and the firm green / lay up with an iron aimed at (13,417), from (21,278) | A sharp player holds the green ≥ 50% going for it, a shaky one ≤ 35%; going for it saves a sharp player ≥ 0.5 strokes; a shaky player gains under three quarters as much |
 
 **Contract revised after the first tuning run**: I first wrote "the 3-wood aimed at the pin misses the green" and "laying up is right for a shaky player". The first is false on this green: the push leaves the ball on the front-right lobe 11 yd away, so the check now asserts the distance instead. The second the tour-style baseline does not support: it scores a shaky player going for it at 3.36 against 3.75 laying up, because it treats a 20-yard recovery from beside the green as easy. The contract asserts what is true: the payoff shrinks from 0.84 to 0.39 strokes and the shaky player holds the green 5 times in 21.
 
@@ -103,30 +104,39 @@
 | The go shot's aim (shot and strategy) | (46, 503), left of the pin | (25, 505), right of the pin | Allowing for a hook, not a slice: aimscan's best for both skills |
 | The lay-up's aim (shot and strategy) | (24, 432) | (13, 432) | The hook takes an iron aimed at (24, 432) into the waste left; aimed at (13, 432) it finishes about (22, 430), where the wedge checks start |
 
+**Check-change log** (2026-10-21, OpenFairway physics; numbers are the branch before this change → now)
+
+| Check | Was | Now | Why |
+|---|---|---|---|
+| **Tee, landing and every check's coordinates** | the tee at the old origin; the drive aimed at (−8, 288); the second shot from (−8, 288); the lay-up at (13, 432); wedges from (24, 432) and (56, 502), the edge shot at (30, 515) | the tee 15 yd forward (everything moved with the land; every z 15 less); the left of the landing made fairway, the slant widened over it, the left wiregrass moved off it (§4); the drive aimed at (−8, 273); the second shot from (21, 278); lay-up (13, 417); wedges from (24, 417) and (56, 487), the edge shot at (30, 500) | Under OpenFairway's friction a fairway ball cannot stop on ground steeper than about 5 %. The good drive landed at (−10, 242) and ran 17 yd *sideways* across the 10 % slant into the left waste (WASTE 242.9 from the pin). A tee move alone does not help (tried 0–40 yd: the drive always runs to the waste's edge), softer turf only half-helps (`firm` 0.7: some drives hold) and is not Pinehurst, and a gentler slant (6–7 %) makes the second shot read as a downhill lie. With fairway on the low side the drive runs onto it and stops on the slant, by its own friction or the game's 8 s roll limit: five test drives (pure, ±0.1, ±0.2) finish in the fairway 210–225 out, every one with the ball above the feet; the push (0.5) is still in the right waste. (21, 278) is where the pure drive stops (22, 278.5: 210 out); the good drive (0.1) stops 215 out. The base landform (`seed`, `roll`, `ridge`) is a function of absolute coordinates, so its swells re-rolled under the moved ground; the DEM ramps, green and plateau moved exactly |
+| `greens.firm` (and the go aim) | 1.0; the 3-wood aimed at (25, 505) | 2.2; aimed at (25, 482), 8 yd shorter | A 3-wood now lands at about 45° and held the plateau: a shaky player went for it and held the green 43 % of the time (limit 35 %), and the "aimed at the pin, hooked well away" shot finished 7 yd away on the green. With greens.firm 2.2 a flown 3-wood releases: the go shot has to be landed short and run up the front, which is how the spec (§1) and the real hole describe it. Now: sharp 95 % on the green, shaky 33 % (7 of 21: one more would breach 35 %, so this check sits on its edge), going pays a sharp player 0.93 strokes, a shaky one 0.37; the hooked 3-wood finishes in the waste 19.4 away. A wedge from the lay-up still holds the top (4.4 yd, was 0.8) |
+| The wedge back up from the runoff | needle 0.1 | needle 0.15 | With the firmer green it holed out (0.2 yd), which fails `end: 'rest'`; at 0.15 it finishes 0.6 yd away. Same shot, same outcome the check is about |
+| Check names | "aimed right of the pin, allowing for the slant" | "aimed right of the pin and short of it, allowing for the slant and the firm green" | The aim moved short (above) |
+
 ## 7. Results
 
-`node tests/hole-report.js --hole=pinehurst-5` after the DEM rebuild:
+`node tests/hole-report.js --hole=pinehurst-5` after the OpenFairway redesign (2026-10-21: the tee 15 yd forward, the landing's low side fairway, `greens.firm` 2.2). "before" is the hole-report baseline (commit 548d49a with the signature stripped, played at the new coordinates), not the branch before this change; that comparison is in §6's log and in PR #22.
 
 ```
 === Pinehurst No. 2 (pinehurst-5) — A par 5 that rises and turns left to an elevated plateau green set on a diagonal: gentle on top, falling away steeply at every edge onto short runoffs and wiregrass. Going for it in two means a 3-wood from a slanted fairway; most players lay up and wedge onto the top.
 shot                                                                           before           after
-a good drive finds the fairway                                                 FAIRWAY 227y     FAIRWAY 210y
-a pushed drive is in the wiregrass and sand, not the rough                     ROUGH 290y       WASTE 305y
-the second shot is played with the ball above the feet                         ROUGH 18y        GREENS 0y
-a full 3-wood aimed straight at the pin from the slanted fairway is hooked le  ROUGH 17y        FAIRWAY 17y
-the same 3-wood aimed right of the pin, allowing for the slant, finishes clos  ROUGH 18y        GREENS 0y
-the lay-up with an iron finds the fairway at wedge distance                    FAIRWAY 68y      FAIRWAY 67y
-from the lay-up, a well-struck wedge at the pin holds the top                  GREENS 2y        GREENS 2y
-a wedge flown to the back-left edge runs off the falloff                       ROUGH 14y        FAIRWAY 16y
-from the low runoff left of the green, a wedge back up the falloff finishes o  GREENS 1y        GREENS 0y
+a good drive finds the fairway                                                 FAIRWAY 241y     FAIRWAY 215y
+a pushed drive is in the wiregrass and sand, not the rough                     ROUGH 281y       WASTE 287y
+the second shot is played with the ball above the feet                         FAIRWAY 42y      GREENS 5y
+a full 3-wood aimed straight at the pin from the slanted fairway is hooked le  ROUGH 45y        WASTE 19y
+the same 3-wood aimed right of the pin and short of it, allowing for the slan  FAIRWAY 42y      GREENS 5y
+the lay-up with an iron finds the fairway at wedge distance                    FAIRWAY 92y      FAIRWAY 67y
+from the lay-up, a well-struck wedge at the pin holds the top                  GREENS 1y        GREENS 4y
+a wedge flown to the back-left edge runs off the falloff                       ROUGH 14y        WASTE 17y
+from the low runoff left of the green, a wedge back up the falloff finishes o  GREENS 0y        GREENS 1y
 
-  strategy: the second shot: go for the green with a 3-wood (aimed right of the pin, for the slant) or lay up with an iron to wedge distance
+  strategy: the second shot: go for the green with a 3-wood (aimed right of the pin for the slant, and short for the firm green) or lay up with an iron to wedge distance
   plan       skill   before: wet green score   after: wet green score
-  go         sharp           0%   0% 3.52              0%  76% 2.81
-  go         shaky           0%   5% 3.54              0%  29% 3.32
-  layup      sharp           0%   0% 3.68              0%   0% 3.72
-  layup      shaky           0%   0% 3.74              0%   0% 3.81
-  payoff of go over layup (strokes saved): sharp 0.16 → 0.91, shaky 0.20 → 0.49   (before → after)
+  go         sharp           0%   0% 3.56              0%  95% 2.75
+  go         shaky           0%   0% 3.67              0%  33% 3.41
+  layup      sharp           0%   0% 3.77              0%   0% 3.68
+  layup      shaky           0%   0% 3.84              0%   0% 3.78
+  payoff of go over layup (strokes saved): sharp 0.21 → 0.93, shaky 0.17 → 0.37   (before → after)
 
 "score" = expected strokes for the whole hole from that moment (tour-style baseline; water/OB = stroke and distance).
 ```
