@@ -1450,6 +1450,20 @@ function bladeTex(){
     g.fillStyle='#fff';g.fill();}
   _blade=new THREE.CanvasTexture(cv);_blade.anisotropy=4;return _blade;
 }
+// links fescue (look only). streak: the ground shader's downwind strokes (0 off, 1 default). The ribbon is a band of tall alpha-tested fescue cards
+// hugging the fairway's and green's edges, where the eye looks down the hole, instead of grass everywhere (St Andrews' old clumps cost 1.45 M triangles):
+// cards = how many, band = yd into the rough, h = card height range in yd, near/far = yd from the camera where cards start shrinking and are gone
+// (they sink into the ground rather than pop). A hole can override any of these with fescue:{...}
+const FESCUE_DEF={streak:1,cards:5200,band:5.5,h:[0.5,0.95],near:55,far:115};let FESCUE=FESCUE_DEF;
+let _fescue=null;
+function fescueTex(){   // thin, tall, wispy blades, some with a seed head; alpha only (colour comes from the shader)
+  if(_fescue)return _fescue;
+  const cv=document.createElement('canvas');cv.width=512;cv.height=256;const g=cv.getContext('2d'),r=rng(9177);g.fillStyle='#fff';g.strokeStyle='#fff';g.lineCap='round';
+  for(let i=0;i<110;i++){const x=4+r()*504,w=5+r()*6,h=90+r()*160,lean=(r()-0.35)*60;
+    g.beginPath();g.moveTo(x-w/2,256);g.quadraticCurveTo(x+lean*0.35,256-h*0.55,x+lean,256-h);g.quadraticCurveTo(x+lean*0.35+w*0.25,256-h*0.55,x+w/2,256);g.closePath();g.fill();
+    if(r()<0.35){const tx=x+lean,ty=256-h;g.lineWidth=2;for(let k=0;k<5;k++){g.beginPath();g.ellipse(tx+lean*0.03*k,ty+4+k*8,3.6,6.5,lean*0.01,0,6.28);g.fill();}}}
+  _fescue=new THREE.CanvasTexture(cv);_fescue.anisotropy=4;return _fescue;
+}
 // a copy of a material whose geometry bends in the wind: the higher a vertex sits in its model, the further it moves (grass, fescue)
 const _sway=new Map();
 function swayMat(base){
@@ -1653,7 +1667,7 @@ function spotOK(x,z,clear){
   return true;
 }
 function buildWorld(){
-  setGroundPalette();disposeWorld();if(typeof hiddenTrees!=='undefined')hiddenTrees.clear();world=new THREE.Group();scene.add(world);
+  FESCUE=Object.assign({},FESCUE_DEF,HOLE.fescue||{});setGroundPalette();disposeWorld();if(typeof hiddenTrees!=='undefined')hiddenTrees.clear();world=new THREE.Group();scene.add(world);
   let tag=null;const add=o=>{if(tag)o.userData.cost=tag;world.add(o);return o;};
   const bb=HOLE.bbox;
   const cliffB=BODIES.find(b=>b.profile==='cliff');
@@ -1701,10 +1715,10 @@ function buildWorld(){
     const tm=toon(0xffffff,{vertexColors:true,opacity:0.75});tm.extensions={derivatives:true};
     const HATCH=HOLE.theme==='links';tm.customProgramCacheKey=()=>HATCH?'terrain-links':'terrain';
     tm.onBeforeCompile=sh=>{
-      sh.uniforms.uWind=WIND_U;sh.uniforms.uT=WT;
+      sh.uniforms.uWind=WIND_U;sh.uniforms.uT=WT;sh.uniforms.uStreak={value:FESCUE.streak};
       sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;attribute float aFw;attribute float aU;attribute float aBk;attribute float aD;attribute float aRf;varying float vFw;varying float vU;varying float vBk;varying float vD;varying float vRf;').replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(position,1.0)).xyz;vFw=aFw;vU=aU;vBk=aBk;vD=aD;vRf=aRf;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;varying float vD;varying float vRf;uniform vec2 uWind;uniform float uT;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        varying vec3 vWP;varying float vFw;varying float vU;varying float vBk;varying float vD;varying float vRf;uniform vec2 uWind;uniform float uT;uniform float uStreak;float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}`)
        .replace('#include <color_fragment>',`#include <color_fragment>
         if(vBk<0.92)discard;
@@ -1738,6 +1752,19 @@ function buildWorld(){
           float band=dot(vWP.xz,wd)*0.09-uT*(0.25+0.9*ws)+(vnoise(vWP.xz*0.03)-0.5)*4.0;
           float sheen=smoothstep(0.55,1.0,sin(band))*(0.35+0.65*smoothstep(0.1,0.6,ws));
           diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.13,1.1,0.9),sheen*0.55*rough);
+          // fescue body: long strokes laid one way (the prevailing wind, fixed so they do not jump between shots), olive-dark in the troughs and
+          // straw-gold on the crests, so the rough reads as a mass of grass leaning together rather than a flat colour. The fine octave fades
+          // first and the coarse one evens out in the distance, before either can shimmer in a pan. uStreak: strength (FESCUE.streak)
+          {
+            vec2 ln=vec2(0.6,0.8),lp=vec2(dot(vWP.xz,ln),dot(vWP.xz,vec2(-ln.y,ln.x)));
+            float s1=vnoise(vec2(lp.x*0.3,lp.y*1.9)),s2=vnoise(vec2(lp.x*0.8+7.0,lp.y*5.0));
+            float stroke=mix(s1,s1*0.6+s2*0.4,1.0-smoothstep(0.05,0.16,fpx2));
+            stroke=mix(stroke,0.5,smoothstep(0.2,0.55,fpx2));
+            float sk=rough*uStreak*smoothstep(5.0,18.0,distance(vWP.xz,cameraPosition.xz));   // none at the golfer's feet, where they read as smears
+            diffuseColor.rgb*=1.0+(stroke-0.5)*0.42*sk;
+            diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.08,1.05,0.84),smoothstep(0.62,0.85,stroke)*0.55*sk);
+            diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(0.86,0.95,0.86),smoothstep(0.38,0.15,stroke)*0.5*sk);
+          }
           vec2 sunD=normalize(vec2(${SUN_OFF.x.toFixed(3)},${SUN_OFF.z.toFixed(3)}));
           vec2 cp=vWP.xz*0.8+5.0,cs=sunD*0.32;
           float cl0=smoothstep(0.5,0.78,vnoise(cp)*0.65+vnoise(cp*2.3+9.0)*0.35),cl1=smoothstep(0.5,0.78,vnoise(cp+cs)*0.65+vnoise((cp+cs)*2.3+9.0)*0.35);
@@ -2046,6 +2073,47 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       const cm=add(new THREE.InstancedMesh(cg,gm,spots.length));cm.receiveShadow=true;
       const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0);
       spots.forEach(([x,z],i)=>{const w=LINKS?0.9+r()*0.6:0.8+r()*0.5,h=LINKS?0.35+r()*0.3:0.22+r()*0.16;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.03,z),q,new V3(w,h,w));cm.setMatrixAt(i,m);});
+    }
+  }
+  // ---- links fescue ribbon: tall wispy cards in a band along the fairway's edges and round the green, so the rough has a ragged, standing
+  // silhouette where the eye looks down the hole. One instanced mesh (one draw call); cards sink into the ground with distance from the camera
+  // (no popping, nothing far enough away to shimmer) and press down round the ball. FESCUE sets count, band, height and fade. Look only.
+  if(HOLE.theme==='links'&&FESCUE.cards>0){
+    const r=rng(17+holeIdx*31),spots=[],F=FESCUE;
+    for(let i=0;i<F.cards*6&&spots.length<F.cards;i++){
+      let x,z;
+      if(r()<0.86){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.2+Math.pow(r(),1.5)*F.band);}
+      else{const a=r()*6.28,q=Math.max(GREEN.rx,GREEN.rz)+1.2+Math.pow(r(),1.5)*F.band*1.2;x=GREEN.x+Math.cos(a)*q;z=GREEN.z+Math.sin(a)*q;}
+      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||inFairway(x,z,0.3))continue;spots.push([x,z]);
+    }
+    if(spots.length){
+      const pos=[],uv=[],nor=[],ix=[];
+      for(let k=0;k<3;k++){const a=k*Math.PI/3,cx=Math.cos(a)*0.5,cz=Math.sin(a)*0.5,b=pos.length/3;
+        pos.push(-cx,0,-cz, cx,0,cz, cx,1,cz, -cx,1,-cz);uv.push(0,0,1,0,1,1,0,1);nor.push(0,1,0,0,1,0,0,1,0,0,1,0);ix.push(b,b+1,b+2,b,b+2,b+3);}
+      const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));cg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));cg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));cg.setIndex(ix);
+      const gm=toon(0xffffff,{map:fescueTex(),opacity:0.75,side:THREE.DoubleSide});gm.customProgramCacheKey=()=>'fescue-ribbon';
+      gm.onBeforeCompile=sh=>{
+        Object.assign(sh.uniforms,{uT:WT,uWind:WIND_U,uBall:{value:ball.p},uNF:{value:new THREE.Vector2(F.near,F.far)},
+          uBase:{value:new THREE.Color('#857f3c')},uMid:{value:new THREE.Color('#aaa055')},uTip1:{value:new THREE.Color('#e4d08a')},uTip2:{value:new THREE.Color('#c3b667')}});
+        sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;uniform vec3 uBall;uniform vec2 uWind;uniform vec2 uNF;varying vec3 vCW;varying float vH;varying float vDist;')
+          .replace('#include <begin_vertex>',`#include <begin_vertex>
+          vec3 ip=instanceMatrix[3].xyz;vCW=ip;vH=uv.y;vDist=distance(ip.xz,cameraPosition.xz);
+          transformed.y*=(0.2+0.8*smoothstep(0.6,2.0,distance(ip.xz,uBall.xz)))*(1.0-smoothstep(uNF.x,uNF.y,vDist));   // pressed down round the ball; sinks away with distance
+          float ws=length(uWind),sw=sin(uT*(1.3+ws)+ip.x*0.21+ip.z*0.17)*0.7+sin(uT*2.6+ip.z*0.7)*0.3;vec2 wd=uWind/max(ws,0.001);
+          transformed.x+=(sw*0.12+wd.x*ws*0.18)*uv.y*uv.y;transformed.z+=(sw*0.06+wd.y*ws*0.18)*uv.y*uv.y;`);
+        sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+          uniform vec3 uBase;uniform vec3 uMid;uniform vec3 uTip1;uniform vec3 uTip2;varying vec3 vCW;varying float vH;varying float vDist;
+          float fh21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+          float fnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(fh21(i),fh21(i+vec2(1.0,0.0)),f.x),mix(fh21(i+vec2(0.0,1.0)),fh21(i+vec2(1.0,1.0)),f.x),f.y);}`)
+          .replace('#include <map_fragment>',`float tA=texture2D(map,vUv).a;
+          if(tA<mix(0.5,0.18,smoothstep(15.0,80.0,vDist)))discard;   // a lower cut further away keeps thin blades solid instead of sparkling
+          vec3 tip=mix(uTip1,uTip2,fnz(vCW.xz*0.07));
+          diffuseColor.rgb=mix(mix(uBase,uMid,smoothstep(0.0,0.45,vH)),tip,smoothstep(0.4,0.95,vH));`)
+          .replace('#include <normal_fragment_begin>','#include <normal_fragment_begin>\n          normal=normalize(vNormal);');   // both faces lit like the ground under them (a back face would read dark)
+      };
+      const fm=add(new THREE.InstancedMesh(cg,gm,spots.length));fm.receiveShadow=true;
+      const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0);
+      spots.forEach(([x,z],i)=>{const w=1.4+r()*0.9,h=mix(F.h[0],F.h[1],r());q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.04,z),q,new V3(w,h,w));fm.setMatrixAt(i,m);});
     }
   }
   // ---- grass tufts and flowers in the rough
