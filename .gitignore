@@ -4,3 +4,5 @@ docs/holes/trace/*.jpeg
 docs/holes/trace/*.png
 docs/holes/trace/*.webp
 docs/maps/*-pair.png
+__pycache__/
+*.pyc
