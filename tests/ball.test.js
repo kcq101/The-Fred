@@ -161,7 +161,9 @@ test('ground that cannot hold the ball lets it slide to flatter ground and rest;
     return { b, moved: Math.abs(b.p.z - 10) };
   };
   for (const gr of [0.05, 0.1, 0.2]) { const d = drop(gr); assert.ok(d.b.resting && d.moved < 0.05 && d.b.t < 0.1, `fairway grade ${gr} holds the ball`); }
-  for (const gr of [0.3, 0.5, 0.7, 1.0, 1.4]) { const d = drop(gr); assert.ok(d.b.resting && d.moved > 20 && d.b.p.z > 58 && d.b.t < 15, `fairway grade ${gr}: slid ${d.moved.toFixed(0)} yd, rest ${d.b.resting} at ${d.b.t.toFixed(1)}s`); }
+  // it slides off the bank onto the flat below and rests within the game's shot limit. (Was: within 15 s. On OpenFairway's fairway friction a ball
+  // off a steep bank rolls a long way across the flat; the late-roll ramp, now from 8 s, ends it. PR #22.)
+  for (const gr of [0.3, 0.5, 0.7, 1.0, 1.4]) { const d = drop(gr); assert.ok(d.b.resting && d.moved > 20 && d.b.p.z > 58 && d.b.t < BM.MAX_T, `fairway grade ${gr}: slid ${d.moved.toFixed(0)} yd, rest ${d.b.resting} at ${d.b.t.toFixed(1)}s`); }
   assert.ok(drop(0.8, g.SAND).b.resting && drop(0.8, g.SAND).moved > 10, 'sand lets go of a ball on a 0.8 grade too (steeper than its hold)');
 });
 

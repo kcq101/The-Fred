@@ -56,6 +56,7 @@ test('play profile: each hole tunes its own copy of the surfaces, and the next h
   assert.equal(course.SP[g.GREENS].dec, g.SP[g.GREENS].dec, 'Sawgrass greens roll at the default speed');
   hole.play = { firm: 1.4, greens: { firm: 2 } }; course.prepHole(i);                 // a links-style profile, to prove the knobs work
   assert.ok(course.SP[g.GREENS].bite < g.SP[g.GREENS].bite && course.SP[g.FAIRWAY].bite < g.SP[g.FAIRWAY].bite, 'firm turf: shots bite less');
+  assert.ok(course.SP[g.FAIRWAY].rr < g.SP[g.FAIRWAY].rr && course.SP[g.ROUGH].rr < g.SP[g.ROUGH].rr, 'firm turf: the ball rolls on with less friction');
   hole.play = saved; course.prepHole(i);
   assert.equal(course.SP[g.FAIRWAY].bite, g.SP[g.FAIRWAY].bite, 'and putting the profile back restores the defaults');
   for (const k in course.SP) if (course.SP[k].rr == null) assert.ok(course.SP[k].hold <= course.SP[k].dec / g.G + 1e-9, `surface ${k}: hold <= dec/G`);   // rr surfaces (OpenFairway friction): hold is static, not tied to rolling friction
