@@ -1,4 +1,5 @@
 {
+  "tee_shift": {"z_yd": 50, "date": "2026-10-21", "note": "The game tee was moved 50 yd forward along the hole for the OpenFairway physics (docs/holes/standrews-17.md §6): every z in the HOLES entry is 50 yd less than this frame gives (the sheds, their collider and the hotel moved with the tee). Subtract 50 from z in lidar.py output before pasting it into the hole."},
  "id": "standrews-17",
  "lidar": {
   "source": "Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE_50CM_DTM_PHASE5.tif and NO51NW_50CM_DTM_PHASE5.tif (Open Government Licence v3), from srsp-open-data.s3.eu-west-2.amazonaws.com (lidar/phase-5/dtm/27700/gridded/). Not in the repo (383 + 206 MB)",

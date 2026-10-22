@@ -209,7 +209,7 @@ test('outlines: on Riviera No. 6 the traced green and bunkers are what S() and H
 
 test('hole checks: a per-strategy lieAdd changes what a lie costs in the comparison (test-only knob)', () => {
   const i = idx('standrews-17'); course.prepHole(i);
-  const shot = { club: 'Iron', at: [8, 455] };
+  const shot = { club: 'Iron', at: [8, 405] };
   const a = evaluate(course, shot, 0.55, 9), b = evaluate(course, shot, 0.55, 9, { SAND: 5 });
   assert.ok(b.score >= a.score && (a.surfs.SAND ? b.score > a.score : true));
 });
@@ -261,7 +261,7 @@ test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary 
   course.prepHole(idx('pebble-8'));
   const bunker = (x, z) => course.BUNKERS.find(b => b.x === x && b.z === z);
   const near = (x, z) => course.BUNKERS.reduce((a, b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(a.x - x, a.z - z) ? b : a);
-  const beside = near(-33, 390), front = near(3.8, 362.6);                     // both traced, lidar depths (0.43 and 0.36), within 25 yd of the pin
+  const beside = near(-33, 365), front = near(3.8, 337.6);                     // both traced, lidar depths (0.43 and 0.36), within 25 yd of the pin
   const rec = b => recovery(course, { x: b.x, z: b.z }, 'SAND');
   // the lidar sets both about level with the green (no knoll above them, as the game's design had), so neither has a face to climb: docs/holes/pebble-8.md §6
   assert.ok(rec(beside) < 0.2 && rec(front) < 0.2, 'shallow bunkers level with the green are within the lie charge');
@@ -271,14 +271,14 @@ test('recovery: on the real holes, the Road Hole bunker pays the most, ordinary 
 
 test('recovery: expected() adds it for balls off the green, opts.recovery=false removes it, and evaluate() reports the mean charge', () => {
   course.prepHole(idx('standrews-17'));
-  const shot = { from: [1, 345], club: 'Iron', at: [27.5, 476.5] };
+  const shot = { from: [0, 301], club: 'Iron', at: [28, 426] };
   const on = evaluate(course, shot, 0.55, 9), off = evaluate(course, shot, 0.55, 9, null, { recovery: false });
   assert.ok(on.recovery > 0 && off.recovery === 0);
   assert.equal(on.hazard, 0);
   assert.ok(Math.abs((on.score - off.score) - on.recovery) < 1e-9, 'with no water or holed balls the score differs by exactly the mean charge');
-  const r = { end: 'rest', surf: 'SAND', p: { x: 32.5, z: 474.5 }, toPin: Math.hypot(32.5 - course.PIN.x, 474.5 - course.PIN.z) };   // in the Road Hole bunker
-  assert.ok(expected(course, r, { x: 1, z: 345 }) > expected(course, r, { x: 1, z: 345 }, undefined, { recovery: false }));
-  assert.equal(expected(course, { ...r, surf: 'GREENS' }, { x: 1, z: 345 }), expected(course, { ...r, surf: 'GREENS' }, { x: 1, z: 345 }, undefined, { recovery: false }));
+  const r = { end: 'rest', surf: 'SAND', p: { x: 32.5, z: 424.5 }, toPin: Math.hypot(32.5 - course.PIN.x, 424.5 - course.PIN.z) };   // in the Road Hole bunker
+  assert.ok(expected(course, r, { x: 0, z: 301 }) > expected(course, r, { x: 0, z: 301 }, undefined, { recovery: false }));
+  assert.equal(expected(course, { ...r, surf: 'GREENS' }, { x: 0, z: 301 }), expected(course, { ...r, surf: 'GREENS' }, { x: 0, z: 301 }, undefined, { recovery: false }));
 });
 
 test('rolling start: a ball landing on a steep slope never rolls faster than the model\'s speed cap', () => {
