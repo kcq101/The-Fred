@@ -1,0 +1,47 @@
+{
+  "id": "standrews-18",
+  "lidar": {
+    "source": "Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE_50CM_DTM_PHASE5.tif and NO51NW_50CM_DTM_PHASE5.tif (Open Government Licence v3), from srsp-open-data.s3.eu-west-2.amazonaws.com (lidar/phase-5/dtm/27700/gridded/); the DSM (lidar/phase-5/dsm/...) for buildings, walls and the bridge. Not in the repo (383 + 206 MB DTM, 376 + 201 MB DSM); the same tiles as St Andrews No. 17",
+    "crs": "EPSG:27700 (British National Grid), heights ODN m",
+    "located_by": "read from the lidar (provisional, 2026-10-23; the owner's pins asked for): the tee is the raised pad just north-east of the 17th green (0.26 m above its surroundings, 11 x 10 m), the green the flat top in front of the R&A clubhouse's terrace, with the Valley of Sin (a swale 1 m below it) across its front-left; the R&A clubhouse and Hamilton Grand stand where the DSM's rooftops put them, behind the green",
+    "frame": {
+      "tile": [
+        "NO41NE_50CM_DTM_PHASE5.tif",
+        "NO51NW_50CM_DTM_PHASE5.tif"
+      ],
+      "anchor": {
+        "latlon": [
+          56.343261,
+          -2.803021
+        ],
+        "at": [
+          0,
+          364
+        ]
+      },
+      "bearing_deg": 92.84,
+      "yd_per_m": 1.0936,
+      "pin": [
+        0,
+        364
+      ],
+      "grid": {
+        "x": [
+          -110,
+          110
+        ],
+        "z": [
+          -40,
+          440
+        ],
+        "step": 0.5
+      },
+      "why": "real scale (1 m = 1.0936 yd). The pin (8 m beyond the Valley of Sin, on the green's front-middle) at (0, 364): the tee pad -> pin is 332.8 m at 92.84 degrees. The game tee is moved up the line (tee_shift) so a pure drive can reach the green"
+    }
+  },
+  "tee_shift": {
+    "z_yd": 85,
+    "date": "2026-10-23",
+    "note": "The game tee is 85 yd up the line from the real tee pad, just past the Swilcan Burn beside the bridge, so a pure drive reaches the front of the green (docs/holes/standrews-18.md \u00a75): every z in the HOLES entry is 85 yd less than this frame gives. Subtract 85 from z in lidar.py output before pasting it into the hole."
+  }
+}
