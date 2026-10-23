@@ -586,8 +586,8 @@ const HOLES=[
   town:[0.43,0.63],
   props:[
     // the shed in the corner of the hotel's grounds: black boards, a ribbed grey roof, the hotel's name painted on the side facing the tee (aim over it)
-    // it lies along the wall, just inside it (rot turns its long side parallel to the wall's first run), its painted side facing the course and the tee
-    {type:'barn',x:5.5,z:74.6,w:36,d:12,rot:-1.242,h:5.3,ridge:2.2,solid:{e:0.2,f:0.2,fy:0.15},sign:{lines:['OLD COURSE HOTEL','ST ANDREWS','GOLF RESORT & SPA'],at:-0.18,w:14}},
+    // it lies along the wall, just inside it (rot turns its long side parallel to the wall's first run), its painted end facing the tee
+    {type:'barn',x:5.5,z:74.6,w:36,d:12,rot:-1.242,h:5.3,ridge:2.2,solid:{e:0.2,f:0.2,fy:0.15},sign:{lines:['OLD COURSE HOTEL','ST ANDREWS','GOLF RESORT & SPA'],face:'end',at:0,w:11}},
     {type:'barn',x:-5.9,z:78.5,w:32,d:12,rot:-1.242,h:4.6,ridge:2.0,solid:{e:0.2,f:0.2,fy:0.15}},
     // the Old Course Hotel: sandstone blocks with slate roofs and balconies, from beside the tee down the right of the hole
     {type:'building',x:-30,z:44.5,w:25,d:77.1,rot:-0.052,h:12.8,roof:'hip',roofH:3.5,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
@@ -2334,8 +2334,8 @@ float tnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(th
   // A footprint is a turned box: x,z its middle, w across, d along, rot turns it (rotation.y; local -z faces the tee when rot is near 0), h its eaves.
   //   building {x,z,w,d,h,rot, roof:'hip'|'mansard'|'gable'|'flat', roofH, col, roofCol, balc, plinth}  a hotel block: floors of windows (a few lit),
   //            a balcony rail on every floor above the ground (balc), a darker stone ground floor `plinth` yards high, a slate roof (a mansard has dormers)
-  //   barn     {x,z,w,d,h,rot, ridge, col, roofCol, sign:{lines, at, w}}  a timber shed: black horizontal boards, a ribbed metal gable roof whose ridge runs
-  //            along the longer side `ridge` yards above the eaves (0: flat), and white lettering painted on its front wall (at: -0.5..0.5 along it)
+  //   barn     {x,z,w,d,h,rot, ridge, col, roofCol, sign:{lines, at, w, face}}  a timber shed: black horizontal boards, a ribbed metal gable roof whose ridge runs
+  //            along the longer side `ridge` yards above the eaves (0: flat), and white lettering painted on its front wall (at: -0.5..0.5 along it), or on its end at local -x (face:'end')
   //   net      {pts, h, every}   tall black poles with ball-stop netting between them
   //   posts    {pts, every, h, col}  stakes along a line: white ones are out-of-bounds markers
   if(HOLE.props&&HOLE.props.length){
@@ -2386,8 +2386,10 @@ float tnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(th
     if(P.ink.length){add(new THREE.Mesh(mergeGeos(P.ink),outlineMat(0.12)));}
     if(P.nets.length){const g=mergeGeos(P.nets.map(n=>[n])),m=add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:'#17191c',transparent:true,opacity:0.2,side:THREE.DoubleSide,depthWrite:false})));m.renderOrder=2;}
     for(const[pr,y0]of signs){
-      const s=pr.sign,W=s.w||pr.w*0.5,geo=new THREE.PlaneGeometry(W,W/4);geo.rotateY(Math.PI);   // faces local -z, readable from in front
-      geo.translate((s.at||0)*pr.w,pr.h*(s.y||0.56),-pr.d/2-0.06);geo.rotateY(pr.rot||0);geo.translate(pr.x,y0,pr.z);
+      const s=pr.sign,end=s.face==='end',W=Math.min(s.w||pr.w*0.5,end?pr.d*0.9:1e9),geo=new THREE.PlaneGeometry(W,W/4);
+      if(end){geo.rotateY(-Math.PI/2);geo.translate(-pr.w/2-0.06,pr.h*(s.y||0.56),(s.at||0)*pr.d);}   // on the end wall at local -x, readable from in front
+      else{geo.rotateY(Math.PI);geo.translate((s.at||0)*pr.w,pr.h*(s.y||0.56),-pr.d/2-0.06);}         // on the long side at local -z
+      geo.rotateY(pr.rot||0);geo.translate(pr.x,y0,pr.z);
       add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:signTex(s.lines||[]),transparent:true,alphaTest:0.3,color:'#e9e6dd'})));   // paint: unlit, so it reads in shade
     }
   }
