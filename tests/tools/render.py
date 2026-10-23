@@ -113,7 +113,7 @@ def main():
         try: page.wait_for_function("__ev('NATURE.ok')", timeout=60000)   # the nature models (assets/nature) load at start-up
         except Exception: print('note: nature models did not load; rendering with the simple shapes', file=sys.stderr)
         ev('closeTitle()'); ev(f'loadHole({idx})')
-        page.wait_for_function("__ev('state') === 'intro'")
+        page.wait_for_function("['intro', 'aim'].includes(__ev('state'))")   # with FLYOVER off a hole opens straight on 'aim'
         ev('startPlay()')
         frames = lambda n=3: page.evaluate('n => new Promise(r => { const f = () => --n <= 0 ? r() : requestAnimationFrame(f); requestAnimationFrame(f); })', n)
 
