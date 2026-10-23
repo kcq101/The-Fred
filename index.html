@@ -367,8 +367,70 @@ function prepShape(o){
   };
   return o;
 }
-// signed distance to a polygon of [x,z] points: positive inside
+// signed distance to a polygon of [x,z] points: positive inside. Outlines of 32+ points (a lidar coastline: Pebble's sea has 326) go through an index
+// built once per outline: the distance walks a box tree of the edges, the inside test looks only at edges spanning the point's row. Same edges,
+// same arithmetic, so the answer is bit-for-bit the brute-force one (tests/sdpoly.test.js); it took ~75 % of building Pebble before (2026-10-23).
+const SDP_IX=new WeakMap();
+function sdIndex(P){
+  let g=SDP_IX.get(P);if(g)return g;
+  const n=P.length,G=Math.max(2,Math.ceil(Math.sqrt(n)));
+  const S=new Float64Array(n*4);let z0=1e18,z1=-1e18;
+  for(let i=0,j=n-1;i<n;j=i++){S[i*4]=P[j][0];S[i*4+1]=P[j][1];S[i*4+2]=P[i][0];S[i*4+3]=P[i][1];z0=Math.min(z0,P[i][1]);z1=Math.max(z1,P[i][1]);}
+  // rows for the inside test: each lists the edges whose z-span reaches it
+  const ch=Math.max(z1-z0,1e-6)/G,cz=z=>clamp(Math.floor((z-z0)/ch),0,G-1),rows=Array.from({length:G},()=>[]);
+  for(let i=0;i<n;i++){const k0=cz(Math.min(S[i*4+1],S[i*4+3])),k1=cz(Math.max(S[i*4+1],S[i*4+3]));for(let k=k0;k<=k1;k++)rows[k].push(i);}
+  // a box tree for the distance: leaves of up to 4 edges, split at the median along the longer side
+  const B=[];   // nodes: [x0,z0,x1,z1,left,right,i0,i1] over an index array
+  const ix=Array.from({length:n},(_,i)=>i),mid=i=>[(S[i*4]+S[i*4+2])/2,(S[i*4+1]+S[i*4+3])/2];
+  const build=(i0,i1)=>{
+    let x0=1e18,zz0=1e18,x1=-1e18,zz1=-1e18;
+    for(let k=i0;k<i1;k++){const i=ix[k];x0=Math.min(x0,S[i*4],S[i*4+2]);x1=Math.max(x1,S[i*4],S[i*4+2]);zz0=Math.min(zz0,S[i*4+1],S[i*4+3]);zz1=Math.max(zz1,S[i*4+1],S[i*4+3]);}
+    const id=B.length;B.push([x0,zz0,x1,zz1,-1,-1,i0,i1]);
+    if(i1-i0>4){const ax=x1-x0>=zz1-zz0?0:1,part=ix.slice(i0,i1).sort((a,b)=>mid(a)[ax]-mid(b)[ax]);for(let k=0;k<part.length;k++)ix[i0+k]=part[k];
+      const m=(i0+i1)>>1;B[id][4]=build(i0,m);B[id][5]=build(m,i1);}
+    return id;
+  };
+  build(0,n);
+  g={z0,z1,cz,S,rows,B,ix};SDP_IX.set(P,g);return g;
+}
+const SD_STACK=new Int32Array(256);
+function sdNear(g,x,z,lim2=1e18){
+  // nearest edge by a box tree walk (no closures: this runs for every terrain vertex). Children are visited nearer box first; a box no nearer than
+  // the best edge so far is skipped, with a hair of slack so the edge whose rounded distance ties its box's is still seen (bit-exact with brute force)
+  const S=g.S,B=g.B,ix=g.ix,st=SD_STACK;let d=lim2,sp=0;st[sp++]=0;   // lim2: stop looking past this squared distance (returns lim2 then)
+  while(sp){
+    const nd=B[st[--sp]];
+    const bx=Math.max(nd[0]-x,0,x-nd[2]),bz=Math.max(nd[1]-z,0,z-nd[3]);if(bx*bx+bz*bz>d*(1+1e-9))continue;
+    if(nd[4]<0){for(let k=nd[6];k<nd[7];k++){const i=ix[k]*4,ax=S[i],az=S[i+1],ex=S[i+2]-ax,ez=S[i+3]-az,wx=x-ax,wz=z-az;
+      let t=(wx*ex+wz*ez)/(ex*ex+ez*ez);t=t<0?0:t>1?1:t;const dx=wx-ex*t,dz=wz-ez*t;const q=dx*dx+dz*dz;if(q<d)d=q;}continue;}
+    const L=B[nd[4]],R=B[nd[5]];
+    const lx=Math.max(L[0]-x,0,x-L[2]),lz=Math.max(L[1]-z,0,z-L[3]),rx=Math.max(R[0]-x,0,x-R[2]),rz=Math.max(R[1]-z,0,z-R[3]);
+    if(lx*lx+lz*lz<=rx*rx+rz*rz){st[sp++]=nd[5];st[sp++]=nd[4];}else{st[sp++]=nd[4];st[sp++]=nd[5];}   // nearer child on top
+  }
+  return d;
+}
+// sdPoly(x,z,P)>0, answered without the distance for points outside (the surface lookup only needs the sign; most points are outside the sea)
+function inPoly(x,z,P){
+  if(P.length<32)return sdPoly(x,z,P)>0;
+  const g=sdIndex(P),S=g.S;let inside=false;
+  if(z>=g.z0&&z<=g.z1)for(const i of g.rows[g.cz(z)]){const ax=S[i*4],az=S[i*4+1],bx=S[i*4+2],bz=S[i*4+3];if(((az>z)!==(bz>z))&&(x<(bx-ax)*(z-az)/(bz-az)+ax))inside=!inside;}
+  return inside&&sdNear(g,x,z)>0;
+}
+// sdPoly, except that a point outside and at least lim from the outline gets -lim (H only reads the distance within a body's edge band)
+function sdPolyNear(x,z,P,lim){
+  if(P.length<32){const s=sdPoly(x,z,P);return s<=-lim?-lim:s;}
+  const g=sdIndex(P),S=g.S;let inside=false;
+  if(z>=g.z0&&z<=g.z1)for(const i of g.rows[g.cz(z)]){const ax=S[i*4],az=S[i*4+1],bx=S[i*4+2],bz=S[i*4+3];if(((az>z)!==(bz>z))&&(x<(bx-ax)*(z-az)/(bz-az)+ax))inside=!inside;}
+  if(inside)return Math.sqrt(sdNear(g,x,z));
+  const d=sdNear(g,x,z,lim*lim);return d>=lim*lim?-lim:-Math.sqrt(d);
+}
 function sdPoly(x,z,P){
+  if(P.length>=32){
+    const g=sdIndex(P),S=g.S;
+    let inside=false;
+    if(z>=g.z0&&z<=g.z1)for(const i of g.rows[g.cz(z)]){const ax=S[i*4],az=S[i*4+1],bx=S[i*4+2],bz=S[i*4+3];if(((az>z)!==(bz>z))&&(x<(bx-ax)*(z-az)/(bz-az)+ax))inside=!inside;}
+    return(inside?1:-1)*Math.sqrt(sdNear(g,x,z));
+  }
   let d=1e18,inside=false;
   for(let i=0,j=P.length-1;i<P.length;j=i++){
     const ax=P[j][0],az=P[j][1],bx=P[i][0],bz=P[i][1];const ex=bx-ax,ez=bz-az,wx=x-ax,wz=z-az;
@@ -874,7 +936,7 @@ function H(x,z){
   h=applyFeats(FEATS.green,x,z,h);
   for(const b of BUNKERS){const e=ell(x,z,b);if(e<1.3){h-=b.depth*(1-smooth(0.55,1.0,e));h+=b.lip*smooth(0.8,1.0,e)*(1-smooth(1.0,1.3,e));}}
   for(const b of BODIES){
-    const s=b.sd(x,z);if(s<=-(b.profile==='shore'?b.edge+7:b.edge))continue;
+    const lim=b.profile==='shore'?b.edge+7:b.edge,s=b.near(x,z,lim);if(s<=-lim)continue;
     if(b.profile==='wall'){if(s>0)h=b.bed;}
     else if(b.profile==='cliff')h=mix(h,b.bed,smooth(-0.5,b.edge,s));
     else{if(s>-(b.edge+7))h=mix(h,Math.max(h,b.level+0.7),1-smooth(-(b.edge+7),-b.edge,s));h=mix(h,b.bed,smooth(-b.edge,b.edge*0.6,s));}
@@ -983,7 +1045,7 @@ function applyPlay(p={}){
 }
 function S(x,z){
   let h=null;
-  for(const b of BODIES)if(b.sd(x,z)>0){if(h===null)h=H(x,z);if(h<b.level)return WATER;}
+  for(const b of BODIES)if(b.wet(x,z)){if(h===null)h=H(x,z);if(h<b.level)return WATER;}
   for(const b of BUNKERS)if(ell(x,z,b)<0.95)return SAND;
   const g=ell(x,z,GREEN);if(g<1)return GREENS;if(g<1.2)return FRINGE;
   if(Math.abs(x)<4.5&&Math.abs(z)<6)return TEE;
@@ -1002,6 +1064,10 @@ function prepHole(i){
   BODIES=HOLE.water.map(def=>{
     const b=Object.assign({},def);const base=shapeSD(def.shape);const isl=(def.islands||[]).map(shapeSD);
     b.sd=(x,z)=>{let s=base(x,z);for(const f of isl)s=Math.min(s,-f(x,z));if(def.jag)s+=jagN(x,z)*def.jag;return s;};
+    // b.wet(x,z) === b.sd(x,z)>0; a plain outline (no islands, no jag) answers it without the distance
+    // b.near(x,z,lim): b.sd, but anything at or beyond lim outside reads -lim (cheaper far from a long outline)
+    b.near=!isl.length&&!def.jag&&def.shape.type==='poly'?(x,z,lim)=>sdPolyNear(x,z,def.shape.pts,lim):b.sd;
+    b.wet=!isl.length&&!def.jag&&def.shape.type==='poly'?(x,z)=>inPoly(x,z,def.shape.pts):(x,z)=>b.sd(x,z)>0;
     return b;
   });
   // creeks: set the water just below the lowest ground along their course so the banks always slope down to it
@@ -1915,7 +1981,7 @@ function buildWorld(){
     const colorAt=(x,z)=>{
       const s=S(x,z);
       if(s===WATER){c.setHex(COL.bed);return;}
-      if(cliffB&&s!==GREENS&&s!==FRINGE){const sd=cliffB.sd(x,z);if(sd>-0.7){const h=H(x,z);const band=Math.floor((h-cliffB.level)/1.7);c.copy(ROCKFACE[(band%4+4)%4]);return;}}
+      if(cliffB&&s!==GREENS&&s!==FRINGE){const sd=cliffB.near(x,z,0.7);if(sd>-0.7){const h=H(x,z);const band=Math.floor((h-cliffB.level)/1.7);c.copy(ROCKFACE[(band%4+4)%4]);return;}}
       const dc=Math.abs(x-centerX(z));
       if(s===TEE)c.setHex(COL.tee);
       else if(s===FAIRWAY){const edge=!inFairway(x,z,-1.0);c.setHex(edge?COL.cut:COL.fw1);}
@@ -1928,7 +1994,7 @@ function buildWorld(){
       else if(s===WASTE){c.copy(WASTE_C).offsetHSL(0,0,(jagN(x*1.7,z*1.7)*0.06));if(jagN(x*0.9+3,z*0.9)>0.55)c.lerp(new THREE.Color(GP.rough),0.55);}   // sand with tufts of wiregrass
       else if(s===SAND){let e=1;for(const b of BUNKERS)e=Math.min(e,ell(x,z,b));c.setHex(e>0.84?COL.sandRim:COL.sand);}
       else{c.setHex(dc>fairwayHalf(z)+18?COL.deep:(inFairway(x,z,3)?COL.cut:COL.rough));
-        if(HOLE.gold&&cliffB){const sd=cliffB.sd(x,z);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}
+        if(HOLE.gold&&cliffB){const sd=cliffB.near(x,z,16);c.lerp(gold,0.7*(1-smooth(1,16,-sd)));}
         if(HOLE.theme==='links'&&!inFairway(x,z,3)){const n=jagN(x*0.35+11,z*0.35)*0.5+jagN(x*1.3,z*1.1+5)*0.25;c.lerp(n>0?LGOLD:LMOSS,Math.min(0.75,Math.abs(n)*0.9));}}
     };
     const edA=new Float32Array(pos.count),RG=Math.max(GREEN.rx,GREEN.rz),fwA=new Float32Array(pos.count),uA=new Float32Array(pos.count),bkA=new Float32Array(pos.count),dA=new Float32Array(pos.count),rfA=new Float32Array(pos.count);
@@ -2290,7 +2356,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       let x,z;
       if(r()<0.8){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.3+Math.pow(r(),1.4)*24);}
       else{const a=r()*6.28,q=Math.max(GREEN.rx,GREEN.rz)+2+r()*22;x=GREEN.x+Math.cos(a)*q;z=GREEN.z+Math.sin(a)*q;}
-      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.sd(x,z)>-0.8))continue;spots.push([x,z]);
+      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.near(x,z,0.8)>-0.8))continue;spots.push([x,z]);
     }
     if(spots.length){
       const pos=[],uv=[],nor=[],ix=[];
@@ -2367,7 +2433,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     const tgeo=new THREE.BufferGeometry();tgeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));tgeo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
     const spots=[];
     const NT=LINKS?16000:6000;for(let i=0;i<NT*4&&spots.length<NT;i++){const z=mix(-20,PIN.z+40,r()),side=r()<0.5?-1:1,d=fairwayHalf(z)+(LINKS?2.5:0.6)+Math.pow(r(),1.7)*(LINKS?95:72),x=centerX(z)+side*d;
-      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.sd(x,z)>-0.8))continue;
+      if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.near(x,z,0.8)>-0.8))continue;
       if(!LINKS){spots.push([x,z]);continue;}
       // links: fescue grows in clumps, thickest in the gold drifts of the rough
       if(jagN(x*0.35+11,z*0.35)<-0.2&&r()<0.7)continue;
@@ -2396,7 +2462,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     const tufts=add(new THREE.InstancedMesh(tgeo,tuftM,Math.max(1,spots.length)));if(!spots.length)tufts.count=0;
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color(),up=new V3(0,1,0),goldT=new THREE.Color('#b8a050');
     spots.forEach(([x,z],i)=>{const s=LINKS?0.75+r()*0.55:0.9+r()*0.9;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.02,z),q,new V3(s,s*(0.8+r()*0.6),s));tufts.setMatrixAt(i,m);
-      if(LINKS){const k=r();c.set(k<0.45?'#c9b46a':k<0.75?'#a99c55':k<0.92?'#8c9450':'#d8c98a').offsetHSL(0,0,(r()-0.5)*0.08);}else c.set(GP.rough).offsetHSL(0,0,(r()-0.5)*0.12);if(HOLE.gold&&cliffB)c.lerp(goldT,0.85*(1-smooth(2,18,-cliffB.sd(x,z))));tufts.setColorAt(i,c);});
+      if(LINKS){const k=r();c.set(k<0.45?'#c9b46a':k<0.75?'#a99c55':k<0.92?'#8c9450':'#d8c98a').offsetHSL(0,0,(r()-0.5)*0.08);}else c.set(GP.rough).offsetHSL(0,0,(r()-0.5)*0.12);if(HOLE.gold&&cliffB)c.lerp(goldT,0.85*(1-smooth(2,18,-cliffB.near(x,z,18))));tufts.setColorAt(i,c);});
     tufts.receiveShadow=true;
     const fl=[];
     for(let k=0;k<(LINKS?0:60);k++){const z=mix(-10,PIN.z+20,r()),side=r()<0.5?-1:1,x=centerX(z)+side*(fairwayHalf(z)+3+r()*10);if(S(x,z)!==ROUGH)continue;
@@ -3193,7 +3259,8 @@ const TRACKS=[
   {src:'music/skyline-swing.mp3',title:'Skyline Swing'},
 ];
 const MUSIC_VOL=0.42;
-const music=new Audio();music.preload='auto';music.volume=MUSIC_VOL;
+const music=new Audio();music.preload='none'; // 'auto' downloaded a 2-3 MB track at start-up, competing with the nature bundle; play() loads it
+music.volume=MUSIC_VOL;
 let musicOn=true,musicQueue=[],musicLast=-1,musicStarted=false,musicTrying=false;
 try{if(localStorage.getItem('fred.music')==='off')musicOn=false;}catch(e){}
 function reshuffle(){
@@ -3247,7 +3314,9 @@ function openTitle(){
   ($('tResume').hidden?$('tNew'):$('tResume')).focus({preventScroll:true});
 }
 function closeTitle(){titleOpen=false;$('title').hidden=true;lastT=performance.now();}
+let worldReady=false,pendingRound=null;
 function startRound(i){
+  if(!worldReady){pendingRound=i;$('loading').textContent='Loading…';$('loading').hidden=false;$('title').hidden=true;ensureAudio();return;} // the 3D loop stays paused (titleOpen) until the world exists // tapped before hole 1 finished building: start as soon as it has
   ensureAudio();scores=[];roundLive=true;closeTitle();SND.hit();
   if(i===holeIdx){newHole(true);return;}
   $('loading').textContent='Loading hole '+(i+1)+'…';$('loading').hidden=false;
@@ -3257,7 +3326,7 @@ function startRound(i){
   const par=HOLES.reduce((s,h)=>s+h.par,0);
   $('tCount').textContent=`${HOLES.length} HOLES · PAR ${par}`;
   $('tCourses').textContent=[...new Set(HOLES.map(h=>h.short||h.name.split(' ')[0]))].join(' · ');
-  $('tHoles').innerHTML=HOLES.map((h,i)=>`<button class="tHole" data-i="${i}"><img src="${h.card}" alt=""><b>Hole ${i+1}</b><span>${h.name}<br>Par ${h.par} · ${h.yards} yds</span></button>`).join('');
+  $('tHoles').innerHTML=HOLES.map((h,i)=>`<button class="tHole" data-i="${i}"><img src="${h.card}" alt="" loading="lazy"><b>Hole ${i+1}</b><span>${h.name}<br>Par ${h.par} · ${h.yards} yds</span></button>`).join('');
   $('tHoles').addEventListener('click',e=>{const b=e.target.closest('.tHole');if(b)startRound(+b.dataset.i);});
   $('tNew').addEventListener('click',()=>startRound(0));
   $('tResume').addEventListener('click',()=>{ensureAudio();closeTitle();});
@@ -3283,6 +3352,13 @@ function loadHole(i){
   $('holeCap').innerHTML=`<b>HOLE ${i+1}</b><span>${HOLE.name}</span><span>Par ${HOLE.par} · ${HOLE.yards} yds</span>`;
   $('introImg').src=HOLE.card;$('introYds').textContent=HOLE.yards+' YDS';$('introPar').textContent='PAR '+HOLE.par;$('introNote').textContent=HOLE.note;
   newHole(true);
+  warmUp();
+}
+// draw one frame off-screen right after a build: compiles every shader and fills the shadow map now, behind the menu or the loading caption,
+// instead of in the first frames on the tee (the phone saw 10 hitches up to 275 ms there)
+function warmUp(){
+  try{renderer.compile(scene,camera);renderer.setRenderTarget(rt);/* not the main draw: render.py hooks that exact text */renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.compile(postScene,postCam);}
+  catch(e){console.warn('warm-up skipped:',e&&e.message||e);}
 }
 function newHole(withIntro){
   strokes=0;ball.p.set(0,TEE_H+R,0);ball.v.set(0,0,0);ball.rolling=true;ballGroup.visible=true;shadow.visible=true;ballMesh.quaternion.identity();
@@ -3518,7 +3594,19 @@ function frame(now){
 }
 
 window.__fred={go:i=>loadHole(i),put:(dx,dz)=>{ball.p.set(PIN.x+dx,H(PIN.x+dx,PIN.z+dz)+R,PIN.z+dz);ballGroup.visible=true;setupAim();},ball:()=>ballScreen(),target:()=>screenOf(target),state:()=>state,skip:()=>{for(let i=0;i<6000&&state==='flight';i++)simulateFlight(1/60);}};
-resize();loadHole(0);$('intro').hidden=true;loadNature().then(()=>{if(NATURE.ok&&world)buildWorld();}); // hole 1 is built behind the menu so New game starts instantly
+// start-up. Hole 1 used to be built straight away with the simple shapes and then again when the tree models arrived: two long freezes
+// (each 1-3 s on a phone) while the menu was up, so its buttons did not answer. Now the title paints first, the models load, and the hole is
+// built once. If the models take longer than 6 s the hole is built with the simple shapes and rebuilt when they arrive, as before.
+resize();
+const naturePromise=loadNature();
+let builtWithNature=false;
+requestAnimationFrame(()=>setTimeout(async()=>{
+  await Promise.race([naturePromise,new Promise(ok=>setTimeout(ok,6000))]);
+  builtWithNature=NATURE.ok;
+  loadHole(0);$('intro').hidden=true;worldReady=true;
+  if(pendingRound!=null){const i=pendingRound;pendingRound=null;$('loading').hidden=true;startRound(i);}
+  naturePromise.then(()=>{if(NATURE.ok&&!builtWithNature){builtWithNature=true;buildWorld();warmUp();}});
+},30));
 requestAnimationFrame(frame);
 })();
 </script>
