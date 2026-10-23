@@ -577,8 +577,8 @@ const HOLES=[
     {type:'ramp',z0:201.8,z1:249.8,dh:0.47},{type:'ramp',z0:249.8,z1:381.7,dh:-0.82},{type:'ramp',z0:429.6,z1:453.6,dh:-0.82},{type:'ramp',z0:453.6,z1:477.6,dh:0.92},
     {type:'rise',area:{x:19.3,z:427.3,rx:21,rz:10,rot:0.9},dh:0.8,edge:9},       // a narrow plateau green, 0.7 m above its apron (lidar; build's 431.7-479.6 ramp, +1, is this rise; 381.7-429.6 since the tee moved): the front and sides fall away
     {type:'cover',area:{pts:[[-30,383],[-18,389.5],[-10.1,403.2],[-2.2,416.9],[6,430.2],[14.6,443.2],[23.5,455.7],[32.7,467.9],[41.9,480.2]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road behind the green, on the lidar's flat strip below the green's back edge
-    {type:'cover',area:{pts:[[-4.5,-45],[-7,-22],[-8.6,-5],[-8.2,1.5]],w:1.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},                   // the tarmac walk past the right of the tee
-    {type:'cover',area:{pts:[[-8.2,1.1],[25,98],[-45.8,290.8],[-52.3,320.6]],w:1.7},surf:'PATH',over:['ROUGH','FAIRWAY']},             // the gravel path along the course side of the wall
+    {type:'cover',area:{pts:[[9,-45],[8.5,-14],[6.5,4],[2,12],[-2,18.5]],w:1.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},                   // the tarmac walk: up the left of the tee, across in front of it to the right
+    {type:'cover',area:{pts:[[-2,18.5],[25,98],[-45.8,290.8],[-52.3,320.6]],w:1.7},surf:'PATH',over:['ROUGH','FAIRWAY']},             // then back up the left along the course side of the wall (gravel)
     {type:'cover',area:{pts:[[-27,-40],[-21,-28],[22,98],[-48.5,290],[-60,335],[-75,335],[-75,-40]]},surf:'LAWN',over:['ROUGH','FAIRWAY']},  // the hotel's lawns, right of the wall
   ],
   // The tee shot's landmarks, measured on the Scottish lidar's surface model (rooftops; docs/holes/trace/standrews-17.json `landmarks`): footprints and heights are
@@ -586,9 +586,9 @@ const HOLES=[
   town:[0.43,0.63],
   props:[
     // the shed in the corner of the hotel's grounds: black boards, a ribbed grey roof, the hotel's name painted on the side facing the tee (aim over it)
-    {type:'barn',x:-2.7,z:61.4,w:25.5,d:12,rot:-0.201,h:5.3,ridge:2.2,solid:{e:0.2,f:0.2,fy:0.15},sign:{lines:['OLD COURSE HOTEL','ST ANDREWS','GOLF RESORT & SPA'],at:0.04,w:14}},
-    {type:'barn',x:-4.6,z:73.9,w:30.8,d:12,rot:-0.18,h:4.6,ridge:2.0,solid:{e:0.2,f:0.2,fy:0.15}},
-    {type:'barn',x:-2.2,z:85.3,w:35.8,d:10.5,rot:-0.1,h:3.9,ridge:0,roofCol:'#7a8085',solid:{e:0.2,f:0.2,fy:0.15}},
+    // it lies along the wall, just inside it (rot turns its long side parallel to the wall's first run), its painted side facing the course and the tee
+    {type:'barn',x:5.5,z:74.6,w:36,d:12,rot:-1.242,h:5.3,ridge:2.2,solid:{e:0.2,f:0.2,fy:0.15},sign:{lines:['OLD COURSE HOTEL','ST ANDREWS','GOLF RESORT & SPA'],at:-0.18,w:14}},
+    {type:'barn',x:-5.9,z:78.5,w:32,d:12,rot:-1.242,h:4.6,ridge:2.0,solid:{e:0.2,f:0.2,fy:0.15}},
     // the Old Course Hotel: sandstone blocks with slate roofs and balconies, from beside the tee down the right of the hole
     {type:'building',x:-30,z:44.5,w:25,d:77.1,rot:-0.052,h:12.8,roof:'hip',roofH:3.5,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
     {type:'building',x:-30,z:99,w:33,d:32.1,rot:-0.062,h:16.3,roof:'mansard',roofH:4.1,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
@@ -599,9 +599,9 @@ const HOLES=[
     {type:'building',x:-16.5,z:151.5,w:7,d:73,rot:-0.027,h:4.6,roof:'flat',col:'#d8d0bf',roofCol:'#7c8388',solid:{e:0.3,f:0.6,fy:0.7}},   // the low glazed annex on the garden side
     {type:'building',x:-53,z:104,w:14,d:82,rot:0,h:5.2,roof:'flat',roofCol:'#767c81'},
     {type:'net',pts:[[-17,-2],[-11,24]],h:9,every:6},          // ball-stop netting between the wall and the hotel's near end
-    {type:'posts',pts:[[-3,9],[26.6,95]],every:18,h:1.0}],    // white out-of-bounds stakes along the path
+    {type:'posts',pts:[[2,30],[26.6,95]],every:18,h:1.0}],    // white out-of-bounds stakes along the path
   ob:[{pts:[[-27,-40],[-21,-28],[22,98],[-48.5,290],[-60,335],[-130,335],[-130,-40]]}],   // the hotel's grounds: right of the wall
-  obstacles:[{type:'wall',pts:[[-10.8,2],[22,98],[-48.5,290],[-55,320]],t:0.8,h:1.2,e:0.3},   // the stone wall round the hotel's grounds (lidar: 1 m)
+  obstacles:[{type:'wall',pts:[[-4.6,20],[22,98],[-48.5,290],[-55,320]],t:0.8,h:1.2,e:0.3},   // the stone wall round the hotel's grounds (lidar: 1 m)
              {type:'wall',pts:[[-36,391],[-24,402],[-17.4,411.4],[-9.2,424.7],[-0.9,438.1],[7.6,451],[16.8,463.2],[26.1,475.4],[33,484]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
   play:{firm:1.5,wind:[8,20],windPush:0.6,greens:{speed:1.15,firm:3.5}},
   // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)

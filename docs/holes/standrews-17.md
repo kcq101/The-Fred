@@ -232,6 +232,8 @@ the safe line to the wide front of the green holds it                          F
 - Bunkers: unchanged.
 - Water and surroundings: **close** — the Jigger Inn and the car park by the road are still missing.
 
+**Owner's corrections (2026-10-23, from his photo of the tee):** the shed lies along the wall, just inside it, its long side parallel to the wall's first run and its painted side facing the course (it had faced the tee and poked past the wall); the stone wall starts where the path bends, ahead and right of the tee; the tarmac path comes up the left of the tee, crosses in front of it to the right, then turns back up the left along the wall as gravel. Checks unchanged (14 / 14).
+
 **Fast lane, lidar** (2026-10-20). Bunkers, the road and wall lines, heights and the green's plane from the Scottish lidar; the green is still an ellipse (no aerial), laid along the lidar's plateau.
 
 **References used**: Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE and NO51NW (Open Government Licence v3; not in the repo); map pins from the project owner on the green and the back tee; two yardage-book pages (`standrews-17-yardage-1.jpg`, `-2.jpg`, not in the repo) — direction and the bunkers' names, not traced. Frame: `docs/holes/trace/standrews-17.json` (tee → pin 405 m at 140.9°; 1.161 game yd per m).
