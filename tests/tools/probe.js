@@ -20,7 +20,7 @@ try { shots = JSON.parse(pos[1]); } catch (e) { die(`could not parse the shots a
 if (!Array.isArray(shots)) shots = [shots];
 
 const { course } = openHole(pos[0]);
-const names = ['TEE', 'FAIRWAY', 'ROUGH', 'FRINGE', 'GREENS', 'SAND', 'WATER', 'PINE', 'ROAD', 'WASTE'];
+const names = ['TEE', 'FAIRWAY', 'ROUGH', 'FRINGE', 'GREENS', 'SAND', 'WATER', 'PINE', 'ROAD', 'WASTE', 'PATH', 'LAWN'];
 const pt = p => p == null ? '?' : (p === 'tee' ? 'tee' : p === 'pin' ? 'pin' : Array.isArray(p) ? `(${p[0]},${p[1]})` : `(${f1(p.x)},${f1(p.z)})`);
 const rows = shots.map((shot, i) => {
   let r;

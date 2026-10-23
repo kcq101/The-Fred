@@ -101,6 +101,9 @@ module.exports = {
     challenge: 'A long second into a narrow green on firm links turf, angled from front-right to back-left along the road: the deep Road Hole bunker eats into its left end (a ball in it cannot play out forwards), the Sunday pin is tucked behind it, and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and it runs off the back.',
     shots: [
       { name: 'a pure drive runs out on the firm fairway and leaves a full iron', shot: { club: 'Hammer', at: [0, 250], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
+      { name: 'aimed over the sign on the shed at the pin, a pure drive carries the corner of the hotel\'s grounds and finds the fairway', shot: { club: 'Hammer', at: 'pin', power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
+      { name: 'from the line down the right by the hotel, a pushed drive finishes out of bounds in its grounds', shot: { club: 'Hammer', at: [-8, 245], offset: 0.45 }, expect: { end: 'oob' } },
+      { name: 'a low 3-wood into the shed is stopped by its wall and drops out of bounds in front of it', shot: { club: '3-Wood', at: 'pin', power: 0.35 }, expect: { end: 'oob', wall: true } },
       { name: 'an iron flown at the pin runs through the green and off the back', shot: { from: [0, 301], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
       { name: 'landed short of the tucked pin and run up, an iron holds the green', shot: { from: [0, 301], club: 'Iron', at: [22, 422] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
       { name: 'the attack over the bunker\'s edge, pulled a little, drops into the Road Hole bunker', shot: { from: [0, 301], club: 'Iron', at: [28, 426], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
@@ -111,6 +114,18 @@ module.exports = {
       { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 301], club: 'Iron', at: [10, 410] }, expect: { surf: ['GREENS'] } },
     ],
     strategies: [
+      // the drive (2026-10-23, the real tee shot): the baseline prices distance and lie, not the angle into the green, so the right-hand line's reward
+      // (playing along the angled green rather than across the bunker) is not in these numbers: docs/holes/standrews-17.md §6
+      { name: 'the drive: over the sign at the pin, down the right by the hotel (the better angle in), or bail out left', plans: [
+          { name: 'sign', shot: { club: 'Hammer', at: 'pin' } },
+          { name: 'right', shot: { club: 'Hammer', at: [-8, 245] } },
+          { name: 'left', shot: { club: 'Hammer', at: [34, 245] } } ],
+        expect: [
+          ['a sharp player stays in bounds on every line', r => ['sign', 'right', 'left'].every(k => r[k].sharp.hazard === 0)],
+          ['down the right, a shaky player is out of bounds at least one time in eight', r => r.right.shaky.hazard >= 0.125],
+          ['over the sign keeps a shaky player in bounds', r => r.sign.shaky.hazard === 0],
+          ['bailing out left costs a sharp player at least 0.2 stroke against the line over the sign', r => r.left.sharp.score - r.sign.sharp.score >= 0.2],
+          ['and buys a shaky player nothing: the line over the sign is in bounds too, and shorter', r => r.left.shaky.score > r.sign.shaky.score] ] },
       // no per-hole lie costs: the baseline's recovery term charges the Road Hole bunker for its deep face (a ball in it cannot play out forwards, see the shot above)
       { name: 'the second shot: fly the tucked pin, attack it over the bunker\'s edge, or play to the middle and run up', plans: [
           { name: 'fly', shot: { from: [0, 301], club: 'Iron' } },

@@ -561,10 +561,14 @@ const HOLES=[
  {id:'standrews-17',name:'St Andrews Old Course',short:'St Andrews',par:4,card:'cards/card4.jpg',note:'Road Hole · Bunker short, road and wall long',theme:'links',
   // Inspired by No. 17 (the Road Hole): a long second into a narrow, angled green with the deep Road Hole bunker eating into its front-left, a hard road
   // behind it and a stone wall behind that, on firm links turf in the wind. Land it short and let it run; fly the pin and the road has it. docs/holes/standrews-17.md
-  // The tee is 50 yd up the hole, the sheds and hotel with it (OpenFairway's shorter roll, 2026-10-21): every other z here is 50 less than the lidar frame gives (trace file's tee_shift)
+  // The tee is 50 yd up the hole (OpenFairway's shorter roll, 2026-10-21): every z here is 50 less than the lidar frame gives (trace file's tee_shift), and the
+  // tee-shot landmarks (wall, path, shed, hotel) are also 10 yd right of the frame (x - 10), so the tee sits left of the wall, where the real one is.
+  // The drive (2026-10-23): a stone wall and a path run from beside the tee away to the left, to the corner of the Old Course Hotel's grounds; in that corner
+  // stands the black shed with the hotel's name painted on it, and the hotel runs from beside the tee down the right. The fairway lies beyond the shed,
+  // left of the hotel: aim over the sign. Everything right of the wall is out of bounds (`ob`).
   seed:3.3,roll:0.8,ridge:1.5,
-  route:[[-50,0],[70,-4],[200,-10],[300,-4],[380,6],[417,6]],
-  fw:[[-10,15],[150,15],[250,13],[350,12],[388,11],[416,12]],fairway:[[35,408]],
+  route:[[-50,0],[60,8],[130,30],[165,22],[200,13],[240,1],[270,-1],[300,-2],[380,6],[417,6]],
+  fw:[[-10,15],[60,15],[130,12],[165,17],[200,21],[240,22],[270,24],[300,23],[340,17],[388,11],[416,12]],fairway:[[120,408]],
   // no aerial yet: the ellipse is laid along the lidar's plateau (front-right to back-left, its back edge 2-3 yd short of the drop to the road); tilt is the lidar's plane over it
   green:{x:19.3,z:427.3,rx:19,rz:8,rot:0.9},pin:{x:24.5,z:437.1},tilt:{x:-0.0124,z:0.0007},   // the pin tucked on the left end, behind the Road Hole bunker
   features:[
@@ -573,13 +577,32 @@ const HOLES=[
     {type:'ramp',z0:201.8,z1:249.8,dh:0.47},{type:'ramp',z0:249.8,z1:381.7,dh:-0.82},{type:'ramp',z0:429.6,z1:453.6,dh:-0.82},{type:'ramp',z0:453.6,z1:477.6,dh:0.92},
     {type:'rise',area:{x:19.3,z:427.3,rx:21,rz:10,rot:0.9},dh:0.8,edge:9},       // a narrow plateau green, 0.7 m above its apron (lidar; build's 431.7-479.6 ramp, +1, is this rise; 381.7-429.6 since the tee moved): the front and sides fall away
     {type:'cover',area:{pts:[[-30,383],[-18,389.5],[-10.1,403.2],[-2.2,416.9],[6,430.2],[14.6,443.2],[23.5,455.7],[32.7,467.9],[41.9,480.2]],w:3.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},  // the road behind the green, on the lidar's flat strip below the green's back edge
+    {type:'cover',area:{pts:[[-4.5,-45],[-7,-22],[-8.6,-5],[-8.2,1.5]],w:1.4},surf:'ROAD',over:['ROUGH','FAIRWAY']},                   // the tarmac walk past the right of the tee
+    {type:'cover',area:{pts:[[-8.2,1.1],[25,98],[-45.8,290.8],[-52.3,320.6]],w:1.7},surf:'PATH',over:['ROUGH','FAIRWAY']},             // the gravel path along the course side of the wall
+    {type:'cover',area:{pts:[[-27,-40],[-21,-28],[22,98],[-48.5,290],[-60,335],[-75,335],[-75,-40]]},surf:'LAWN',over:['ROUGH','FAIRWAY']},  // the hotel's lawns, right of the wall
   ],
-  // the drive: over the corner of a run of dark timber sheds that stands across the right of the tee shot, folding in toward the line then out again.
-  // The front line is also a wall obstacle, so a drive that does not clear it hits the timber; the hotel stands behind, down the right
+  // The tee shot's landmarks, measured on the Scottish lidar's surface model (rooftops; docs/holes/trace/standrews-17.json `landmarks`): footprints and heights are
+  // the real ones (heights x 1.161, the hole's scale). The hotel blocks and the shed are solid (a ball strikes them); the stone wall is a wall obstacle.
   town:[0.43,0.63],
-  props:[{type:'sheds',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],d:8,h:7},
-         {type:'building',x:-82,z:118,w:150,d:30,h:21,floors:6,rot:Math.PI/2,col:'#d4c3a2',roof:'#4b5058'}],
-  obstacles:[{type:'wall',pts:[[-3,31],[-15,22],[-31,28],[-52,19]],t:1.2,h:7,e:0.2,f:0.2,fy:0.15,look:false},{type:'wall',pts:[[-36,391],[-24,402],[-17.4,411.4],[-9.2,424.7],[-0.9,438.1],[7.6,451],[16.8,463.2],[26.1,475.4],[33,484]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
+  props:[
+    // the shed in the corner of the hotel's grounds: black boards, a ribbed grey roof, the hotel's name painted on the side facing the tee (aim over it)
+    {type:'barn',x:-2.7,z:61.4,w:25.5,d:12,rot:-0.201,h:5.3,ridge:2.2,solid:{e:0.2,f:0.2,fy:0.15},sign:{lines:['OLD COURSE HOTEL','ST ANDREWS','GOLF RESORT & SPA'],at:0.04,w:14}},
+    {type:'barn',x:-4.6,z:73.9,w:30.8,d:12,rot:-0.18,h:4.6,ridge:2.0,solid:{e:0.2,f:0.2,fy:0.15}},
+    {type:'barn',x:-2.2,z:85.3,w:35.8,d:10.5,rot:-0.1,h:3.9,ridge:0,roofCol:'#7a8085',solid:{e:0.2,f:0.2,fy:0.15}},
+    // the Old Course Hotel: sandstone blocks with slate roofs and balconies, from beside the tee down the right of the hole
+    {type:'building',x:-30,z:44.5,w:25,d:77.1,rot:-0.052,h:12.8,roof:'hip',roofH:3.5,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
+    {type:'building',x:-30,z:99,w:33,d:32.1,rot:-0.062,h:16.3,roof:'mansard',roofH:4.1,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
+    {type:'building',x:-31.2,z:152.5,w:22.5,d:75,rot:-0.02,h:19.7,roof:'mansard',roofH:5.2,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
+    {type:'building',x:-43.2,z:201,w:25.5,d:22,rot:-0.023,h:12.2,roof:'hip',roofH:3.5,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
+    {type:'building',x:-53.2,z:222,w:29.5,d:20,rot:-0.025,h:12.2,roof:'hip',roofH:3.5,plinth:3.6,solid:{e:0.3,f:0.6,fy:0.7}},
+    {type:'building',x:-64,z:243.5,w:26,d:23,rot:0,h:8.7,roof:'hip',roofH:2.9,solid:{e:0.3,f:0.6,fy:0.7}},
+    {type:'building',x:-16.5,z:151.5,w:7,d:73,rot:-0.027,h:4.6,roof:'flat',col:'#d8d0bf',roofCol:'#7c8388',solid:{e:0.3,f:0.6,fy:0.7}},   // the low glazed annex on the garden side
+    {type:'building',x:-53,z:104,w:14,d:82,rot:0,h:5.2,roof:'flat',roofCol:'#767c81'},
+    {type:'net',pts:[[-17,-2],[-11,24]],h:9,every:6},          // ball-stop netting between the wall and the hotel's near end
+    {type:'posts',pts:[[-3,9],[26.6,95]],every:18,h:1.0}],    // white out-of-bounds stakes along the path
+  ob:[{pts:[[-27,-40],[-21,-28],[22,98],[-48.5,290],[-60,335],[-130,335],[-130,-40]]}],   // the hotel's grounds: right of the wall
+  obstacles:[{type:'wall',pts:[[-10.8,2],[22,98],[-48.5,290],[-55,320]],t:0.8,h:1.2,e:0.3},   // the stone wall round the hotel's grounds (lidar: 1 m)
+             {type:'wall',pts:[[-36,391],[-24,402],[-17.4,411.4],[-9.2,424.7],[-0.9,438.1],[7.6,451],[16.8,463.2],[26.1,475.4],[33,484]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
   play:{firm:1.5,wind:[8,20],windPush:0.6,greens:{speed:1.15,firm:3.5}},
   // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)
   bunkers:[{pts:[[34.5,429.2],[32.5,428.8],[31.2,427],[30.2,426.5],[30.2,424.5],[28.2,421.5],[28.2,421],[30.5,418.8],[31.5,418.8],[32,418.2],[36.2,422],[36.2,423],[36.8,423.5],[36.2,424],[36.8,424.5],[36.8,428]],depth:2.6,lip:0.6},
@@ -587,8 +610,12 @@ const HOLES=[
            {pts:[[43,367.8],[41.5,367.8],[40.5,366.2],[36.2,364.5],[36.2,363],[37.5,361.8],[38.8,361.5],[38.2,360],[36.2,358],[41,353.2],[43,352.2],[43.5,352.8],[45,352.2],[45.5,352.8],[47.5,352.8],[48,353.2],[48.5,352.8],[50.5,353.8],[52,353.8],[53,354.8],[54,354.8],[55.8,356.5],[55.8,357.5],[54.8,358.5],[55.2,359],[54.8,361.5],[52.5,363.8],[51.5,363.8],[51,364.2],[46.5,364.2],[46,363.8],[44.5,364.2],[44.2,364.5],[45.2,366]],depth:0.72,lip:0.25}],
   water:[],
   bbox:{x0:-130,x1:130,z0:-55,z1:486},
-  trees:[],
-  bushes:[{type:'shrub',n:90,zone:'sides',side:'both',d:[8,50],z:[0,386]}],
+  // trees and shrubs in the hotel's grounds (the canopy behind the tee and the garden behind the shed are the lidar's); whins down the left
+  trees:[{type:'oak',n:6,zone:'rect',x:[-46,-20],z:[-38,3],s:[1.0,1.35],ob:true},
+         {type:'oak',n:4,zone:'poly',pts:[[17,92],[20.5,98],[-1,160],[-12,160],[-12,96]],s:[0.7,0.95],ob:true}],
+  bushes:[{type:'shrub',n:70,zone:'sides',side:'left',d:[8,50],z:[0,386]},
+          {type:'shrub',n:26,zone:'poly',pts:[[17,92],[20.5,98],[-1,160],[-12,160],[-12,96]],ob:true},
+          {type:'shrub',n:14,zone:'sides',side:'right',d:[10,40],z:[300,386]}],
   rocks:{n:0}},
  {id:'augusta-12',name:'Augusta National',par:3,card:'cards/card5.jpg',note:'Golden Bell · No safe miss over Rae\'s Creek',theme:'parkland',
   // Inspired by No. 12 (Golden Bell): a short iron over Rae's Creek to a shallow, wide green angled away from the tee, with a steep bank in front, deep bunkers behind
@@ -757,9 +784,21 @@ function prepObstacles(list){
   });
 }
 function obstacleHit(b,onHit){for(const o of OBST)OBSTACLES[o.type].hit(o,b,onHit);}
+// a prop's footprint, a turned box (x,z its middle, w across, d along, rot = rotation.y): its corners in order, padded by `pad` yards
+function propCorners(p,pad=0){const c=Math.cos(p.rot||0),s=Math.sin(p.rot||0),hw=p.w/2+pad,hd=p.d/2+pad;
+  return[[-hw,-hd],[hw,-hd],[hw,hd],[-hw,hd]].map(([u,v])=>[p.x+u*c+v*s,p.z-u*s+v*c]);}
+// props that say `solid` ({e,f,fy} or true) are also walls round their footprints, as high as their roofs: the ball strikes the hotel, not a picture of it
+function propWalls(props){return(props||[]).filter(p=>p.solid&&p.w).map(p=>{const k=propCorners(p);
+  return Object.assign({type:'wall',pts:[...k,k[0]],t:0.6,h:p.h+(p.roofH||p.ridge||0),look:false},p.solid===true?{}:p.solid);});}
+// ---------------------------------------------------------------- out of bounds
+// Areas a hole lists in `ob` ({pts:[[x,z]...]}, a polygon): a ball that comes to REST inside one is out of bounds (+1, replay from where it was hit),
+// as in the Rules: it may fly over or bounce through. St Andrews No. 17: the Old Course Hotel's grounds, right of the wall along the drive.
+let OBA=[];
+function prepOB(list){OBA=(list||[]).map(a=>({pts:a.pts,box:areaBox({pts:a.pts},0)}));}
+function inOB(x,z){for(const o of OBA){const b=o.box;if(x<b.x0||x>b.x1||z<b.z0||z>b.z1)continue;if(sdPoly(x,z,o.pts)>0)return true;}return false;}
 
-const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6,PINE=7,ROAD=8,WASTE=9;
-const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE};   // names a hole spec can use (e.g. a cover feature's surf)
+const TEE=0,FAIRWAY=1,ROUGH=2,FRINGE=3,GREENS=4,SAND=5,WATER=6,PINE=7,ROAD=8,WASTE=9,PATH=10,LAWN=11;
+const SURF={TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE,ROAD,WASTE,PATH,LAWN};   // names a hole spec can use (e.g. a cover feature's surf)
 // How each surface treats the ball (see BallModel for what these do):
 //   e      bounce: how lively the ground is, against fairway's 0.30 (it scales OpenFairway's restitution curve; see BallModel IMPACT)
 //   bite   grab on the FIRST impact;  mu: grab on every later bounce. Against fairway's (3.5 and 0.22): the share of run a bounce keeps is divided by bite/3.5 (mu/0.22)
@@ -786,6 +825,10 @@ const SP={
   [ROAD]:   {e:.36,mu:.16,bite:2.6,crit:.25,spinback:.60,rr:.030,visc:.0010,hold:.2, name:'Road',     lie:0.80},
   // WASTE: sandy, scrubby native ground (not a bunker): no bounce, grabs hard so a ball dies where it lands, awkward lie.
   [WASTE]:  {e:.08,mu:.80,bite:7.5,dec:24, hold:.55,name:'Waste area',lie:0.82},
+  // PATH: a pale gravel walkway (St Andrews No. 17's along the hotel wall): firm and fast like the road, a little grabbier, a poor lie.
+  [PATH]:   {e:.32,mu:.20,bite:3.0,crit:.25,spinback:.60,rr:.040,visc:.0012,hold:.22,name:'Path',     lie:0.85},
+  // LAWN: a mown lawn outside the course (a hotel's garden): plays like fairway; it is usually out of bounds (a hole's `ob` areas).
+  [LAWN]:   {e:.30,mu:.22,bite:3.5,rr:.050,visc:.0017,hold:.22,name:'Lawn',     lie:1.00},
 };
 const BASE_SP=JSON.parse(JSON.stringify(SP));
 // A hole's play profile tunes the shared surfaces for that hole (all optional, 1 = as above):
@@ -814,7 +857,7 @@ function S(x,z){
 function prepHole(i){
   holeIdx=i;HOLE=HOLES[i];
   GREEN=prepShape(Object.assign({},HOLE.green));PIN=HOLE.pin;GT=HOLE.tilt;
-  prepFeatures(HOLE.features);prepObstacles(HOLE.obstacles);
+  prepFeatures(HOLE.features);prepObstacles([...(HOLE.obstacles||[]),...propWalls(HOLE.props)]);prepOB(HOLE.ob);
   for(const f of FEATS.surf){f.surf=SURF[f.surf];f.over=(f.over||['ROUGH']).map(n=>SURF[n]);}
   applyPlay(HOLE.play);
   BUNKERS=HOLE.bunkers.map(b=>prepShape(Object.assign({depth:0.9,lip:0.25},b)));
@@ -1369,9 +1412,13 @@ function facadeMat(o){
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vFP;varying vec3 vFN;')
      .replace('#include <color_fragment>',`#include <color_fragment>
       vec3 fn=normalize(vFN);float side=1.0-smoothstep(0.4,0.7,abs(fn.y));
-      float u=abs(fn.x)>abs(fn.z)?vFP.z:vFP.x;float yy=vFP.y;
+      float u=abs(fn.x)>abs(fn.z)?vFP.z:vFP.x;float yy=vFP.y${o.y0!=null?'-('+(+o.y0).toFixed(2)+')':''};
       ${o.boards?`float bu=u/0.55;float bw=max(fwidth(bu),0.02);float seam=1.0-smoothstep(0.0,bw*1.5+0.06,abs(fract(bu)-0.5)*2.0-0.88);
       diffuseColor.rgb*=1.0-0.28*(1.0-seam)*side;diffuseColor.rgb*=1.0+(fract(sin(floor(bu)*12.9898)*43758.5)-0.5)*0.12*side;`:''}
+      ${o.hboards?`float hb=yy/0.3;float hw=max(fwidth(hb),0.02);float hl=1.0-smoothstep(0.0,hw*1.5+0.05,abs(fract(hb)-0.5)*2.0-0.86);
+      diffuseColor.rgb+=0.07*(1.0-hl)*side;diffuseColor.rgb*=1.0+(fract(sin(floor(hb)*12.9898+floor(u/5.0)*3.7)*43758.5)-0.5)*0.16*side;`:''}
+      ${o.seams?`float sm=dot(vFP.xz,vec2(${(+o.seams[0]).toFixed(3)},${(+o.seams[1]).toFixed(3)}))/0.45;float smw=max(fwidth(sm),0.02);
+      float rib=1.0-smoothstep(0.0,smw*1.5+0.05,abs(fract(sm)-0.5)*2.0-0.88);diffuseColor.rgb*=1.0-0.25*(1.0-rib);`:''}
       ${o.stones?`float sr=yy/0.32;float row=floor(sr);float su2=u/0.62+fract(sin(row*17.3)*91.1);
       vec2 sc=vec2(fract(su2),fract(sr));float sw=max(fwidth(su2),0.02),sh2=max(fwidth(sr),0.02);
       float mort=max(1.0-smoothstep(0.0,sw*1.5+0.06,min(sc.x,1.0-sc.x)),1.0-smoothstep(0.0,sh2*1.5+0.08,min(sc.y,1.0-sc.y)));
@@ -1380,7 +1427,8 @@ function facadeMat(o){
       ${o.win?`float fy=yy/${o.floor.toFixed(2)},fx=u/${o.bay.toFixed(2)};vec2 c=vec2(abs(fract(fx)-0.5),fract(fy));
       float w=step(c.x,0.24)*step(0.3,c.y)*step(c.y,0.82)*step(0.6,fy);float lit=step(1.0-${(+o.lit).toFixed(2)},fract(sin(dot(floor(vec2(fx,fy)),vec2(7.13,3.71)))*4375.5));
       vec3 wc=mix(${glv(o.glass||'#3b4658')},vec3(1.0,0.82,0.52),lit);diffuseColor.rgb=mix(diffuseColor.rgb,wc,w*side);
-      diffuseColor.rgb*=1.0-0.12*step(0.93,fract(fy))*side;`:''}`);
+      diffuseColor.rgb*=1.0-0.12*step(0.93,fract(fy))*side;
+      ${o.balc?`float bf=fract(fy);float on=step(1.0,fy);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.12,0.12,0.13),on*step(bf,0.16)*0.85*side);diffuseColor.rgb*=1.0-0.2*on*step(0.16,bf)*step(bf,0.2)*side;`:''}`:''}`);
   };
   return m;
 }
@@ -1594,6 +1642,7 @@ let GP=PAL.g,COL={};
 function setGroundPalette(){GP=Object.assign({},PAL.g,THEME_G[HOLE.theme]||{},HOLE.g||{});COL=Object.fromEntries(Object.entries(GP).map(([k,v])=>[k,parseInt(v.slice(1),16)]));}
 const PINE_C=new THREE.Color('#9a6e40');   // pine straw under the trees
 const ROAD_C=new THREE.Color('#8f887b'),WASTE_C=new THREE.Color('#d8c28c');   // the road behind a green; sandy native waste
+const PATH_C=new THREE.Color('#cbbd9b'),LAWN_A=new THREE.Color('#5f8f3d'),LAWN_B=new THREE.Color('#6c9c47');   // a pale gravel path; a striped garden lawn
 const LGOLD=new THREE.Color('#c2ae66'),LMOSS=new THREE.Color('#6f8044');   // links rough: drifts of dry gold fescue and darker mossy hollows
 const ROCKFACE=['#7a4e34','#9a6440','#b88050','#6a4230'].map(h=>new THREE.Color(h));
 let world=null,TREES=[],FLAGSTICK=[],flag=null,flagG=null,flagBase=null;
@@ -1612,6 +1661,49 @@ function mergeGeos(parts){
   const out=new THREE.BufferGeometry();
   out.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));out.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));out.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   return out;
+}
+// triangles -> a flat-shaded geometry whose faces all point away from c (outward)
+function triGeo(T,c){
+  const pos=[];
+  for(let[a,b,e]of T){
+    const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=e[0]-a[0],vy=e[1]-a[1],vz=e[2]-a[2],nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    if(nx*((a[0]+b[0]+e[0])/3-c[0])+ny*((a[1]+b[1]+e[1])/3-c[1])+nz*((a[2]+b[2]+e[2])/3-c[2])<0)[b,e]=[e,b];
+    pos.push(...a,...b,...e);
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();return g;
+}
+// a roof over a w x d footprint (local x across, z along) standing on y=0, rh high, ov yards of overhang: 'hip' (a ridge along the longer side, sloped ends),
+// 'mansard' (steep sides up to a flat top), 'gable' (sloped sides, upright ends; ends:false leaves the end triangles to the walls: gableEnds)
+function roofGeo(style,w,d,rh,ov=0.5,ends=true){
+  const B=w/2+ov,A=d/2+ov,T=[],tri=(a,b,c)=>T.push([a,b,c]),quad=(a,b,c,e)=>{tri(a,b,c);tri(a,c,e);};
+  const p0=[-B,0,-A],p1=[B,0,-A],p2=[B,0,A],p3=[-B,0,A];
+  if(style==='mansard'){const i=Math.min(rh*0.4,Math.min(A,B)*0.45),q0=[-B+i,rh,-A+i],q1=[B-i,rh,-A+i],q2=[B-i,rh,A-i],q3=[-B+i,rh,A-i];
+    quad(p0,p1,q1,q0);quad(p1,p2,q2,q1);quad(p2,p3,q3,q2);quad(p3,p0,q0,q3);quad(q0,q1,q2,q3);}
+  else if(style==='hip'){
+    if(A>=B){const r0=[0,rh,-(A-B)],r1=[0,rh,A-B];tri(p0,p1,r0);quad(p1,p2,r1,r0);tri(p2,p3,r1);quad(p3,p0,r0,r1);}
+    else{const r0=[-(B-A),rh,0],r1=[B-A,rh,0];quad(p0,p1,r1,r0);tri(p1,p2,r1);quad(p2,p3,r0,r1);tri(p3,p0,r0);}}
+  else{
+    if(A>=B){const r0=[0,rh,-A],r1=[0,rh,A];quad(p1,p2,r1,r0);quad(p3,p0,r0,r1);if(ends){tri(p0,p1,r0);tri(p2,p3,r1);}}
+    else{const r0=[-B,rh,0],r1=[B,rh,0];quad(p0,p1,r1,r0);quad(p2,p3,r0,r1);if(ends){tri(p1,p2,r1);tri(p3,p0,r0);}}}
+  return triGeo(T,[0,rh*0.3,0]);
+}
+// the gable-end triangles of a barn's walls, standing on its eaves (y=0), in roofGeo's frame (no overhang)
+function gableEnds(w,d,rh){const B=w/2,A=d/2;
+  return triGeo(A>=B?[[[-B,0,-A],[B,0,-A],[0,rh,-A]],[[B,0,A],[-B,0,A],[0,rh,A]]]:[[[B,0,-A],[B,0,A],[B,rh,0]],[[-B,0,A],[-B,0,-A],[-B,rh,0]]],[0,0,0]);}
+// points every `every` yards along a polyline, its ends included
+function resample(P,every){const out=[];for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i],n=Math.max(1,Math.round(Math.hypot(b[0]-a[0],b[1]-a[1])/every));
+  for(let j=i===1?0:1;j<=n;j++)out.push([mix(a[0],b[0],j/n),mix(a[1],b[1],j/n)]);}return out;}
+// the ground a prop stands on: the lowest of its corners and middle, so no corner floats
+function propGround(p){return p.w?Math.min(H(p.x,p.z),...propCorners(p).map(([x,z])=>H(x,z)))-0.3:H(p.x,p.z);}
+// painted lettering for a barn's wall (a sign): white serif capitals on a clear canvas, the first line big, the rest smaller and spaced out
+function signTex(lines){
+  const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const g=cv.getContext('2d');
+  g.fillStyle='#f6f3ea';g.textAlign='center';g.textBaseline='middle';
+  [[96,92,0],[50,166,8],[28,214,5]].forEach(([size,y,sp],i)=>{const t=lines[i];if(!t)return;
+    let px=size;g.font=`${px}px Georgia, "Times New Roman", serif`;if('letterSpacing'in g)g.letterSpacing=sp+'px';
+    const w=g.measureText(t).width;if(w>980){px*=980/w;g.font=`${px}px Georgia, "Times New Roman", serif`;}
+    g.strokeStyle=g.fillStyle;g.lineWidth=Math.max(1.5,px*0.045);g.strokeText(t,512,y);g.fillText(t,512,y);});
+  const t=new THREE.CanvasTexture(cv);t.anisotropy=4;return t;
 }
 const cyl=(rt,rb,h,seg,x,y,z,rx=0,rz=0)=>{const g=new THREE.CylinderGeometry(rt,rb,h,seg);if(rx)g.rotateX(rx);if(rz)g.rotateZ(rz);g.translate(x,y,z);return g;};
 const icoAt=(sx,sy,sz,x,y,z)=>{const g=new THREE.IcosahedronGeometry(1,1);g.scale(sx,sy,sz);g.translate(x,y,z);return g;};
@@ -1653,17 +1745,20 @@ function treeKit(type){
 }
 function zoneSampler(z,r){
   const bb=HOLE.bbox;
+  if(z.zone==='poly'){const b=areaBox({pts:z.pts},0);return()=>{for(let k=0;k<40;k++){const x=mix(b.x0,b.x1,r()),zz=mix(b.z0,b.z1,r());if(sdPoly(x,zz,z.pts)>0)return[x,zz];}return[1e9,1e9];};}
   if(z.zone==='sides')return()=>{const zz=mix(z.z[0],z.z[1],r());const side=z.side==='left'?1:z.side==='right'?-1:(r()<0.5?-1:1);const d=mix(z.d[0],z.d[1],Math.pow(r(),0.8));return[centerX(zz)+side*(fairwayHalf(zz)+d),zz];};
   if(z.zone==='shore')return()=>{for(let k=0;k<40;k++){const x=mix(bb.x0,bb.x1,r()),zz=mix(bb.z0,bb.z1,r());const s=BODIES[0].sd(x,zz);if(s<-z.d[0]&&s>-z.d[1])return[x,zz];}return[1e9,1e9];};
   return()=>[mix(z.x[0],z.x[1],r()),mix(z.z[0],z.z[1],r())];
 }
-function spotOK(x,z,clear){
+function spotOK(x,z,clear,zone){
   const bb=HOLE.bbox;if(x<bb.x0+2||x>bb.x1-2||z<bb.z0+2||z>bb.z1-2)return false;
+  if(!(zone&&zone.ob)&&inOB(x,z))return false;
+  for(const p of HOLE.props||[])if(p.w&&sdPoly(x,z,propCorners(p,clear))>0)return false;
   if(Math.abs(x)<14&&z>-30&&z<28)return false;
   if(ell(x,z,GREEN)<1.9)return false;
   for(const b of BUNKERS)if(ell(x,z,b)<1.6)return false;
   for(const b of BODIES)if(b.sd(x,z)>-clear)return false;
-  if(inFairway(x,z,clear)||S(x,z)===ROAD)return false;
+  const sf=S(x,z);if(inFairway(x,z,clear)||sf===ROAD||sf===PATH)return false;
   return true;
 }
 function buildWorld(){
@@ -1690,6 +1785,8 @@ function buildWorld(){
       else if(s===FRINGE)c.setHex(COL.fringe);
       else if(s===PINE){c.copy(PINE_C).offsetHSL(0,0,(jagN(x*2.3,z*2.3)*0.04));}
       else if(s===ROAD){c.copy(ROAD_C).offsetHSL(0,0,(jagN(x*3.1,z*3.1)*0.03));}
+      else if(s===PATH){c.copy(PATH_C).offsetHSL(0,0,jagN(x*2.9,z*2.9)*0.035);}
+      else if(s===LAWN){c.copy((Math.floor((x*0.8+z*0.6)/2.6)&1)?LAWN_A:LAWN_B);}
       else if(s===WASTE){c.copy(WASTE_C).offsetHSL(0,0,(jagN(x*1.7,z*1.7)*0.06));if(jagN(x*0.9+3,z*0.9)>0.55)c.lerp(new THREE.Color(GP.rough),0.55);}   // sand with tufts of wiregrass
       else if(s===SAND){let e=1;for(const b of BUNKERS)e=Math.min(e,ell(x,z,b));c.setHex(e>0.84?COL.sandRim:COL.sand);}
       else{c.setHex(dc>fairwayHalf(z)+18?COL.deep:(inFairway(x,z,3)?COL.cut:COL.rough));
@@ -1950,7 +2047,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
   }
   // ---- free-standing walls (obstacles): a run of stone blocks with a lighter cap, standing on the ground along the wall's line
   for(const o of OBST){
-    if(o.type!=='wall'||o.look===false)continue;   // look:false: a prop (sheds) draws it
+    if(o.type!=='wall'||o.look===false)continue;   // look:false: a prop (a solid building or barn) draws it
     const parts=[],cA=new THREE.Color('#a79b87'),cB=new THREE.Color('#b9ad97'),cT=new THREE.Color('#cdc2ab');let k=0;
     for(let i=1;i<o.pts.length;i++){
       const a=o.pts[i-1],c=o.pts[i],len=Math.hypot(c[0]-a[0],c[1]-a[1]),n=Math.max(1,Math.ceil(len/2.2)),ang=Math.atan2(c[0]-a[0],c[1]-a[1]);
@@ -1989,7 +2086,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       const kit=byType[z.type]||(byType[z.type]={kit:treeKit(z.type),list:[]});
       const sample=zoneSampler(z,r),s0=(z.s||[0.85,1.3]);let placed=0;
       for(let k=0;k<z.n*14&&placed<z.n;k++){
-        const[x,zz]=sample();if(!spotOK(x,zz,3)||near(x,zz,kit.kit.space))continue;
+        const[x,zz]=sample();if(!spotOK(x,zz,3,z)||near(x,zz,kit.kit.space))continue;
         const s=mix(s0[0],s0[1],r()),sy=s*(0.9+r()*0.3),y=H(x,zz);
         const t={x,z:zz,y,s,sy,rot:r()*6.28,k:0.86+r()*0.24,j:r()*2-1,space:kit.kit.space,cy:y+kit.kit.cy*sy,r:kit.kit.r*s};
         kit.list.push(t);TREES.push(t);placed++;
@@ -2029,7 +2126,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
     const PALS={shrub:PAL.bush,azalea:['#ff5fa8','#e8338a','#ff8fc8','#fff2f6','#f25c8a','#d9468f']};
     const items=[];
     for(const z of HOLE.bushes){const sample=zoneSampler(z,r);let placed=0;
-      for(let k=0;k<z.n*12&&placed<z.n;k++){const[x,zz]=sample();if(!spotOK(x,zz,1.5))continue;if(TREES.some(t=>Math.abs(t.x-x)<2&&Math.abs(t.z-zz)<2))continue;
+      for(let k=0;k<z.n*12&&placed<z.n;k++){const[x,zz]=sample();if(!spotOK(x,zz,1.5,z))continue;if(TREES.some(t=>Math.abs(t.x-x)<2&&Math.abs(t.z-zz)<2))continue;
         const az=z.type==='azalea',s=az?mix(1.1,2.1,r()):mix(0.9,1.8,r());items.push([x,zz,s,PALS[z.type][Math.floor(r()*PALS[z.type].length)],az]);placed++;}}
     if(NATURE.ok){   // green shrubs become the pack's bush model; azaleas keep their own pink lumps
       const shrubs=items.filter(it=>!it[4]);
@@ -2232,38 +2329,66 @@ float tnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(th
     g.position.set(c.x,H(c.x,c.z),c.z);g.rotation.y=c.rot||0;add(g);
   }
 
-  // ---- props: buildings that frame a hole (HOLE.props). Each is look only unless the hole also lists a matching obstacle.
-  //   sheds    {pts:[[x,z]...], d, h}  a run of dark timber sheds with pitched slate roofs, built back (away from the tee) from the front line pts
-  //   building {x,z,w,d,h,rot, floors}  a big stone block with rows of windows and a slate roof (a hotel, a clubhouse)
-  for(const pr of HOLE.props||[]){
-    if(pr.type==='sheds'){
-      const parts=[],roofs=[],k0=pr.d||7,h=pr.h||5.5;
-      for(let i=1;i<pr.pts.length;i++){
-        const a=pr.pts[i-1],c=pr.pts[i],len=Math.hypot(c[0]-a[0],c[1]-a[1]),n=Math.max(1,Math.round(len/9)),ang=Math.atan2(c[0]-a[0],c[1]-a[1]);
-        // the run's outward normal (away from the tee): the side of the line with larger z
-        let nx=Math.cos(ang),nz=-Math.sin(ang);if(nz<0){nx=-nx;nz=-nz;}
-        for(let j=0;j<n;j++){
-          const t=(j+0.5)/n,x=mix(a[0],c[0],t)+nx*k0/2,z=mix(a[1],c[1],t)+nz*k0/2,gy=Math.min(H(x,z),H(x-nx*k0/2,z-nz*k0/2)),L=len/n+0.15,hh=h*(0.92+0.16*((i*7+j*3)%3)/2);
-          const box=new THREE.BoxGeometry(L,hh,k0);box.translate(0,hh/2,0);box.rotateY(ang+Math.PI/2);box.translate(x,gy,z);parts.push([box,(i+j)%2?'#26352c':'#2c3d32']);
-          const sh=new THREE.Shape([new THREE.Vector2(-k0/2-0.5,0),new THREE.Vector2(k0/2+0.5,0),new THREE.Vector2(0,k0*0.42)]);
-          const rf=new THREE.ExtrudeGeometry(sh,{depth:L+0.6,bevelEnabled:false});rf.translate(0,0,-(L+0.6)/2);rf.rotateY(ang);rf.translate(x,gy+hh,z);roofs.push([rf,'#4a4f56']);
-          const trim=new THREE.BoxGeometry(L+0.05,0.35,k0+0.05);trim.translate(0,hh-0.17,0);trim.rotateY(ang+Math.PI/2);trim.translate(x,gy,z);parts.push([trim,'#d8d2c0']);
+  // ---- props: buildings and furniture that frame a hole (HOLE.props), merged into a few meshes (one per material) to keep the draw calls down.
+  // Look only, unless a building or barn says `solid`: then it is also a wall obstacle round its footprint (propWalls), so a ball strikes it.
+  // A footprint is a turned box: x,z its middle, w across, d along, rot turns it (rotation.y; local -z faces the tee when rot is near 0), h its eaves.
+  //   building {x,z,w,d,h,rot, roof:'hip'|'mansard'|'gable'|'flat', roofH, col, roofCol, balc, plinth}  a hotel block: floors of windows (a few lit),
+  //            a balcony rail on every floor above the ground (balc), a darker stone ground floor `plinth` yards high, a slate roof (a mansard has dormers)
+  //   barn     {x,z,w,d,h,rot, ridge, col, roofCol, sign:{lines, at, w}}  a timber shed: black horizontal boards, a ribbed metal gable roof whose ridge runs
+  //            along the longer side `ridge` yards above the eaves (0: flat), and white lettering painted on its front wall (at: -0.5..0.5 along it)
+  //   net      {pts, h, every}   tall black poles with ball-stop netting between them
+  //   posts    {pts, every, h, col}  stakes along a line: white ones are out-of-bounds markers
+  if(HOLE.props&&HOLE.props.length){
+    const P={walls:[],stone:[],slate:[],metal:[],boards:[],flat:[],dark:[],ink:[],nets:[]},dormers=[],signs=[];
+    const boxAt=(w,h,d,y)=>{const g=new THREE.BoxGeometry(w,h,d);g.translate(0,y,0);return g;};
+    const place=(geo,pr,y)=>{geo.rotateY(pr.rot||0);geo.translate(pr.x,y,pr.z);return geo;};
+    let floorY=0,nb=0;
+    for(const pr of HOLE.props){
+      const y0=propGround(pr);
+      if(pr.type==='building'){
+        const h=pr.h,rh=pr.roofH??h*0.2,style=pr.roof||'hip';floorY+=y0;nb++;
+        const body=place(boxAt(pr.w,h+0.6,pr.d,(h+0.6)/2-0.6),pr,y0);P.walls.push([body,pr.col||'#ccb186']);P.ink.push([body]);
+        if(pr.plinth){P.stone.push([place(boxAt(pr.w+0.3,pr.plinth+0.6,pr.d+0.3,(pr.plinth+0.6)/2-0.6),pr,y0),'#8a7962']);}
+        if(style==='flat'){const cap=place(boxAt(pr.w+0.4,0.5,pr.d+0.4,h+0.25),pr,y0);P.flat.push([cap,pr.roofCol||'#6e7479']);P.ink.push([cap]);}
+        else{
+          const rf=place(roofGeo(style,pr.w,pr.d,rh,0.5),pr,y0+h);P.ink.push([rf]);
+          if(style==='mansard')dormers.push({geo:rf,col:pr.roofCol||'#3d434a',y:y0+h,rh});else P.slate.push([rf,pr.roofCol||'#3d434a']);
+          P.flat.push([place(boxAt(pr.w+0.7,0.55,pr.d+0.7,h-0.1),pr,y0),'#e2d6be']);   // a pale cornice under the eaves
         }
+      }else if(pr.type==='barn'){
+        const h=pr.h,rh=pr.ridge||0,col=pr.col||'#25282a';
+        const body=place(boxAt(pr.w,h+0.5,pr.d,(h+0.5)/2-0.5),pr,y0);P.boards.push([body,col]);P.ink.push([body]);
+        if(rh>0){const rf=place(roofGeo('gable',pr.w,pr.d,rh,0.35,false),pr,y0+h);P.metal.push([rf,pr.roofCol||'#8a948f']);P.ink.push([rf]);
+          P.boards.push([place(gableEnds(pr.w,pr.d,rh),pr,y0+h),col]);}
+        else{const cap=place(boxAt(pr.w+0.3,0.4,pr.d+0.3,h+0.2),pr,y0);P.flat.push([cap,pr.roofCol||'#6b7176']);P.ink.push([cap]);}
+        if(pr.sign)signs.push([pr,y0]);
+      }else if(pr.type==='net'){
+        const pts=resample(pr.pts,pr.every||6),hh=pr.h||8;
+        for(const[x,z]of pts)P.dark.push([cyl(0.11,0.14,hh,6,x,H(x,z)+hh/2,z),'#1c1e21']);
+        for(let i=1;i<pts.length;i++){const[a,b]=[pts[i-1],pts[i]],ya=H(a[0],a[1]),yb=H(b[0],b[1]);
+          P.nets.push(triGeo([[[a[0],ya+0.8,a[1]],[b[0],yb+0.8,b[1]],[b[0],yb+hh-0.3,b[1]]],[[a[0],ya+0.8,a[1]],[b[0],yb+hh-0.3,b[1]],[a[0],ya+hh-0.3,a[1]]]],[0,-1e4,0]));}
+      }else if(pr.type==='posts'){
+        const hh=pr.h||1.1;for(const[x,z]of resample(pr.pts,pr.every||15))P.dark.push([boxAt(0.17,hh,0.17,H(x,z)+hh/2-0.15).translate(x,0,z),pr.col||'#f3f1e9']);
       }
-      const wg=mergeGeos(parts),rg=mergeGeos(roofs);
-      const wm=add(new THREE.Mesh(wg,facadeMat({boards:1.0})));wm.castShadow=true;wm.receiveShadow=true;add(new THREE.Mesh(wg,outlineMat(0.08)));
-      const rm=add(new THREE.Mesh(rg,toon(0xffffff,{vertexColors:true})));rm.castShadow=true;rm.receiveShadow=true;add(new THREE.Mesh(rg,outlineMat(0.08)));
-    }else if(pr.type==='building'){
-      const g=new THREE.Group(),fl=pr.floors||5,h=pr.h||fl*3.2;
-      const body=new THREE.BoxGeometry(pr.w,h,pr.d);body.translate(0,h/2,0);
-      const bm=new THREE.Mesh(mergeGeos([[body,pr.col||'#cbb89a']]),facadeMat({win:1,floor:h/fl,bay:pr.bay||3.4,glass:pr.glass||'#3b4658',lit:pr.lit??0.25}));bm.castShadow=true;bm.receiveShadow=true;g.add(bm);
-      g.add(new THREE.Mesh(body,outlineMat(0.14)));
-      const rs=new THREE.Shape([new THREE.Vector2(-pr.d/2-0.6,0),new THREE.Vector2(pr.d/2+0.6,0),new THREE.Vector2(pr.d/4,pr.d*0.32),new THREE.Vector2(-pr.d/4,pr.d*0.32)]);
-      const rf=new THREE.ExtrudeGeometry(rs,{depth:pr.w+1.2,bevelEnabled:false});rf.translate(0,0,-(pr.w+1.2)/2);rf.rotateY(Math.PI/2);rf.translate(0,h,0);
-      const rm=new THREE.Mesh(rf,toon(pr.roof||'#4b5058'));rm.castShadow=true;g.add(rm);g.add(new THREE.Mesh(rf,outlineMat(0.14)));
-      // a band of balconies or a cornice under the roof, so the block does not read as a plain box
-      const cor=new THREE.BoxGeometry(pr.w+0.8,0.6,pr.d+0.8);cor.translate(0,h-0.3,0);g.add(new THREE.Mesh(cor,toon('#e6dcc8')));
-      g.position.set(pr.x,H(pr.x,pr.z)-0.4,pr.z);g.rotation.y=pr.rot||0;add(g);
+    }
+    floorY=nb?floorY/nb:0;
+    const mesh=(parts,mat,shadow=true)=>{if(!parts.length)return null;const m=add(new THREE.Mesh(mergeGeos(parts),mat));m.castShadow=shadow;m.receiveShadow=true;return m;};
+    mesh(P.walls,facadeMat({win:1,floor:3.6,bay:3.3,glass:'#29313b',lit:0.12,balc:1,y0:floorY}));
+    mesh(P.stone,facadeMat({stones:1}));
+    mesh(P.slate,toon(0xffffff,{vertexColors:true}));
+    mesh(P.flat,toon(0xffffff,{vertexColors:true}));
+    mesh(P.dark,toon(0xffffff,{vertexColors:true}));
+    const rd=HOLE.props.find(p=>p.type==='barn');   // the ribs run down the slope: across the first barn's ridge
+    if(rd)mesh(P.metal,facadeMat({seams:[Math.cos(rd.rot||0),-Math.sin(rd.rot||0)]}));
+    mesh(P.boards,facadeMat({hboards:1}));
+    // a mansard's steep slopes carry one row of dormer windows: their own window grid, from that block's eaves
+    for(const d of dormers)mesh([[d.geo,d.col]],facadeMat({win:1,floor:d.rh*1.4,bay:3.3,glass:'#29313b',lit:0.1,y0:d.y-d.rh*0.45}));
+    if(P.ink.length){add(new THREE.Mesh(mergeGeos(P.ink),outlineMat(0.12)));}
+    if(P.nets.length){const g=mergeGeos(P.nets.map(n=>[n])),m=add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:'#17191c',transparent:true,opacity:0.2,side:THREE.DoubleSide,depthWrite:false})));m.renderOrder=2;}
+    for(const[pr,y0]of signs){
+      const s=pr.sign,W=s.w||pr.w*0.5,geo=new THREE.PlaneGeometry(W,W/4);geo.rotateY(Math.PI);   // faces local -z, readable from in front
+      geo.translate((s.at||0)*pr.w,pr.h*(s.y||0.56),-pr.d/2-0.06);geo.rotateY(pr.rot||0);geo.translate(pr.x,y0,pr.z);
+      add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:signTex(s.lines||[]),transparent:true,alphaTest:0.3,color:'#e9e6dd'})));   // paint: unlit, so it reads in shade
     }
   }
   backMesh.position.set(PIN.x/2,BACK.y0+BACK.h/2,PIN.z/2);
@@ -2514,7 +2639,7 @@ function simulateFlight(dt){
         if(hs<9&&ball.t-ball.lipT>0.3){const a=(Math.random()<.5?-1:1)*(0.7+Math.random()*0.6);const c=Math.cos(a),s=Math.sin(a);const vx=ball.v.x,vz=ball.v.z;ball.v.x=(vx*c-vz*s)*0.55;ball.v.z=(vx*s+vz*c)*0.55;ball.lipT=ball.t;onEv('lip');}
       }
     }
-    if(ball.resting||ball.t>BallModel.MAX_T){state='settle';ball.resting=true;ball.v.set(0,0,0);showResult();later(0.9,setupAim);return;}
+    if(ball.resting||ball.t>BallModel.MAX_T){if(inOB(ball.p.x,ball.p.z))return outOfBounds();state='settle';ball.resting=true;ball.v.set(0,0,0);showResult();later(0.9,setupAim);return;}
   }
 }
 function water(){

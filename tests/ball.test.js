@@ -256,15 +256,15 @@ test('the "CARRY n · ROLL m" popup shows the same numbers the model recorded, a
   assert.deepEqual(popups, []);
 });
 
-test('the end of a shot still flows into scoring and the next shot: rest, water and out-of-bounds all hand over correctly', () => {
+test('the end of a shot still flows into scoring and the next shot: rest, water and out-of-bounds (off the hole, or at rest in an `ob` area) all hand over correctly', () => {
   const a = SRC.indexOf('let stepAcc=0;\nfunction simulateFlight(dt){'), b = SRC.indexOf('function water(){', a), src = SRC.slice(a, b);
-  const run = (ballP, bodies, bbox, restAfter) => {
+  const run = (ballP, bodies, bbox, restAfter, ob = () => false) => {
     const log = [];
     const api = new Function('env', `
       let state='flight';const ball=env.ball,BallModel=env.BallModel,R=0.05,PIN={x:1e6,z:1e6},PIN_H=0,HOLE={bbox:env.bbox},BODIES=env.bodies;
-      const overWater=(x,z)=>env.bodies.find(b=>b.sd(x,z)>0)||null,water=()=>env.log.push('water'),outOfBounds=()=>env.log.push('oob'),holed=()=>env.log.push('holed'),later=(s,f)=>env.log.push(['later',f===setupAim]),setupAim=()=>{},showResult=()=>env.log.push('result'),physStep=(b,h)=>{b.t+=h;if(b.t>=env.restAfter)b.resting=true;};
+      const overWater=(x,z)=>env.bodies.find(b=>b.sd(x,z)>0)||null,inOB=env.ob,water=()=>env.log.push('water'),outOfBounds=()=>env.log.push('oob'),holed=()=>env.log.push('holed'),later=(s,f)=>env.log.push(['later',f===setupAim]),setupAim=()=>{},showResult=()=>env.log.push('result'),physStep=(b,h)=>{b.t+=h;if(b.t>=env.restAfter)b.resting=true;};
       ${src}
-      return {run:dt=>simulateFlight(dt),state:()=>state};`)({ ball: { p: ballP, v: { x: 0, y: 0, z: 0, set() { return this; } }, lastOut: { copy() {} }, resting: false, t: 0, rolling: false, lipT: -9 }, BallModel: BM, bodies, bbox, log, restAfter });
+      return {run:dt=>simulateFlight(dt),state:()=>state};`)({ ball: { p: ballP, v: { x: 0, y: 0, z: 0, set() { return this; } }, lastOut: { copy() {} }, resting: false, t: 0, rolling: false, lipT: -9 }, BallModel: BM, bodies, bbox, log, restAfter, ob });
     api.run(0.1); return { log, state: api.state() };
   };
   const big = { x0: -1e9, x1: 1e9, z0: -1e9, z1: 1e9 };
@@ -273,6 +273,8 @@ test('the end of a shot still flows into scoring and the next shot: rest, water 
   r = run({ x: 0, y: -3, z: 0 }, [{ level: -1, sd: () => 1 }], big, 99);
   assert.deepEqual(r.log, ['water']);
   r = run({ x: 500, y: 5, z: 0 }, [], { x0: -10, x1: 10, z0: -10, z1: 10 }, 99);
+  assert.deepEqual(r.log, ['oob']);
+  r = run({ x: 0, y: 5, z: 0 }, [], big, 0.02, () => true);   // comes to rest inside a hole's out-of-bounds area (St Andrews No. 17's hotel grounds)
   assert.deepEqual(r.log, ['oob']);
 });
 

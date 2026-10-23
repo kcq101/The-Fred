@@ -20,7 +20,7 @@ function png(w, h, rgb) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ih), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 const hex = s => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
-const SURF_COL = ['#6fae4a', '#7cc04f', '#3f7d34', '#8fd068', '#a6e07a', '#ecd9a0', '#3a78c0', '#a8743c', '#8f887b', '#d8c28c'].map(hex);
+const SURF_COL = ['#6fae4a', '#7cc04f', '#3f7d34', '#8fd068', '#a6e07a', '#ecd9a0', '#3a78c0', '#a8743c', '#8f887b', '#d8c28c', '#cbbd9b', '#5e8a3a'].map(hex);
 
 function draw(course, hi, outDir, opts = {}) {
   course.prepHole(hi);
@@ -38,6 +38,7 @@ function draw(course, hi, outDir, opts = {}) {
     if (s === g.ROUGH) { const shade = Math.max(0.55, Math.min(1.25, 1 + h * 0.025)); c = c.map(v => v * shade); }
     if (s === g.WATER) c = [58, 120, 192];
     else if (course.BODIES.some(b => b.sd(x, z) > 0)) c = [122, 92, 70];   // cliff / bank below the waterline
+    if (course.inOB(x, z)) c = c.map((v, k) => v * 0.6 + [200, 70, 70][k] * 0.4);   // out of bounds: tinted red
     const o = (py * W + px) * 3; img[o] = c[0]; img[o + 1] = c[1]; img[o + 2] = c[2];
   }
   for (let py = 1; py < Ht; py++) for (let px = 1; px < W; px++) {    // contours
