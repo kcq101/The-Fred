@@ -1,0 +1,52 @@
+{
+  "id": "oakmont-3",
+  "lidar": {
+    "source": "USGS 3DEP 1 m DEM, project PA_WesternPA_2019_D20 (flown 2019, published 2021-11-22), tiles USGS_1M_17_x59y449_PA_WesternPA_2019_D20.tif and USGS_1M_17_x60y449_PA_WesternPA_2019_D20.tif (public domain), from prd-tnm.s3.amazonaws.com. Flown before Gil Hanse's 2023-24 restoration (the 2025 back tee, the Church Pews' 13th pew and 15 yd extension and the moved right-hand bunkers are not in it). Not in the repo (331 + 339 MB): python3 tests/tools/lidar.py fetch --pin 40.531251,-79.816905 --download, and --pin 40.5261,-79.8264 for the west tile",
+    "crs": "EPSG:26917 (UTM 17N, NAD83), heights NAVD88 m",
+    "located_by": "map pins from the project owner (2026-10-23) on the green (40.531671, -79.817549), placed at the game pin (0, 397), and on the tee (40.528317, -79.816369): tee -> pin 385.5 m (422 yd, the 2016 card's 426-428) at 344.2 degrees. The line runs along the east edge of the Church Pews (a 95 x 35 m bunker crossed by 13 ridges) and left of the five right-hand bunkers, then up the hill to the green on the plateau, as every source has it",
+    "frame": {
+      "tile": [
+        "USGS_1M_17_x59y449_PA_WesternPA_2019_D20.tif",
+        "USGS_1M_17_x60y449_PA_WesternPA_2019_D20.tif"
+      ],
+      "anchor": {
+        "latlon": [
+          40.531671,
+          -79.817549
+        ],
+        "at": [
+          0,
+          397
+        ]
+      },
+      "bearing_deg": 344.2,
+      "yd_per_m": 1.0936,
+      "pin": [
+        0,
+        397
+      ],
+      "grid": {
+        "x": [
+          -110,
+          110
+        ],
+        "z": [
+          -60,
+          520
+        ],
+        "step": 0.5
+      },
+      "why": "real scale (1 m = 1.0936 yd). +z along the owner's tee -> green pins (344.2 degrees); the game tee is 25 yd up the line from the owner's tee pin (at z -25), on the forward tee the lidar shows as a level pad there, so a pure drive (245 carry) lands beside the north half of the Pews, between them and the right-hand bunkers, and a full iron is left up the hill (OpenFairway's shorter roll; Pebble, Augusta 13 and St Andrews moved their tees the same way)"
+    }
+  },
+  "church_pews": {
+    "date": "2026-10-23",
+    "read": "from the lidar in this frame: the bunker as ground more than 0.2 m below its 8 m smoothed surface (closed, filled), its convex hull simplified to 0.4 yd; the pews' crests as peaks of the ground along the hole at x 25 (a 16 yd moving average taken off), at z 170.8, 178.5, 186.5, 192.2, 199.2, 204.8, 211.8, 221.8, 230.0, 240.0, 249.0, 259.2, each a straight line rising 0.2 yd per yard toward +x (line fits over the bunker: 0.12-0.30)",
+    "relief": "trough floors 0.4-0.7 m below the ground round the bunker, crests about 0.7 m above it (1.0-1.4 m above the sand, 2.5 m gaussian)",
+    "built": "13 bunkers: the hull cut into strips between consecutive crests, each crest 1.5 yd wide (depth 0.6, lip 0.2); a `rise` 0.3 along each crest inside the hull shrunk by 1.2 yd",
+    "note": "12 pews in 2019; Hanse added a 13th and about 15 yd for the 2025 Open (not in the lidar)"
+  },
+  "green": {
+    "read": "the ground within 0.45 m of the pin's (297.87 m, 2.5 m smoothing) and under 5 % slope, connected to the pin: 34 x 29.5 yd, 754 yd2 (6,800 sq ft), corners rounded (two Chaikin passes); plane over it rises 1.19 % toward +x and falls 1.00 % toward +z"
+  }
+}
