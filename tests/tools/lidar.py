@@ -26,11 +26,13 @@ records where it came from.
         trace file (the hand-written fields there are kept); --png draws it -> tests/tools/out/<id>-lidar.png (shaded relief, not the photo:
         safe to look at, but it is derived from the tile, so it stays out of the repo too).
 
-    python3 tests/tools/lidar.py build <id> [--corridor 40] [--bunker-max 1.2] [--lip 0.25] [--profile shore|wall] [--json]
+    python3 tests/tools/lidar.py build <id> [--corridor 40] [--bunker-max 1.2] [--lip 0.25] [--profile shore|wall] [--grid 10] [--json]
         The hole's lidar half as code for its entry in index.html, from the same read as `outlines`: `bunkers` (each closed hollow
         within --corridor yd of the line tee -> pin and on, depth from the lidar capped at --bunker-max yd), `water` (each lake that
         reaches the corridor, its islands, its level against the tee), the heights along the line as `ramp` features (the profile
-        simplified to 0.25 yd, from the tee's height), and the green's `tilt`. Paste, then run validate.js: a hollow that belongs to a
+        simplified to 0.25 yd, from the tee's height), and the green's `tilt`. With --grid STEP, also a `grid` feature: the ground across
+        the hole relative to the line through the tee and pin, every STEP yd (bunkers and water filled in, smoothed to the spacing), for the
+        sideways banks and falls the ramps cannot carry. Paste, then run validate.js: a hollow that belongs to a
         neighbouring hole, or a depth the hop guard refuses, is decided there. The frame's grid must reach the tee (z 0).
 
     python3 tests/tools/lidar.py fit <id> [--write]
@@ -100,7 +102,7 @@ def flags(argv):
         a = argv[i]
         if a.startswith('--'):
             k, eq, v = a[2:].partition('=')
-            if not eq and i + 1 < len(argv) and not argv[i + 1].startswith('--') and k in ('pin', 'tee', 'r', 'rings', 'view', 'outline', 'clip', 'corridor', 'bunker-max', 'lip', 'profile'):
+            if not eq and i + 1 < len(argv) and not argv[i + 1].startswith('--') and k in ('pin', 'tee', 'r', 'rings', 'view', 'outline', 'clip', 'corridor', 'bunker-max', 'lip', 'profile', 'grid'):
                 v = argv[i + 1]; i += 1
             fl[k] = v if (eq or v) else True
         else:
@@ -688,7 +690,35 @@ def seg_dist(p, a, b):
     return math.hypot(px - ax - t * (bx - ax), pz - az - t * (bz - az))
 
 
-def build(hid, T, f, corridor=40.0, bunker_max=1.2, lip=0.25, profile='shore'):
+def side_grid(res, F, step):
+    """the ground across the hole, relative to the line through the tee and pin, on a coarse grid (index.html's `grid` feature):
+    bunkers and water filled in from their surroundings first (they are dug by their own entries), smoothed to the grid's spacing"""
+    import numpy as np
+    from scipy import ndimage
+    xs, zs, X, Z, H, wet, sand, islands = res['_masks']
+    fr = res['_frame']
+    st = xs[1] - xs[0]
+    Hf = np.where(np.isnan(H), np.nanmedian(H), H)
+    hole = ndimage.binary_dilation(sand | wet, iterations=max(1, int(round(2 / st))))
+    keep = (~hole).astype(float)
+    sig = max(1.0, step * 0.35 / st)
+    Hs = ndimage.gaussian_filter(Hf * keep, sig) / np.maximum(ndimage.gaussian_filter(keep, sig), 1e-6)
+    g = F['grid']
+    gx = np.arange(math.ceil(g['x'][0] / step) * step, g['x'][1] + 1e-9, step)
+    gz = np.arange(math.ceil(g['z'][0] / step) * step, g['z'][1] + 1e-9, step)
+    pin = res['profile']['pin']
+    L = math.hypot(*pin) or 1.0
+    at = lambda x, z: ndimage.map_coordinates(Hs, [[(z - zs[0]) / st], [(x - xs[0]) / st]], order=1)[0]   # noqa: E731
+    v = []
+    for z in gz:
+        cx = pin[0] * z / pin[1] if pin[1] else 0.0   # the line tee -> pin
+        h0 = at(cx, z)
+        v.extend(round(float((at(x, z) - h0) * fr.s), 1) for x in gx)
+    return {'type': 'grid', 'x0': round(float(gx[0]), 1), 'z0': round(float(gz[0]), 1), 'step': step, 'nx': len(gx), 'v': v,
+            '_note': f'{len(gx)} x {len(gz)} heights, every {step} yd: the ground across the hole relative to the line, from the lidar'}
+
+
+def build(hid, T, f, corridor=40.0, bunker_max=1.2, lip=0.25, profile='shore', grid_step=None):
     res = read_hole(hid, T, f, compare=False)
     fr = res['_frame']
     pin = res['profile']['pin']
@@ -716,10 +746,13 @@ def build(hid, T, f, corridor=40.0, bunker_max=1.2, lip=0.25, profile='shore'):
             water.append({'kind': 'lake', 'profile': profile, 'level': level, 'bed': round(level - 2.4, 2), 'edge': 0.6,
                           'shape': {'type': 'poly', 'pts': o['pts']}, 'islands': [{'type': 'poly', 'pts': i['pts']} for i in inside],
                           '_note': f"{o['width']} x {o['depth']} yd"})
+    grid = None
+    if grid_step:
+        grid = side_grid(res, T['lidar']['frame'], grid_step)
     tilt = None
     if 'plane' in res:
         tilt = {'x': round(res['plane']['x_pct'] / 100, 4), 'z': round(res['plane']['z_pct'] / 100, 4), '_note': f"over {res['plane']['over']}"}
-    return {'ramps': ramps, 'bunkers': bunkers, 'water': water, 'tilt': tilt, 'h_tee_rel_pin': h_tee,
+    return {'ramps': ramps, 'bunkers': bunkers, 'water': water, 'tilt': tilt, 'grid': grid, 'h_tee_rel_pin': h_tee,
             'skipped_sand': [o['name'] for o in res['outlines'] if o['kind'] == 'sand' and not near(o['centroid'])]}
 
 
@@ -740,7 +773,8 @@ def cmd_build(pos, fl):
     if not pos:
         die('build needs a hole id')
     T, f = load_trace(pos[0])
-    B = build(pos[0], T, f, float(fl.get('corridor', 40)), float(fl.get('bunker-max', 1.2)), float(fl.get('lip', 0.25)), fl.get('profile', 'shore'))
+    B = build(pos[0], T, f, float(fl.get('corridor', 40)), float(fl.get('bunker-max', 1.2)), float(fl.get('lip', 0.25)), fl.get('profile', 'shore'),
+              float(fl['grid']) if fl.get('grid') else None)
     if fl.get('json'):
         print(json.dumps(B))
         return
@@ -750,6 +784,8 @@ def cmd_build(pos, fl):
     print('  features:[   // the heights along the line (lidar profile, simplified to 0.25 yd)')
     for r in B['ramps']:
         print(f'    {js(r)},')
+    if B['grid']:
+        print(f"    {js(B['grid'])},   // {B['grid']['_note']}")
     print('  ],')
     print('  bunkers:[')
     for b in B['bunkers']:

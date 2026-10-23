@@ -62,6 +62,40 @@ test('play profile: each hole tunes its own copy of the surfaces, and the next h
   for (const k in course.SP) if (course.SP[k].rr == null) assert.ok(course.SP[k].hold <= course.SP[k].dec / g.G + 1e-9, `surface ${k}: hold <= dec/G`);   // rr surfaces (OpenFairway friction): hold is static, not tied to rolling friction
 });
 
+test('features: a grid adds its heights smoothly, passes through its nodes, holds its edge values outside, and refuses a ragged one', () => {
+  const i = idx('riviera-6'), hole = course.HOLES[i], saved = hole.features;
+  course.prepHole(i);
+  const at = [[40, 150], [35, 150], [52.5, 162.5], [20, 140], [140, 140]], before = at.map(p => course.H(...p));
+  const v = [0, 0, 0, 0, 0, 1, 2, 0, 0, 3, -1, 0, 0, 0, 0, 0];   // 4 x 4, step 10 from (20, 140)
+  hole.features = [...saved, { type: 'grid', x0: 20, z0: 140, step: 10, nx: 4, v }];
+  course.prepHole(i);
+  const d = at.map((p, k) => course.H(...p) - before[k]);
+  assert.ok(Math.abs(d[0] - 2) < 1e-9 && Math.abs(d[3]) < 1e-9, `at the nodes it adds exactly their heights (${d[0]}, ${d[3]})`);
+  assert.ok(d[1] > 1 && d[1] < 2, `between two nodes it runs between them (${d[1].toFixed(2)})`);
+  assert.ok(Math.abs(d[4]) < 1e-9, 'beyond its last column it holds the edge value (0 here)');
+  const e = 0.01, s1 = course.H(30 - e, 155) - course.H(30 - 2 * e, 155), s2 = course.H(30 + 2 * e, 155) - course.H(30 + e, 155);
+  assert.ok(Math.abs(s1 - s2) < 1e-3, 'no crease where one cell meets the next');
+  hole.features = [...saved, { type: 'grid', x0: 0, z0: 0, step: 10, nx: 4, v: [1, 2, 3] }];
+  assert.throws(() => course.prepHole(i), /grid/);
+  hole.features = saved; course.prepHole(i);
+});
+
+test('play profile: hold below 1 lets a ball that stops on a short-grass slope roll back down it; rough keeps its hold', () => {
+  const i = idx('pebble-8'), hole = course.HOLES[i], saved = hole.play;
+  hole.play = { hold: 0.45 }; course.prepHole(i);
+  assert.ok(Math.abs(course.SP[g.FAIRWAY].hold - 0.45 * g.SP[g.FAIRWAY].hold) < 1e-12 && Math.abs(course.SP[g.FRINGE].hold - 0.45 * g.SP[g.FRINGE].hold) < 1e-12, 'fairway and fringe hold less');
+  assert.equal(course.SP[g.ROUGH].hold, g.SP[g.ROUGH].hold, 'rough is untouched');
+  hole.play = saved; course.prepHole(i);
+  assert.equal(course.SP[g.FAIRWAY].hold, g.SP[g.FAIRWAY].hold, 'the next profile starts from the defaults');
+  // on Oakmont No. 3 (hold 0.45) an iron landed on the 9-14 % run-off in front of the green rolls back down the hill; at the default hold it sits on the slope
+  const oak = idx('oakmont-3'), oh = course.HOLES[oak], op = oh.play;
+  const short = { from: [0, 258], club: 'Iron', power: 0.8 };
+  course.prepHole(oak); const back = playShot(course, short);
+  oh.play = Object.assign({}, op, { hold: 1 }); course.prepHole(oak); const sits = playShot(course, short);
+  oh.play = op; course.prepHole(oak);
+  assert.ok(back.toPin > sits.toPin + 10, `rolls back: ${back.toPin.toFixed(1)} yd from the pin against ${sits.toPin.toFixed(1)} at the default hold`);
+});
+
 test('stance: flat ground changes nothing; putts ignore slopes', () => {
   const flat = SM.read({ x: 0, y: 1, z: 0 }, 0.3);
   const e = SM.effect(g.CLUBS[0], flat);

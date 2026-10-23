@@ -214,4 +214,36 @@ module.exports = {
           ['for a shaky player the baseline puts the two plans within 0.35 stroke of each other, either way', r => Math.abs(r.pin.shaky.score - r.safe.shaky.score) < 0.35] ] },
     ],
   },
+
+  'oakmont-3': {
+    challenge: 'A drive into a narrow valley between the Church Pews on the left and five deep bunkers on the right, then a blind short iron up the hill to a green on a tabletop: short rolls back down the hill, long runs off the back.',
+    shots: [
+      { name: 'a pure drive lands beside the Pews and finishes in the fairway, a full iron left up the hill', shot: { club: 'Hammer', at: 'pin', power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
+      { name: 'a hooked drive finds the Church Pews', shot: { club: 'Hammer', at: 'pin', power: 1, offset: -0.5 }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'a pushed drive finds the five bunkers on the right', shot: { club: 'Hammer', at: 'pin', power: 1, offset: 0.5 }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'from the fairway a pure iron up the hill holds the tabletop green', shot: { from: [0, 258], club: 'Iron' }, expect: { surf: ['GREENS'], maxToPin: 8 } },
+      { name: 'an iron 20 yd short lands on the run-off and rolls back down the hill', shot: { from: [0, 258], club: 'Iron', power: 0.8 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 35 } },
+      { name: 'a 3-wood approach flies the tabletop and runs away off the back', shot: { from: [0, 258], club: '3-Wood', power: 0.85 }, expect: { end: 'rest', minToPin: 25 } },
+      { name: "from the 3-wood's landing, a full iron comes up short and rolls back down", shot: { from: [0, 230], club: 'Iron', power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 35 } },
+      { name: 'at the foot of a pew a wedge at the green cannot get out forwards', shot: { from: [24, 220], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'], minToPin: 170 } },
+      { name: 'played out sideways, along the trough, the same ball reaches the fairway', shot: { from: [24, 220], club: 'Wedge', at: [-5, 226] }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
+    ],
+    strategies: [
+      { name: 'the tee club: driver beside the Pews, a 3-wood, or an iron short of them', plans: [
+          { name: 'driver', shot: { club: 'Hammer', at: 'pin', power: 1 } },
+          { name: '3-wood', shot: { club: '3-Wood', at: 'pin', power: 1 } },
+          { name: 'iron', shot: { club: 'Iron', at: 'pin', power: 1 } } ],
+        expect: [
+          ['a sharp driver stays out of the sand and leaves the shortest approach', r => (r.driver.sharp.surfs.SAND || 0) === 0 && r.driver.sharp.toPin < r['3-wood'].sharp.toPin],
+          ['a shaky driver finds the Pews or the bunkers at least one time in five', r => (r.driver.shaky.surfs.SAND || 0) >= r.driver.shaky.n / 5],
+          ['the iron keeps a shaky player out of the sand but leaves 80+ yd more than the driver', r => (r.iron.shaky.surfs.SAND || 0) === 0 && r.iron.sharp.toPin > r.driver.sharp.toPin + 80],
+          ['for a sharp player the driver is the best plan', r => r.driver.sharp.score < r['3-wood'].sharp.score && r.driver.sharp.score < r.iron.sharp.score] ] },
+      { name: 'the approach up the hill: at the pin, or a few yards past it', plans: [
+          { name: 'pin', shot: { from: [0, 258], club: 'Iron' } },
+          { name: 'past', shot: { from: [0, 258], club: 'Iron', at: [0, 405] } } ],
+        expect: [
+          ['a sharp player holds the green from either line most of the time', r => r.pin.sharp.surfs.GREENS >= 0.7 * r.pin.sharp.n && r.past.sharp.surfs.GREENS >= 0.7 * r.past.sharp.n],
+          ['for a shaky player at the pin, the front run-off sends some back down the hill (20+ yd away)', r => r.pin.shaky.toPin > r.pin.sharp.toPin + 3] ] },
+    ],
+  },
 };
