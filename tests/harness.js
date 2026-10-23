@@ -26,7 +26,7 @@ function loadGame(src = SRC) {
   const ball = between_('// <ball-model>', '// </ball-model>');
   const stance = src.includes('// <stance-model>') ? between_('// <stance-model>', '// </stance-model>') : 'const StanceModel=null;';
   const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n${stance}\n${ball}\n` +
-    'return {G,K:typeof K===\'undefined\'?undefined:K,Aero:typeof Aero===\'undefined\'?undefined:Aero,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE:typeof PINE===\'undefined\'?undefined:PINE,ROAD:typeof ROAD===\'undefined\'?undefined:ROAD,WASTE:typeof WASTE===\'undefined\'?undefined:WASTE,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
+    'return {G,K:typeof K===\'undefined\'?undefined:K,Aero:typeof Aero===\'undefined\'?undefined:Aero,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE:typeof PINE===\'undefined\'?undefined:PINE,ROAD:typeof ROAD===\'undefined\'?undefined:ROAD,WASTE:typeof WASTE===\'undefined\'?undefined:WASTE,PATH:typeof PATH===\'undefined\'?undefined:PATH,LAWN:typeof LAWN===\'undefined\'?undefined:LAWN,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
   return new Function(body)();
 }
 
@@ -43,7 +43,7 @@ function loadCourse(src = SRC) {
   const game = loadGame(src);
   const body = `const D2R=Math.PI/180;const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));const mix=(a,b,t)=>a+(b-a)*t;const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 ${region}
-return {HOLES,prepHole,H,normal,S,obstacleHit:typeof obstacleHit==='undefined'?(()=>{}):obstacleHit,get OBST(){return typeof OBST==='undefined'?[]:OBST;},get HOLE(){return HOLE;},get PIN(){return PIN;},get PIN_H(){return PIN_H;},get TEE_H(){return TEE_H;},get BUNKERS(){return BUNKERS;},get BODIES(){return BODIES;},get GREEN(){return GREEN;},ell,prepShape:typeof prepShape==='undefined'?undefined:prepShape,sdPoly:typeof sdPoly==='undefined'?undefined:sdPoly,rawH:typeof rawH==='undefined'?undefined:rawH,centerX,inFairway,SP,get FEATS(){return typeof FEATS==='undefined'?null:FEATS;}};`;
+return {HOLES,prepHole,H,normal,S,obstacleHit:typeof obstacleHit==='undefined'?(()=>{}):obstacleHit,inOB:typeof inOB==='undefined'?(()=>false):inOB,get OBST(){return typeof OBST==='undefined'?[]:OBST;},get HOLE(){return HOLE;},get PIN(){return PIN;},get PIN_H(){return PIN_H;},get TEE_H(){return TEE_H;},get BUNKERS(){return BUNKERS;},get BODIES(){return BODIES;},get GREEN(){return GREEN;},ell,prepShape:typeof prepShape==='undefined'?undefined:prepShape,sdPoly:typeof sdPoly==='undefined'?undefined:sdPoly,rawH:typeof rawH==='undefined'?undefined:rawH,centerX,inFairway,SP,get FEATS(){return typeof FEATS==='undefined'?null:FEATS;}};`;
   const course = new Function('V3', body)(V3);
   course.game = game;                                                     // (attach, don't spread: HOLE/PIN/... are live getters)
   course.terrain = { H: course.H, normal: course.normal, S: course.S };

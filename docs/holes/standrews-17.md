@@ -27,7 +27,7 @@
 |---|---|---|---|
 | Distance control / run-out | Yes (primary) | Approach | Firm turf: the ball runs; long is the road |
 | Forced carry | Partly | Approach | Over the bunker to a pin behind it |
-| Dogleg / corner to cut | Left out | Drive | The hotel corner is a blind drive; see gaps |
+| Dogleg / corner to cut | Yes | Drive | Over the corner of the hotel's grounds: the black shed hides the fairway (a blind drive) and the grounds are out of bounds (2026-10-23) |
 | Elevation change | No | | |
 | Sloping lies | No | | |
 | Narrow landing zone | Yes | Approach | The green is narrow and angled |
@@ -35,7 +35,7 @@
 | Green contours | Mild | Approach | A gentle tilt away from the road |
 | Penal surrounds | Yes | Approach | Road and wall |
 | Wind exposure | Yes | Both | 8–20 mph, exposed links |
-| Risk/reward split | Yes | Approach | Fly it, attack the tucked pin, or play the front |
+| Risk/reward split | Yes | Both | Drive: over the sign, down the right by the hotel (the better angle in, out of bounds close), or bail out left. Approach: fly it, attack the tucked pin, or play the front |
 | Firm/fast turf | Yes | Both | `firm:1.5`, fast greens |
 
 ## 4. Translation — real feature → game mechanic
@@ -50,8 +50,20 @@
 | Firm links turf and wind | play profile | `firm:1.5, wind:[8,20], windPush:0.6, greens:{speed:1.15, firm:3.5}` | Run-out everywhere; an iron flown onto the green releases (§5) |
 | Scholar's and Progressing bunkers | bunkers, outlines from the lidar (named on the yardage book) | short-left of the green, 1.0 and 0.6 m deep | Positional; the two invented fairway pots are gone (no hollows there) |
 | Dunes | `theme:'links'` backdrop | | Golden dunes behind |
+| The drive over the hotel's corner (2026-10-23) | the shed: three `barn` props (`solid`, dead timber); the hotel: eight `building` props (`solid`, stone); the stone wall round the grounds: a `wall` obstacle; the gravel path beside it: a `PATH` cover; the fairway moved left of the grounds. All measured on the Scottish lidar's surface model (rooftops: DSM − DTM), `docs/holes/trace/standrews-17.json` `landmarks` | wall 1.2 yd high, straight from beside the tee to the corner (22, 98) and straight again down the right; the shed's front 25.5 yd wide, 5.3 yd to the eaves, ~55 yd out, its sign facing the tee; the hotel 8.7–19.7 yd to the eaves from beside the tee to z 255 | Aim over the sign: a pure drive at the pin carries the corner and finds the fairway, 138 yd out; a low shot is stopped by the shed and drops out of bounds |
+| Out of bounds right: the hotel's grounds | **new** `ob` area (generic: a polygon; a ball at rest inside is out of bounds, +1 and replay) and a `LAWN` cover | right of the wall, from behind the tee to the hotel's far end | Down the right a shaky player is out about one time in five (§6) |
 
-**Capability gaps**: the blind drive over the hotel/sheds corner and the out-of-bounds line along the hotel are not expressed. The game has no blind shots and no OB along a side, so the drive is a plain fairway shot.
+**The look** (step 6b, from the owner's video of the St Andrews Links flyover and the lidar's rooftops):
+
+| From the tee, a player would name… | Look expression | Does it touch the ball? |
+|---|---|---|
+| The black shed with OLD COURSE HOTEL painted on it, straight ahead | `barn` props: black horizontal boards, ribbed grey metal roofs, `sign` lettering (white serif capitals, no crest) | yes: `solid` (e 0.2, f 0.2, fy 0.15); the check "a low 3-wood into the shed" |
+| The hotel towering down the right | `building` props: sandstone blocks with windows, balcony rails, a dark stone ground floor, hipped and mansard slate roofs (dormers) | yes: `solid` (stone); a sliced drive strikes it and drops out of bounds |
+| The stone wall and the path running away to the left, white stakes | `wall` obstacle (rubble stone), `PATH` cover, `posts` | the wall: yes (1.2 yd); the stakes: no |
+| The ball-stop netting by the hotel's near end, the trees behind the tee, the garden behind the shed | `net` prop, oak and shrub zones (`ob:true`: planted inside the grounds) | no |
+| The town and its spires on the horizon | `town` | no |
+
+**Capability gaps**: since 2026-10-23 the drive is the real one: the shed hides the fairway (blind, without a primitive: it is in the way) and the hotel's grounds are out of bounds (`ob`). Still missing: the hotel's detail (one generic sandstone block per wing: no bay windows, towers or the glazed spa), the Jigger Inn and the car park by the road, and a revetted face for the Road Hole bunker.
 
 ## 5. Exaggeration
 
@@ -64,7 +76,11 @@
 | Road | tarmac | ROAD: e .36, mu .16, dec 5.0 | A wedge rolls ~6 yd, an iron ~17 on it (fairway: 3 and 7) |
 | Wall | stone, ~1.5 m | height 2.2 yd, restitution 0.3 | Reads as solid; makes the back of the green a real penalty |
 
-Simplified: the hotel, the sheds and the out-of-bounds line are left out.
+| The tee-shot landmarks' place (2026-10-23) | the lidar's surface model, in the frame | 10 yd right of the frame (x − 10), as well as the tee shift's z − 50 | The frame's tee is the owner's back-tee pin, which sits on the wall's line; the tee the flyover shows is left of the wall. So the wall, path, shed and hotel stand from the game tee as they stand from the real one; the green, road and bunkers keep the frame |
+| The sign | about 45 % of the shed's front, regular serif lettering | 14 of 25.5 yd, the letters thickened, unlit paint | It is the aiming point: readable from the tee on a phone |
+| Building heights | DSM − DTM | × 1.161 (the hole's scale) | Proportions as the hole's |
+
+Simplified: the hotel is eight boxes (its real outline is stepped and set back), the garden is shrubs and four oaks, and the hotel's far end, the Jigger Inn and the car park are left out.
 
 **Realism bounds** (`node tests/tools/slope.js standrews-17`, `docs/maps/standrews-17-slope.png`): one gentle plane (the lidar's, 1.2 %), 100 % of the surface in the 1–2.5 % band, no steep ring and not a dome; "flat pockets" reads WARN. The green's contours are mild by §3's own account; the hole is decided by the bunker, the road and the wall, not by putting, so the green is left as it is.
 
@@ -85,9 +101,13 @@ Coordinates since 2026-10-21 (the tee 50 yd forward): the pin (24.5, 437.1), the
 | A 3-wood flown over the road into the stone wall, (14, 460) | Is stopped by it |
 | A wedge from the middle of the bunker at the pin | Cannot get out forwards |
 | The safe line to the wide front, (10, 410) | Holds the green |
+| Aimed over the sign on the shed at the pin, a pure drive (2026-10-23) | Carries the corner of the hotel's grounds and finds the fairway, a full iron left (125–150) |
+| From the line down the right by the hotel, (−8, 245), a pushed drive (needle 0.45) | Out of bounds in the hotel's grounds |
+| A low 3-wood at the pin (power 0.35) | Stopped by the shed's wall; drops out of bounds in front of it |
 
 | Decision | Plans | Must hold |
 |---|---|---|
+| The drive (2026-10-23) | over the sign at the pin / down the right by the hotel, (−8, 245) / bail out left, (34, 245) | A sharp player stays in bounds on every line; down the right a shaky player is out of bounds at least one time in eight (19 %); over the sign keeps a shaky player in bounds; bailing out left costs a sharp player at least 0.2 stroke against the line over the sign (0.39) and buys a shaky player nothing (4.29 against 4.16). **What the baseline cannot see**: the right-hand line's reward is the angle into the green (along it, rather than across the Road Hole bunker), and the baseline prices distance and lie only, so down the right shows as the sharp player's equal (3.97 against 3.95) and the shaky player's worst plan. The checks assert the risk side only |
 | The second shot | fly the tucked pin / attack it over the bunker's edge / play to the middle and run up | Flying it holds the green less than half the time for a sharp player (never: it runs off the back) and is the worst plan for both players; attacking puts even a sharp player in the bunker at least one time in five (4 in 21); the middle holds a sharp player four times in five (20 in 21), beats the attack, and keeps a shaky player out of the bunker twice as often (0 against 3). |
 
 **Real downwind flight** (measured on the attack from (0, 301), the arc on (28, 426), OpenFairway's drag and lift, `windPush` 0.6): an 18 mph tailwind adds 0.5 yd of carry (128.1 → 128.6), the ball lands 7° flatter (42° → 35°) and a little faster, and runs 9.3 yd after landing against 17.1 in still air (which finishes on the fringe past the pin): Penner's bounce keeps more run from a steeper landing, so the downwind ball sits down. Flown at the pin the same holds: +1.4 yd of carry, 37° against 44°, 29 yd of run against 40. Into the wind the attack's arc loses 4.4 yd of carry and lands at 53°; flown at the pin it loses 6 yd (138 → 132) and, landing at 55°, runs further (47 yd against 40) and off the back. The old checks (tailwind flies the green; headwind comes up short) described main's flight, where wind moved carry 8–10 yd either way.
@@ -113,8 +133,51 @@ Coordinates since 2026-10-21 (the tee 50 yd forward): the pin (24.5, 437.1), the
 | A 3-wood and the wall | landed on the road at (14, 446), strikes the wall | flown over the road at (14, 460), is stopped by the wall | A ball landed on the road now runs 9 yd and stops in the rough strip ~6 yd short of the wall. Flown at it, the wall stops 3-woods aimed from z 458 to 462 (and lets higher ones over) |
 | The strategy's middle | "holds it 21 times in 21" (text only; the check was ≥ 17) | 20 in 21 | One sharp shot finishes on the fringe |
 | `tests/holes.test.js` lieAdd and recovery tests, `tests/tools.test.js` probe test | from (1, 345), aim (27.5, 476.5), the bunker at (32.5, 474.5), lieAdd aim (8, 455) | from (0, 301), aim (28, 426), the bunker at (32.5, 424.5), aim (8, 405) | The tee move |
+| **The real tee shot (2026-10-23)**: three drive shots and the drive strategy | (none) | added (above) | New checks for the new layout, written after it was built from the lidar (the layout was not tuned to them). Every existing check is unchanged and its numbers are identical to main's (§7) |
+| `tests/ball.test.js` hand-over test | rest, water and leaving the hole | also: a ball at rest in an `ob` area goes to out of bounds | The new rule |
 
 ## 7. Results
+
+**The real tee shot (2026-10-23)**: `node tests/hole-report.js origin/main --hole=standrews-17`, "before" = main at `b2cbef3`. The second shot is untouched (identical numbers); the drive is new.
+
+```
+=== St Andrews Old Course (standrews-17) — A long second into a narrow green on firm links turf, angled from front-right to back-left along the road: the deep Road Hole bunker eats into its left end (a ball in it cannot play out forwards), the Sunday pin is tucked behind it, and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and it runs off the back.
+shot                                                                           before           after
+a pure drive runs out on the firm fairway and leaves a full iron               FAIRWAY 138y     FAIRWAY 138y
+aimed over the sign on the shed at the pin, a pure drive carries the corner o  ROUGH 186y       FAIRWAY 138y
+from the line down the right by the hotel, a pushed drive finishes out of bou  ROUGH 221y       OOB 227y
+a low 3-wood into the shed is stopped by its wall and drops out of bounds in   FAIRWAY 364y     OOB 388y
+an iron flown at the pin runs through the green and off the back               ROUGH 40y        ROUGH 40y
+landed short of the tucked pin and run up, an iron holds the green             GREENS 1y        GREENS 1y
+the attack over the bunker's edge, pulled a little, drops into the Road Hole   SAND 16y         SAND 16y
+into an 18 mph headwind, an iron flown at the pin loses carry but lands steep  ROUGH 41y        ROUGH 41y
+with an 18 mph tailwind the attack barely flies further, lands flatter and so  GREENS 6y        GREENS 6y
+a 3-wood flown over the road into the stone wall is stopped by it              ROUGH 25y        ROUGH 25y
+from the middle of the bunker a wedge at the pin cannot get out forwards       SAND 14y         SAND 14y
+the safe line to the wide front of the green holds it                          GREENS 26y       GREENS 26y
+
+  strategy: the drive: over the sign at the pin, down the right by the hotel (the better angle in), or bail out left
+  plan       skill   before: wet green score   after: wet green score
+  sign       sharp           0%   0% 4.33              0%   0% 3.95
+  sign       shaky           0%   0% 4.31              0%   0% 4.16
+  right      sharp           0%   0% 4.03              0%   0% 3.97
+  right      shaky           0%   0% 4.25             19%   0% 4.47
+  left       sharp           0%   0% 4.33              0%   0% 4.34
+  left       shaky           0%   0% 4.41              0%   0% 4.29
+
+  strategy: the second shot: fly the tucked pin, attack it over the bunker's edge, or play to the middle and run up
+  plan       skill   before: wet green score   after: wet green score
+  fly        sharp           0%   0% 3.68              0%   0% 3.68
+  fly        shaky           0%   0% 3.73              0%   0% 3.73
+  attack     sharp           0%  52% 3.23              0%  52% 3.23
+  attack     shaky           0%  48% 3.29              0%  48% 3.29
+  middle     sharp           0%  95% 3.00              0%  95% 3.00
+  middle     shaky           0%  52% 3.31              0%  52% 3.31
+
+"score" = expected strokes for the whole hole from that moment (tour-style baseline; water/OB = stroke and distance).
+```
+
+**Earlier** (2026-10-21, the OpenFairway redesign):
 
 `node tests/hole-report.js --hole=standrews-17` after the OpenFairway redesign (2026-10-21: the tee 50 yd forward, `greens.firm` 3.5). "before" is the hole-report baseline (commit 548d49a with the signature stripped), not the branch before this change; that comparison is in §6's log and in PR #22.
 
@@ -145,6 +208,30 @@ the safe line to the wide front of the green holds it                          F
 
 ## 8. Review — does it look like the hole?
 
+**The tee shot, rebuilt (2026-10-23).** The owner found the tee shot "ridiculous" against photos of the real one: a fold of sheds next to the tee, the hotel 60 yd off to the right, no wall, no path. Laid over the lidar's rooftops, the reason was plain: the fairway ran straight through where the real hotel stands, so the buildings had been pushed out of its way. Now the wall, path, shed and hotel stand where the lidar has them (10 yd right of the frame, §5), the fairway runs beyond the shed and left of the hotel as the real one does, and the hotel's grounds are out of bounds.
+
+**References used**: the owner's screen recording of St Andrews Links' own drone flyover of the 17th (a Facebook reel, not in the repo): the tee and the view from it, the shed's black boards, grey roof and sign, the stone wall, the path, the netting and the hotel. The Scottish Public Sector LiDAR Phase 5 50 cm **DSM** (surface model, rooftops) with the DTM, tiles NO41NE and NO51NW (Open Government Licence v3; not in the repo): footprints and heights (DSM − DTM) of the shed, the hotel, the wall, the trees. `docs/holes/trace/standrews-17.json` `landmarks` records what was read.
+
+**What changed**
+
+| Item | Was | Now |
+|---|---|---|
+| Sheds | a fold of dark sheds 19–31 yd ahead, by eye, a dead wall on their front line | the real shed in the corner of the hotel's grounds: three black barns (front 25.5 × 12 yd, eaves 5.3 yd, ridge +2.2), ~53–91 yd out, straight down the line to the pin; its painted sign faces the tee |
+| Hotel | one 150 × 30 yd stone block, 21 yd high, 82 yd right of the line | eight sandstone blocks from beside the tee (z 6) to z 255, 8.7–19.7 yd to the eaves, hipped and mansard slate roofs, balconies, solid |
+| Wall and path | none at the tee | a 1.2 yd stone wall and a gravel path from beside the tee to the corner (22, 98), then down the right of the hole |
+| Out of bounds | only off the end of the modelled area | the hotel's grounds (`ob`): a ball at rest there is out, +1, replay |
+| Fairway | straight down the line from z 35 (through the real hotel's footprint) | from z 120, beyond the corner, bending right along the grounds 3+ yd off the path; unchanged from z 300 to the green |
+
+**Renders**: `docs/maps/standrews-17-tee.png` (the new tee view), `docs/maps/standrews-17.png` (the map, out of bounds tinted red).
+
+**Verdict** (this pass)
+- Tee and direction: **matches** (the flyover: the tee left of the wall, the shed straight ahead).
+- **The view from the tee**: **close** — the shed, its sign, the wall and path, the hotel looming right and the town beyond are all there and in their real places; the hotel is boxes (no bays, towers or the glazed spa).
+- Heights: **matches** (lidar); buildings: **matches** for footprint and height (DSM).
+- Green: **close** (unchanged: an ellipse on the lidar's plateau).
+- Bunkers: unchanged.
+- Water and surroundings: **close** — the Jigger Inn and the car park by the road are still missing.
+
 **Fast lane, lidar** (2026-10-20). Bunkers, the road and wall lines, heights and the green's plane from the Scottish lidar; the green is still an ellipse (no aerial), laid along the lidar's plateau.
 
 **References used**: Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE and NO51NW (Open Government Licence v3; not in the repo); map pins from the project owner on the green and the back tee; two yardage-book pages (`standrews-17-yardage-1.jpg`, `-2.jpg`, not in the repo) — direction and the bunkers' names, not traced. Frame: `docs/holes/trace/standrews-17.json` (tee → pin 405 m at 140.9°; 1.161 game yd per m).
@@ -168,9 +255,11 @@ the safe line to the wide front of the green holds it                          F
 - Bunkers: **matches** for place; the Road Hole bunker's depth **differs on purpose** (§5).
 - Road and wall: **matches** for their line (lidar); the hotel, sheds and OB are still not expressed.
 
-**Open items**
+**Open items** (as of 2026-10-23)
 1. An aerial of the green: trace its outline (the real green wraps round the bunker).
 2. A revetted-face primitive, so the Road Hole bunker can take its real depth.
+3. The hotel's detail (bays, the glazed spa, its stepped outline), the Jigger Inn and the car park, for the approach view.
+4. The baseline cannot price the angle into the green, so the right-hand drive's reward is unmeasured (§6).
 
 ### Earlier review-only pass
 

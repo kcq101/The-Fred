@@ -6,7 +6,7 @@
 //            offset: -1..1 (where the needle was on release; 0 = dead center), shape: -1..1 (draw .. fade pull),
 //            wind: { mph, dir: 'head'|'tail'|'left'|'right' } (blowing toward; relative to the aim line) }
 // Same as the game: the arc shows still-air flight from the real lie (lie penalty, stance pull and all), the needle then costs distance and line,
-// water ends the shot when the ball reaches the waterline, leaving the hole's box is out of bounds. Walls (the hole's `obstacles`) stop the ball in
+// water ends the shot when the ball reaches the waterline, leaving the hole's box or coming to rest in one of its `ob` areas is out of bounds. Walls (the hole's `obstacles`) stop the ball in
 // flight and on the roll, as in the game; the result's `hits.wall` counts the times it struck one. Not modelled: trees (no geometry here).
 const { loadCourse } = require('./harness');
 const CHECKS = require('./hole-checks');
@@ -88,8 +88,9 @@ function playShot(course, shot, { trace = false } = {}) {
     if (dp < 0.17 && b.landed && Math.hypot(b.v.x, b.v.z) < 5.5) { end = 'holed'; break; }
   }
   end = end || 'rest';
+  if (end === 'rest' && course.inOB(b.p.x, b.p.z)) end = 'oob';   // at rest in a hole's out-of-bounds area (its `ob`): stroke and distance
   const surf = course.S(b.p.x, b.p.z);
-  const names = ['TEE', 'FAIRWAY', 'ROUGH', 'FRINGE', 'GREENS', 'SAND', 'WATER', 'PINE', 'ROAD', 'WASTE'];
+  const names = ['TEE', 'FAIRWAY', 'ROUGH', 'FRINGE', 'GREENS', 'SAND', 'WATER', 'PINE', 'ROAD', 'WASTE', 'PATH', 'LAWN'];
   return { end, surf: names[surf], hits: s.hits, p: { x: b.p.x, z: b.p.z }, first, path, power, stance: s.st,
     toPin: Math.hypot(b.p.x - course.PIN.x, b.p.z - course.PIN.z), carry: b.stats.carry, from: s.from };
 }
@@ -98,7 +99,7 @@ function playShot(course, shot, { trace = false } = {}) {
 const BASE = [[0, 1], [10, 2.18], [20, 2.4], [50, 2.6], [100, 2.8], [150, 2.98], [200, 3.19], [250, 3.45], [300, 3.71], [400, 3.99], [500, 4.4], [650, 4.9]];
 const PUTT = [[0, 1], [1, 1.04], [3.3, 1.6], [6.7, 1.87], [13.3, 2.1], [30, 2.3]];   // yards on the green
 const interp = (T, d) => { for (let i = 1; i < T.length; i++) if (d <= T[i][0]) return T[i - 1][1] + (T[i][1] - T[i - 1][1]) * (d - T[i - 1][0]) / (T[i][0] - T[i - 1][0]); return T[T.length - 1][1]; };
-const LIE_ADD = { FAIRWAY: 0, TEE: 0, FRINGE: 0, ROUGH: 0.18, PINE: 0.3, SAND: 0.35, ROAD: 0.4, WASTE: 0.3 };
+const LIE_ADD = { FAIRWAY: 0, TEE: 0, FRINGE: 0, ROUGH: 0.18, PINE: 0.3, SAND: 0.35, ROAD: 0.4, WASTE: 0.3, PATH: 0.3, LAWN: 0 };
 
 // Recovery difficulty: how hard the NEXT shot is, from where a ball rests, beyond what its lie (LIE_ADD) already charges.
 // A distance-only baseline scores a ball 15 yd off the green the same whether it sits on a flat apron or at the foot of a steep falloff, in a deep

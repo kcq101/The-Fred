@@ -1,5 +1,5 @@
 {
-  "tee_shift": {"z_yd": 50, "date": "2026-10-21", "note": "The game tee was moved 50 yd forward along the hole for the OpenFairway physics (docs/holes/standrews-17.md §6): every z in the HOLES entry is 50 yd less than this frame gives (the sheds, their collider and the hotel moved with the tee). Subtract 50 from z in lidar.py output before pasting it into the hole."},
+  "tee_shift": {"z_yd": 50, "date": "2026-10-21", "note": "The game tee was moved 50 yd forward along the hole for the OpenFairway physics (docs/holes/standrews-17.md §6): every z in the HOLES entry is 50 yd less than this frame gives (the sheds and hotel of that time moved with the tee; since 2026-10-23 the tee-shot landmarks are placed by `landmarks.shift`). Subtract 50 from z in lidar.py output before pasting it into the hole."},
  "id": "standrews-17",
  "lidar": {
   "source": "Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE_50CM_DTM_PHASE5.tif and NO51NW_50CM_DTM_PHASE5.tif (Open Government Licence v3), from srsp-open-data.s3.eu-west-2.amazonaws.com (lidar/phase-5/dtm/27700/gridded/). Not in the repo (383 + 206 MB)",
@@ -13,6 +13,71 @@
    "pin": [18, 470],
    "grid": {"x": [-130, 130], "z": [-55, 536], "step": 0.5},
    "why": "tee -> pin is 405.1 m at 140.9 degrees (the owner's two pins; both yardage pages put the green south-east of the hotel tee); the game's tee -> pin is 470 yd with the pin 18 yd left, so +z is 2.2 degrees right of that line and yd_per_m = 470.3 / 405.1"
+  }
+ },
+ "landmarks": {
+  "date": "2026-10-23",
+  "source": "Scottish Public Sector LiDAR Phase 5, 50 cm DSM (surface model: rooftops, walls, trees) with the DTM, tiles NO41NE and NO51NW (Open Government Licence v3), from srsp-open-data.s3.eu-west-2.amazonaws.com (lidar/phase-5/dsm/27700/gridded/ and .../dtm/...). Not in the repo (376 + 201 MB DSM). Heights above the ground = DSM - DTM, sampled on this file's lidar.frame grid",
+  "reference": "the owner's screen recording of St Andrews Links' own drone flyover of the 17th (a Facebook reel); not in the repo. It fixed the tee (left of the wall), the shed's boards, roof and sign, the wall, path and netting",
+  "shift": {
+   "x_yd": -10,
+   "z_yd": -50,
+   "why": "z: the tee shift above. x: the frame's tee is the owner's back-tee pin, on the wall's line, while the tee in the flyover is left of the wall; the landmarks are moved 10 yd right so they stand from the game tee as they do from the real one (the green, road and bunkers keep the frame)"
+  },
+  "height_scale": 1.161,
+  "frame_measured": {
+   "note": "corners and lines in this file's lidar frame (game yards, before the shift); heights in metres",
+   "wall": {
+    "pts": [[-11, 22], [32, 148], [-38.5, 340]],
+    "note": "the 1 m stone wall round the hotel's grounds: straight from beside the tee to the corner, straight again down the right"
+   },
+   "shed_quads": {
+    "front barn": [[21, 108], [-4, 103], [-6.4, 114.8], [18.6, 119.8]],
+    "rear barn": [[21.5, 121], [-8.5, 115], [-10.9, 126.8], [19.6, 132.8]],
+    "back": [[24.5, 133.5], [-10.9, 126.8], [-9, 140], [26.5, 141]],
+    "heights_m": "front 4.6 eaves + 1.9 ridge, rear 4.0 + 1.7, back 3.4 flat"
+   },
+   "hotel_quads": {
+    "near wing": [[-5, 57], [-31, 55], [-34, 133], [-10, 133]],
+    "middle": [[-2, 133], [-36, 133], [-37, 165], [-5, 165]],
+    "main block": [[-9, 165], [-32, 165], [-33, 240], [-11, 240]],
+    "far wing 1": [[-20, 240], [-46, 240], [-46, 262], [-21, 262]],
+    "far wing 2": [[-28, 262], [-58, 262], [-58, 282], [-29, 282]],
+    "far end": [[-40, 282], [-68, 282], [-66, 305], [-42, 305]],
+    "garden annex": [[-2, 165], [-9, 165], [-11, 238], [-4, 238]],
+    "back wing": [[-36, 113], [-50, 113], [-50, 195], [-36, 195]]
+   },
+   "hotel_heights_m": {
+    "near wing": "11 eaves, 3 hip",
+    "middle": "14, 3.5 mansard",
+    "main block": "17, 4.5 mansard",
+    "far wings": "10.5, 3 hip",
+    "far end": "7.5, 2.5 hip",
+    "annex": "4 flat",
+    "back wing": "4.5 flat"
+   },
+   "trees": "a canopy 10-18 m high behind and right of the tee (centre (-22, 36), ~15 yd across); shrubs and small trees in the garden behind the shed"
+  },
+  "game": {
+   "note": "what index.html uses (frame + shift; heights x 1.161)",
+   "hotel": {
+    "near wing": {"x": -30.0, "z": 44.5, "w": 25.0, "d": 77.1, "rot": -0.052, "h": 12.8, "roofH": 3.5, "roof": "hip"},
+    "middle": {"x": -30.0, "z": 99.0, "w": 33.0, "d": 32.1, "rot": -0.062, "h": 16.3, "roofH": 4.1, "roof": "mansard"},
+    "main block": {"x": -31.2, "z": 152.5, "w": 22.5, "d": 75.0, "rot": -0.02, "h": 19.7, "roofH": 5.2, "roof": "mansard"},
+    "far wing 1": {"x": -43.2, "z": 201.0, "w": 25.5, "d": 22.0, "rot": -0.023, "h": 12.2, "roofH": 3.5, "roof": "hip"},
+    "far wing 2": {"x": -53.2, "z": 222.0, "w": 29.5, "d": 20.0, "rot": -0.025, "h": 12.2, "roofH": 3.5, "roof": "hip"},
+    "far end": {"x": -64.0, "z": 243.5, "w": 26.0, "d": 23.0, "rot": 0.0, "h": 8.7, "roofH": 2.9, "roof": "hip"},
+    "garden annex": {"x": -16.5, "z": 151.5, "w": 7.0, "d": 73.0, "rot": -0.027, "h": 4.6, "roofH": 0.0, "roof": "flat"},
+    "back wing": {"x": -53.0, "z": 104.0, "w": 14.0, "d": 82.0, "rot": 0.0, "h": 5.2, "roofH": 0.0, "roof": "flat"}
+   },
+   "shed": {
+    "front barn": {"x": -2.7, "z": 61.4, "w": 25.5, "d": 12.0, "rot": -0.201, "h": 5.3, "ridge": 2.2},
+    "rear barn": {"x": -4.6, "z": 73.9, "w": 30.8, "d": 12.0, "rot": -0.18, "h": 4.6, "ridge": 2.0},
+    "back": {"x": -2.2, "z": 85.3, "w": 35.8, "d": 10.5, "rot": 0.186, "h": 3.9, "ridge": 0.0}
+   },
+   "wall": [[-10.8, 2], [22, 98], [-48.5, 290], [-55, 320]],
+   "path": [[-8.2, 1.1], [25.0, 98.0], [-45.8, 290.8], [-52.3, 320.6]],
+   "ob": [[-27, -40], [-21, -28], [22, 98], [-48.5, 290], [-60, 335], [-130, 335], [-130, -40]]
   }
  }
 }
