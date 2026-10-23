@@ -57,7 +57,7 @@
 
 | Characteristic | Real | Game | Why |
 |---|---|---|---|
-| Length | 357 yd | 287 yd: the tee 85 yd forward, past the burn | Under OpenFairway's flight a pure driver totals about 270 on this turf; at 357 the hole could not be driven, which is the point of it. The burn and the bridge move from 70–90 yd ahead to beside the tee (the price; §8) |
+| Length | 357 yd | 287 yd: the tee 85 yd forward, past the burn | Under OpenFairway's flight a pure driver totals about 270 on this turf; at 357 the hole could not be driven, which is the point of it. The burn and the bridge move from 70–90 yd ahead to beside the tee (the price; §8). **The owner's choice (2026-10-23): keep it drivable** rather than a tee behind the burn (about 340 yd, the bridge in view, a 50 yd pitch left) |
 | Valley of Sin | 0.8–1.0 yd below the green in the lidar (the "8 ft" is from the green's back) | + a 0.9 yd `hollow` | it must hold a ball and read from the fairway |
 | Pin | | (−15, 287), back-right toward the town | the drive at the pin aims toward the out of bounds |
 | Green slope | lidar plane, 1.3 % | same | `slope.js`: "flat pockets" WARN (one plane; the 50 cm lidar resolves no break) |
