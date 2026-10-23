@@ -3025,6 +3025,7 @@ function newHole(withIntro){
   FLY_T=3.4+PIN.z/220;
   state=withIntro?'intro':'aim';introT=0;const ie=$('intro');ie.hidden=!withIntro;ie.style.setProperty('--dur',FLY_T+'s');ie.style.animation='none';void ie.offsetHeight;ie.style.animation='';
   setupAim();
+  if(withIntro&&!FLYOVER)startPlay();
 }
 function startPlay(){
   if(state!=='intro')return;
@@ -3056,6 +3057,7 @@ function showCard(){
 // ---------------------------------------------------------------- camera
 const camPos=new V3(95,85,440),camLook=new V3(28,0,260);
 let FLY_T=4.6; // seconds for the opening flyover
+const FLYOVER=false; // opening flyover switched off (2026-10-22) until it is smooth on the phone; holes open straight on the tee view
 const tP=new V3(),tL=new V3(),oP=new V3(),oL=new V3();
 // Aim view: high behind the ball, ball near the bottom of the frame and the target up the screen
 const BALL_SAFE_PX=250;   // the lie caption and club row take about this much of the bottom of the screen
@@ -3138,7 +3140,7 @@ let lastT=performance.now();
 function frame(now){
   if(titleOpen){lastT=now;if(PERF)PERF.pause();requestAnimationFrame(frame);return;}
   const pf0=PERF?performance.now():0;
-  const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;clock+=dt;
+  const dt=clamp((now-lastT)/1000,0,0.05);lastT=Math.max(lastT,now); // never negative: a frame stamped before lastT (closeTitle sets it from performance.now()) once ran the clock backwards and wound the shake and misprint UPclock+=dt;
   for(let i=timers.length-1;i>=0;i--)if(clock>=timers[i].t){const f=timers[i].fn;timers.splice(i,1);f();}
   if(state==='aim'){
     const kd=(keys.ArrowLeft?1:0)-(keys.ArrowRight?1:0);
@@ -3153,7 +3155,7 @@ function frame(now){
   if(state==='flight')simulateFlight(dt);
   const pfPhys=PERF?performance.now()-pfA:0;
   updateCamera(dt);
-  shakeT=Math.max(0,shakeT-dt);
+  shakeT=clamp(shakeT-dt,0,0.4);
   const stepN=Math.floor(clock*12);const stepped=stepN!==lastStep;if(stepped)lastStep=stepN;
   sunDirV.copy(SUN_OFF).normalize().transformDirection(camera.matrixWorldInverse);
   const focus=state==='intro'?camLook:ball.p;sunL.target.position.copy(focus);sunL.position.copy(focus).add(SUN_OFF);
@@ -3227,7 +3229,7 @@ function frame(now){
   // flag waves on the step clock
   if(stepped||!twos){const st=twos?stepN/12:clock;const a=flagG.attributes.position;for(let i=0;i<a.count;i++){const x=flagBase[i*3];a.setZ(i,Math.sin(x*4-st*7)*0.12*x);}a.needsUpdate=true;flagG.computeVertexNormals();
     flag.rotation.y=Math.atan2(wind.x,wind.z)-Math.PI/2;}
-  const spd=state==='flight'?ball.v.length():0;aberrKick=Math.max(0,aberrKick-dt*22);
+  const spd=state==='flight'?ball.v.length():0;aberrKick=clamp(aberrKick-dt*22,0,10);
   // misprint grows a little with ball speed and on impacts
   let mis=LOOK.mis+Math.min(spd/60,0.25)+aberrKick/40;if(reduceMotion)mis=Math.min(mis,0.3);
   postU.uMis.value=mis;postU.uTime.value=twos?stepN:Math.floor(clock*24);puttMat.uniforms.t.value=clock;WIND_U.value.set(Math.sin(windYaw),Math.cos(windYaw)).multiplyScalar(Math.min(windMph/20,1.5));arcMat.uniforms.t.value=clock;WT.value=clock;
