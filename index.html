@@ -3265,7 +3265,8 @@ let lastT=performance.now();
 function frame(now){
   if(titleOpen){lastT=now;if(PERF)PERF.pause();requestAnimationFrame(frame);return;}
   const pf0=PERF?performance.now():0;
-  const dt=clamp((now-lastT)/1000,0,0.05);lastT=Math.max(lastT,now); // never negative: a frame stamped before lastT (closeTitle sets it from performance.now()) once ran the clock backwards and wound the shake and misprint UPclock+=dt;
+  const dt=clamp((now-lastT)/1000,0,0.05);lastT=Math.max(lastT,now); // never negative: a frame stamped before lastT (closeTitle sets it from performance.now()) once ran the clock backwards and wound the shake and misprint UP
+  clock+=dt;
   for(let i=timers.length-1;i>=0;i--)if(clock>=timers[i].t){const f=timers[i].fn;timers.splice(i,1);f();}
   if(state==='aim'){
     const kd=(keys.ArrowLeft?1:0)-(keys.ArrowRight?1:0);
