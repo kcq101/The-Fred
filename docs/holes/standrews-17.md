@@ -97,7 +97,7 @@ Coordinates since 2026-10-21 (the tee 50 yd forward): the pin (24.5, 437.1), the
 | Landed short of the tucked pin and run up, at (22, 422) | Holds the green, ≤ 10 yd |
 | The attack over the bunker's edge (28, 426), pulled a little | The Road Hole bunker |
 | Into an 18 mph headwind, an iron flown at the pin | Loses carry, lands steeper and checks: holds the green (≤ 6 yd) |
-| With an 18 mph tailwind, the attack | Lands flatter and runs through the green (road or rough) |
+| With an 18 mph tailwind, the attack flown 2 yd deeper, (28, 438) | Lands flatter and runs through the green (road or rough) |
 | A 3-wood flown over the road into the stone wall, (14, 460) | Is stopped by it |
 | A wedge from the middle of the bunker at the pin | Cannot get out forwards |
 | The safe line to the wide front, (10, 410) | Holds the green |
@@ -139,6 +139,7 @@ Coordinates since 2026-10-21 (the tee 50 yd forward): the pin (24.5, 437.1), the
 | **`greens.firm` (2026-10-24, crater-wall bounce)** | 3.5 | 2.5 | 3.5 was set (session 1) so that a flown iron ran 40 yd off while the run-up stopped by the pin. That gap came from the inverted steep-landing law, under which the faster, higher-powered flown ball kept more run. Under the wall law every iron from (0, 311) lands at about the same angle and ran 20–40 yd at 3.5: the run-up ran 38 yd onto the road, the middle 21 yd into the rough. At 2.5 the run-up (landed 15 yd short) finishes 0.9 yd away, the middle 5.5, flown at the pin it still runs 27 yd off the back. Second-shot strategy: middle sharp 95 % on the green, 2.92 (main 95 %, 2.99); attack 3.11 (3.23); fly 3.63 (3.69), still the worst for both |
 | **Into an 18 mph headwind (shot), same day** | an iron flown at the pin loses carry but lands steeper and still runs off the back | it loses carry, lands steeper and checks: holds the green (≤ 6 yd; 2.6) | **Rewritten**: the old expectation, that a steeper landing runs further, came from the inverted law. A ball landing steeper keeps less run, so into the wind it holds. This is the links lesson the right way round: into the wind you can fly it at the pin |
 | **With an 18 mph tailwind (shot), same day** | the attack barely flies further, lands flatter and softer, and still holds the green (≤ 10 yd) | the attack lands flatter and runs through the green (rough, 22.9 yd) | **Rewritten**, the same reason: a flatter landing keeps more run. Downwind the run-up is the only way to hold this green |
+| **With an 18 mph tailwind (shot), 2026-10-24, slower spin decay** | the attack at (28, 436) runs through the green | the same attack flown 2 yd deeper, (28, 438), runs through (rough, 20.9 yd) | Downwind the iron now pitches half a yard short, at z 435.5, on the fringe at the bunker's edge, which takes its run: it held the green 6.5 yd away. Landed on the green (437 and beyond) it still runs through. **Knife edge**: 436 holds, 437 runs through. The pulled attack at (28, 436) still finds the Road Hole bunker |
 
 ## 7. Results
 

@@ -181,7 +181,9 @@ test('environment stays separate from the swing: wind acts on the launch the swi
       const m = SM.resolve(c, a, noJit), sp = c.v0 * m.speedMult;
       const dMiss = flatShot(g, c, sp, m.yawErr, m.spinErr).carry - flatShot(g, c, sp, m.yawErr, m.spinErr, wind).carry;
       const dPure = flatShot(g, c, sp, 0, 0).carry - flatShot(g, c, sp, 0, 0, wind).carry;
-      assert.ok(Math.abs(dMiss - dPure) < Math.max(0.6, 0.1 * dPure), `${c.name} at ${a}: wind costs the miss ${dMiss.toFixed(1)} yd, a pure strike at its speed ${dPure.toFixed(1)}`);
+      // limit 0.6 -> 0.8 yd (2026-10-24): with the slower spin decay a ball keeps its lift longer, and a full-miss iron's start and curve errors now
+      // add 0.67 yd to its headwind loss (was 0.45)
+      assert.ok(Math.abs(dMiss - dPure) < Math.max(0.8, 0.1 * dPure), `${c.name} at ${a}: wind costs the miss ${dMiss.toFixed(1)} yd, a pure strike at its speed ${dPure.toFixed(1)}`);
     }
   }
 });
