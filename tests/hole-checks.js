@@ -12,26 +12,26 @@ module.exports = {
   'pebble-8': {
     challenge: 'Distance control off the tee (the plateau ends at a cliff), then a forced carry over an ocean chasm to a small, back-to-front green.',
     shots: [
-      { name: 'a pure driver runs off the end of the plateau into the chasm', shot: { club: 'Hammer', at: [-5, 225], power: 1 }, expect: { end: 'water' } },
-      { name: 'even a 90% driver still finds the chasm', shot: { club: 'Hammer', at: [-5, 225], power: 0.9 }, expect: { end: 'water' } },
-      { name: 'a pure 3-wood stops on the plateau, short of the cliff', shot: { club: '3-Wood', at: [-5, 225], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
-      { name: 'from there a well-struck iron carries the chasm and holds the green', shot: { from: [-5, 190], club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'a chunked approach comes up short in the chasm', shot: { from: [-5, 190], club: 'Iron', offset: 0.7 }, expect: { end: 'water' } },
-      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 190], club: 'Iron', offset: 0.55 }, expect: { end: 'water' } },
-      { name: 'the bail-out left, around the head of the cove, stays dry', shot: { from: [-5, 190], club: 'Iron', at: [10, 331], offset: 0.5 }, expect: { end: 'rest' } },
+      { name: 'a pure driver runs off the end of the plateau into the chasm', shot: { club: 'Hammer', at: [-5, 237], power: 1 }, expect: { end: 'water' } },
+      { name: 'even a 90% driver still finds the chasm', shot: { club: 'Hammer', at: [-5, 237], power: 0.9 }, expect: { end: 'water' } },
+      { name: 'a pure 3-wood stops on the plateau, short of the cliff', shot: { club: '3-Wood', at: [-5, 237], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
+      { name: 'from there a well-struck iron carries the chasm and holds the green', shot: { from: [-5, 202], club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
+      { name: 'a chunked approach comes up short in the chasm', shot: { from: [-5, 202], club: 'Iron', offset: 0.7 }, expect: { end: 'water' } },
+      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 202], club: 'Iron', offset: 0.55 }, expect: { end: 'water' } },
+      { name: 'the bail-out left, around the head of the cove, stays dry', shot: { from: [-5, 202], club: 'Iron', at: [10, 343], offset: 0.5 }, expect: { end: 'rest' } },
     ],
     strategies: [
       { name: 'tee club', plans: [
-          { name: 'driver', shot: { club: 'Hammer', at: [-5, 225], power: 1 } },
-          { name: '3-wood', shot: { club: '3-Wood', at: [-5, 225], power: 1 } },
-          { name: 'iron', shot: { club: 'Iron', at: [-5, 225], power: 1 } } ],
+          { name: 'driver', shot: { club: 'Hammer', at: [-5, 237], power: 1 } },
+          { name: '3-wood', shot: { club: '3-Wood', at: [-5, 237], power: 1 } },
+          { name: 'iron', shot: { club: 'Iron', at: [-5, 237], power: 1 } } ],
         expect: [
           ['driver is wet more often than not, for any player', r => r.driver.sharp.hazard > 0.5 && r.driver.shaky.hazard > 0.3],
           ['the 3-wood is the play: dry and the best score for both players', r => r['3-wood'].sharp.hazard === 0 && r['3-wood'].sharp.score < r.driver.sharp.score && r['3-wood'].sharp.score < r.iron.sharp.score && r['3-wood'].shaky.score < r.driver.shaky.score],
           ['laying back with an iron is safe but leaves a long approach (50+ yd more)', r => r.iron.sharp.toPin > r['3-wood'].sharp.toPin + 50] ] },
       { name: 'approach line', plans: [
-          { name: 'pin', shot: { from: [-5, 190], club: 'Iron' } },
-          { name: 'bail', shot: { from: [-5, 190], club: 'Iron', at: [10, 331] } } ],
+          { name: 'pin', shot: { from: [-5, 202], club: 'Iron' } },
+          { name: 'bail', shot: { from: [-5, 202], club: 'Iron', at: [10, 343] } } ],
         expect: [
           ['going at the pin brings the sea into play for a shaky player (the front-right bunker catches most short-right misses)', r => r.pin.shaky.hazard > 0 && r.bail.shaky.hazard === 0],
           ['a sharp player stays dry and holds the green at least nine times in ten (the most-pulled find the left bunker)', r => r.pin.sharp.hazard === 0 && r.pin.sharp.surfs.GREENS >= 0.9 * r.pin.sharp.n],
@@ -100,26 +100,26 @@ module.exports = {
   'standrews-17': {
     challenge: 'A long second into a narrow green on firm links turf, angled from front-right to back-left along the road: the deep Road Hole bunker eats into its left end (a ball in it cannot play out forwards), the Sunday pin is tucked behind it, and a hard road and a stone wall sit behind. Land it short and let it run; fly the pin and it runs off the back.',
     shots: [
-      { name: 'a pure drive runs out on the firm fairway and leaves a full iron', shot: { club: 'Hammer', at: [0, 250], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
+      { name: 'a pure drive runs out on the firm fairway and leaves a full iron', shot: { club: 'Hammer', at: [0, 260], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
       { name: 'aimed over the sign on the shed at the pin, a pure drive carries the corner of the hotel\'s grounds and finds the fairway', shot: { club: 'Hammer', at: 'pin', power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 125, maxToPin: 150 } },
-      { name: 'from the line down the right by the hotel, a pushed drive finishes out of bounds in its grounds', shot: { club: 'Hammer', at: [-8, 245], offset: 0.45 }, expect: { end: 'oob' } },
+      { name: 'from the line down the right by the hotel, a pushed drive finishes out of bounds in its grounds', shot: { club: 'Hammer', at: [-8, 255], offset: 0.45 }, expect: { end: 'oob' } },
       { name: 'a low 3-wood into the shed is stopped by its wall and drops out of bounds in front of it', shot: { club: '3-Wood', at: 'pin', power: 0.35 }, expect: { end: 'oob', wall: true } },
-      { name: 'an iron flown at the pin runs through the green and off the back', shot: { from: [0, 301], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
-      { name: 'landed short of the tucked pin and run up, an iron holds the green', shot: { from: [0, 301], club: 'Iron', at: [22, 422] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
-      { name: 'the attack over the bunker\'s edge, pulled a little, drops into the Road Hole bunker', shot: { from: [0, 301], club: 'Iron', at: [28, 426], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'into an 18 mph headwind, an iron flown at the pin loses carry but lands steeper and still runs off the back', shot: { from: [0, 301], club: 'Iron', wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
-      { name: 'with an 18 mph tailwind the attack barely flies further, lands flatter and softer, and still holds the green', shot: { from: [0, 301], club: 'Iron', at: [28, 426], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 10 } },
-      { name: 'a 3-wood flown over the road into the stone wall is stopped by it', shot: { from: [0, 301], club: '3-Wood', at: [14, 460] }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'], wall: true } },
-      { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [32.5, 424.5], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 301], club: 'Iron', at: [10, 410] }, expect: { surf: ['GREENS'] } },
+      { name: 'an iron flown at the pin runs through the green and off the back', shot: { from: [0, 311], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
+      { name: 'landed short of the tucked pin and run up, an iron holds the green', shot: { from: [0, 311], club: 'Iron', at: [22, 432] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
+      { name: 'the attack over the bunker\'s edge, pulled a little, drops into the Road Hole bunker', shot: { from: [0, 311], club: 'Iron', at: [28, 436], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'into an 18 mph headwind, an iron flown at the pin loses carry but lands steeper and still runs off the back', shot: { from: [0, 311], club: 'Iron', wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
+      { name: 'with an 18 mph tailwind the attack barely flies further, lands flatter and softer, and still holds the green', shot: { from: [0, 311], club: 'Iron', at: [28, 436], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 10 } },
+      { name: 'a 3-wood flown over the road into the stone wall is stopped by it', shot: { from: [0, 311], club: '3-Wood', at: [14, 470] }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'], wall: true } },
+      { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [32.5, 434.5], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 311], club: 'Iron', at: [10, 420] }, expect: { surf: ['GREENS'] } },
     ],
     strategies: [
       // the drive (2026-10-23, the real tee shot): the baseline prices distance and lie, not the angle into the green, so the right-hand line's reward
       // (playing along the angled green rather than across the bunker) is not in these numbers: docs/holes/standrews-17.md §6
       { name: 'the drive: over the sign at the pin, down the right by the hotel (the better angle in), or bail out left', plans: [
           { name: 'sign', shot: { club: 'Hammer', at: 'pin' } },
-          { name: 'right', shot: { club: 'Hammer', at: [-8, 245] } },
-          { name: 'left', shot: { club: 'Hammer', at: [34, 245] } } ],
+          { name: 'right', shot: { club: 'Hammer', at: [-8, 255] } },
+          { name: 'left', shot: { club: 'Hammer', at: [34, 255] } } ],
         expect: [
           ['a sharp player stays in bounds on every line', r => ['sign', 'right', 'left'].every(k => r[k].sharp.hazard === 0)],
           ['down the right, a shaky player is out of bounds at least one time in eight', r => r.right.shaky.hazard >= 0.125],
@@ -128,9 +128,9 @@ module.exports = {
           ['and buys a shaky player nothing: the line over the sign is in bounds too, and shorter', r => r.left.shaky.score > r.sign.shaky.score] ] },
       // no per-hole lie costs: the baseline's recovery term charges the Road Hole bunker for its deep face (a ball in it cannot play out forwards, see the shot above)
       { name: 'the second shot: fly the tucked pin, attack it over the bunker\'s edge, or play to the middle and run up', plans: [
-          { name: 'fly', shot: { from: [0, 301], club: 'Iron' } },
-          { name: 'attack', shot: { from: [0, 301], club: 'Iron', at: [28, 426] } },
-          { name: 'middle', shot: { from: [0, 301], club: 'Iron', at: [18, 418] } } ],
+          { name: 'fly', shot: { from: [0, 311], club: 'Iron' } },
+          { name: 'attack', shot: { from: [0, 311], club: 'Iron', at: [28, 436] } },
+          { name: 'middle', shot: { from: [0, 311], club: 'Iron', at: [18, 428] } } ],
         expect: [
           ['flying the pin runs off the back: a sharp player holds the green less than half the time', r => (r.fly.sharp.surfs.GREENS || 0) * 2 < r.fly.sharp.n],
           ['it is the worst plan for both players', r => ['sharp', 'shaky'].every(k => r.fly[k].score > r.attack[k].score && r.fly[k].score > r.middle[k].score)],
@@ -222,9 +222,9 @@ module.exports = {
       { name: 'a hooked drive finds the Church Pews', shot: { club: 'Hammer', at: 'pin', power: 1, offset: -0.5 }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'a pushed drive finds the five bunkers on the right', shot: { club: 'Hammer', at: 'pin', power: 1, offset: 0.5 }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'from the fairway a pure iron up the hill holds the tabletop green', shot: { from: [0, 258], club: 'Iron' }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'an iron 20 yd short lands on the run-off and rolls back down the hill', shot: { from: [0, 258], club: 'Iron', power: 0.8 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 35 } },
+      { name: 'an iron 20 yd short lands on the run-off and rolls back down the hill', shot: { from: [0, 258], club: 'Iron', power: 0.8 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 32 } },
       { name: 'a 3-wood approach flies the tabletop and runs away off the back', shot: { from: [0, 258], club: '3-Wood', power: 0.85 }, expect: { end: 'rest', minToPin: 25 } },
-      { name: "from the 3-wood's landing, a full iron comes up short and rolls back down", shot: { from: [0, 230], club: 'Iron', power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 35 } },
+      { name: "from the 3-wood's landing, a full iron comes up short and rolls back down", shot: { from: [0, 230], club: 'Iron', power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 32 } },
       { name: 'at the foot of a pew a wedge at the green cannot get out forwards', shot: { from: [24, 220], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'], minToPin: 170 } },
       { name: 'played out sideways, along the trough, the same ball reaches the fairway', shot: { from: [24, 220], club: 'Wedge', at: [-5, 226] }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
     ],
@@ -252,16 +252,16 @@ module.exports = {
     shots: [
       { name: 'a pure drive at the pin runs through the Valley of Sin up onto the front of the green', shot: { club: 'Hammer', at: 'pin', power: 1 }, expect: { end: 'rest', surf: ['FRINGE', 'GREENS'], maxToPin: 25 } },
       { name: 'a drive 15 % light stops short of the Valley, a pitch over it left', shot: { club: 'Hammer', at: 'pin', power: 0.85 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 30 } },
-      { name: 'down the right in a wind off the left, a pushed drive finishes out of bounds in the town', shot: { club: 'Hammer', at: [-20, 250], power: 1, offset: 0.55, wind: { mph: 18, dir: 'right' } }, expect: { end: 'oob' } },
-      { name: 'the drive at the R&A clock, left, stays on the shared fairway', shot: { club: 'Hammer', at: [25, 250], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE'] } },
-      { name: 'a topped iron pushed right finds the Swilcan Burn by the bridge', shot: { club: 'Iron', at: [-30, 20], power: 0.2 }, expect: { end: 'water' } },
-      { name: 'from Granny Clark\'s Wynd, a full iron flies the green and finishes out of bounds behind it', shot: { from: [0, 200], club: 'Iron', power: 1 }, expect: { end: 'oob' } },
+      { name: 'down the right in a wind off the left, a pushed drive finishes out of bounds in the town', shot: { club: 'Hammer', at: [-20, 272], power: 1, offset: 0.55, wind: { mph: 18, dir: 'right' } }, expect: { end: 'oob' } },
+      { name: 'the drive at the R&A clock, left, stays on the shared fairway', shot: { club: 'Hammer', at: [25, 272], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE'] } },
+      { name: 'a topped iron pushed right finds the Swilcan Burn by the bridge', shot: { club: 'Iron', at: [-30, 42], power: 0.2 }, expect: { end: 'water' } },
+      { name: 'from Granny Clark\'s Wynd, a full iron flies the green and finishes out of bounds behind it', shot: { from: [0, 222], club: 'Iron', power: 1 }, expect: { end: 'oob' } },
     ],
     strategies: [
       { name: 'the drive: at the green, at the R&A clock (left), or an iron to the Wynd', plans: [
           { name: 'green', shot: { club: 'Hammer', at: 'pin', power: 1 } },
-          { name: 'clock', shot: { club: 'Hammer', at: [25, 250], power: 1 } },
-          { name: 'layup', shot: { club: 'Iron', at: [20, 170], power: 1 } } ],
+          { name: 'clock', shot: { club: 'Hammer', at: [25, 272], power: 1 } },
+          { name: 'layup', shot: { club: 'Iron', at: [20, 192], power: 1 } } ],
         expect: [
           ['driving at the green finishes nearest the pin and is the best plan for a sharp player', r => r.green.sharp.toPin < r.clock.sharp.toPin && r.green.sharp.score < r.clock.sharp.score && r.green.sharp.score < r.layup.sharp.score],
           ['in still air none of the three lines reaches the town for either player (the out of bounds needs a push and a wind off the left)', r => ['green', 'clock', 'layup'].every(k => r[k].sharp.hazard === 0 && r[k].shaky.hazard === 0)],

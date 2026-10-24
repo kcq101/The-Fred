@@ -8,7 +8,7 @@
 |---|---|
 | Real hole | Pebble Beach Golf Links, No. 8 |
 | Par / yardage (real) | Par 4, 428 yards |
-| Par / yardage (game) | Par 4, **351 yards** since the OpenFairway physics (2026-10-21: the tee 25 yd forward, §6; `cards/card1.jpg`'s tag reads 351y); 376 before |
+| Par / yardage (game) | Par 4, **363 yards** since 2026-10-23 (the tee 13 yd forward of the lidar frame, §6; `cards/card1.jpg`'s tag reads 363y); 351 yd from 2026-10-21 (the tee 25 yd forward); 376 before |
 | Sources | [Golfshake hole-by-hole guide](https://www.golfshake.com/news/view/13849/Pebble_Beach_Hole_by_Hole_Guide.html) |
 
 ## 2. What makes it iconic
@@ -87,6 +87,7 @@ All in `tests/hole-checks.js` → `pebble-8`.
 | **All shots and strategies (2026-10-21, OpenFairway physics)** | the tee at the old origin; drives aimed at (−5, 250), approaches from (−5, 215), the bail-out at (10, 356) | the tee 25 yd forward (everything moved with the land); every z 25 less: (−5, 225), (−5, 190), (10, 331) | Under OpenFairway's flight and bounce a pure driver stopped 142 yd from the pin, short of the plateau's end, and so did a 90 % one: driver against 3-wood was no choice. From +25 a pure driver, both of a sharp player's misses and a 90 % driver reach the chasm and a pure 3-wood stops 12 yd short of the edge (+20 left the 90 % driver dry; +28 put the pure 3-wood in the sea). The approaches stay on the same ground (161 yd out); a pure 3-wood now stops 19 yd nearer, at (−5.5, 209) |
 | Tee club: the iron lay-up | leaves 60+ yd more than the 3-wood | leaves 50+ yd more (56: 202 against 146) | OpenFairway's roll: a 3-wood runs 9 yd on flat fairway (main 26) and an iron 7, so the gap between them fell by about 17 yd. No tee position between +20 and +30 gives 60 |
 | Approach: a sharp player at the pin | hits the green every time | stays dry and holds the green at least 9 times in 10 | 19 in 21; the two most-pulled shots find the traced left bunker (−26, 342). The hole's base landform (`seed`, `roll`, `ridge`) is a function of absolute coordinates, so moving the tee re-rolls its small invented swells under the green complex; the lidar's ramps, the traced green, bunkers and coastline moved exactly. (At +22 every sharp approach held the green, but the 90 % driver was dry) |
+| **Tee 12 yd back (2026-10-23, low-spin run-out)** | tee 25 yd forward of the lidar frame, 351 yd; every z as it was | tee 13 yd forward, 363 yd; every z +12 (`tests/tools/teeshift.js`); `holes.test.js` recovery test's bunker lookups +12 | A low-spin landing now runs out (BallModel `OF.LOWSPIN`): a pure 3-wood ran 13 yd further, off the plateau into the sea, so the iron became the safe tee club. 12 yd back restores it; no check's wording or threshold changed. Tee club, after: driver sharp 100 % wet, 3-wood 0 % (4.00 / 4.10), iron 4.27 / 4.60 |
 
 ## 7. Results
 

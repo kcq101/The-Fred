@@ -121,6 +121,12 @@
 | 3-wood close | aimed right and short at (25, 482) | aimed 10 yd short at (36, 478): 3.5 yd | No hook to allow for; (25, 482) now finishes 11.6 yd right |
 | Strategy `go` plan | at (25, 482) | at (36, 478) | As above. Payoff sharp 0.74, shaky 0.31 (was 0.08 / 0.12); every clause still holds |
 
+**Check-change log** (2026-10-23, the low-spin run-out)
+
+| Check | Was | Now | Why |
+|---|---|---|---|
+| `greens.firm` (no check changed) | 2.2 | 1.8 | A 3-wood lands at ~1,100 rpm and now runs out by itself (BallModel `OF.LOWSPIN`): at 2.2 the run-up 3-wood ran 18 yd through into the waste and no aim held the plateau. At 1.6 a shaky player held it 38 % (limit 35 %); at 2.0 the run-up ran off again; 1.8 passes all ten checks as written. Strategy, after: go 2.93 / 3.48 (green 62 % / 33 %), lay-up 3.68 / 3.74; payoff sharp 0.75, shaky 0.26 |
+
 ## 7. Results
 
 `node tests/hole-report.js --hole=pinehurst-5` after the OpenFairway redesign (2026-10-21: the tee 15 yd forward, the landing's low side fairway, `greens.firm` 2.2). "before" is the hole-report baseline (commit 548d49a with the signature stripped, played at the new coordinates), not the branch before this change; that comparison is in §6's log and in PR #22.
