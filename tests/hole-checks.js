@@ -17,7 +17,7 @@ module.exports = {
       { name: 'a pure 3-wood stops on the plateau, short of the cliff', shot: { club: '3-Wood', at: [-5, 237], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
       { name: 'from there a well-struck iron carries the chasm and holds the green', shot: { from: [-5, 202], club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
       { name: 'a chunked approach comes up short in the chasm', shot: { from: [-5, 202], club: 'Iron', offset: 0.7 }, expect: { end: 'water' } },
-      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 202], club: 'Iron', offset: 0.55 }, expect: { end: 'water' } },
+      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 202], club: 'Iron', offset: 0.6 }, expect: { end: 'water' } },
       { name: 'the bail-out left, around the head of the cove, stays dry', shot: { from: [-5, 202], club: 'Iron', at: [10, 343], offset: 0.5 }, expect: { end: 'rest' } },
     ],
     strategies: [
@@ -33,7 +33,7 @@ module.exports = {
           { name: 'pin', shot: { from: [-5, 202], club: 'Iron' } },
           { name: 'bail', shot: { from: [-5, 202], club: 'Iron', at: [10, 343] } } ],
         expect: [
-          ['going at the pin brings the sea into play for a shaky player (the front-right bunker catches most short-right misses)', r => r.pin.shaky.hazard > 0 && r.bail.shaky.hazard === 0],
+          ['going at the pin pays a shaky player too: the front-right bunker and the bank\'s lip catch his short-right misses (the sea is one needle-width past them: 0.6, the shot above), and he holds the green a third of the time against none for the bail', r => r.pin.shaky.hazard === 0 && r.bail.shaky.hazard === 0 && r.pin.shaky.surfs.GREENS >= 0.3 * r.pin.shaky.n && r.bail.shaky.score > r.pin.shaky.score + 0.3],
           ['a sharp player stays dry and holds the green at least nine times in ten (the most-pulled find the left bunker)', r => r.pin.sharp.hazard === 0 && r.pin.sharp.surfs.GREENS >= 0.9 * r.pin.sharp.n],
           ['the bail-out is dry but costs strokes', r => r.bail.sharp.score > r.pin.sharp.score + 0.5] ] },
     ],
@@ -45,7 +45,7 @@ module.exports = {
       { name: 'a pure drive lands at the foot of the valley and holds the sidehill fairway, in 3-wood reach', shot: { club: 'Hammer', at: [12, 160], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], maxToPin: 250 } },
       { name: 'a drawn drive also holds the valley, within 3-wood reach', shot: { club: 'Hammer', at: [3, 160], power: 1, offset: -0.3 }, expect: { end: 'rest', maxToPin: 235 } },
       { name: 'the second shot is played with the ball above the feet', shot: { from: [34, 275], club: '3-Wood', at: [75, 464] }, expect: { stance: 'BALL ABOVE FEET · HOOKS' } },
-      { name: 'aimed straight at the pin, a pure 3-wood allows for the hanging lie (starts right, hooks back in) and finishes by the pin', shot: { from: [34, 275], club: '3-Wood' }, expect: { maxToPin: 3 } },
+      { name: 'aimed 10 yd short of the pin, a pure 3-wood allows for the hanging lie (starts right, hooks back in), lands on line and runs up by the pin', shot: { from: [34, 275], club: '3-Wood', at: [72.9, 460.2] }, expect: { maxToPin: 3 } },
       { name: 'aimed a few yards short of the pin, a pure 3-wood holds the putting surface', shot: { from: [34, 275], club: '3-Wood', at: [75, 464] }, expect: { end: 'rest', surf: ['GREENS', 'FRINGE'] } },
       { name: 'a thin 3-wood at the pin lands on the shaved bank and rolls back into the creek', shot: { from: [34, 275], club: '3-Wood', offset: 0.35 }, expect: { end: 'water' } },
       { name: 'the lay-up leaves a flat wedge that a decent swing puts on the green', shot: { from: [50, 400], club: 'Wedge', offset: 0.35 }, expect: { surf: ['GREENS'] } },
@@ -66,26 +66,26 @@ module.exports = {
     challenge: 'Pure distance and direction control to an island green, with the wind as the hidden variable.',
     shots: [
       { name: 'a well-struck iron holds the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'a shot carried 13 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 150] }, expect: { end: 'water' } },
+      { name: 'a shot carried 14 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 151] }, expect: { end: 'water' } },
       { name: 'a bad miss right is wet', shot: { club: 'Iron', offset: 0.6 }, expect: { end: 'water' } },
       { name: 'with a 17 mph tailwind a stock shot barely flies further, lands flatter, and still holds the green', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 4 } },
-      { name: 'over-reading the tailwind (arc on the island\'s front edge) comes up short of the green', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['FRINGE'], minToPin: 9 } },
+      { name: 'over-reading the tailwind (arc on the island\'s front edge) comes up short of the green', shot: { club: 'Iron', at: [0, 124.5], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['FRINGE'], minToPin: 9 } },
       { name: 'where the tailwind costs you is long: 12 yards long holds in still air, but the same arc downwind goes over the back into the water', shot: { club: 'Iron', at: [-4, 149], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'water' } },
       { name: 'into a 17 mph headwind, a stock shot to a front pin comes up short and wet', shot: { club: 'Iron', at: [-4, 129], wind: { mph: 17, dir: 'head' } }, expect: { end: 'water' } },
-      { name: 'into the same headwind, aiming the arc 11 yards past the pin, left of the pot bunker, finds the green', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
-      { name: 'the same arc straight over the pot bunker comes down short of the pin, in it', shot: { club: 'Iron', at: [-5, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'into the same headwind, aiming the arc 12 yards past the pin, left of the pot bunker, finds the green', shot: { club: 'Iron', at: [-2, 149], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'an arc a yard shorter, straight over the pot bunker, comes down short of the pin, in it', shot: { club: 'Iron', at: [-5, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
     ],
     strategies: [
       { name: 'reading a headwind', plans: [
           { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'head' } } },
-          { name: 'read', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } } } ],
+          { name: 'read', shot: { club: 'Iron', at: [-2, 149], wind: { mph: 17, dir: 'head' } } } ],
         expect: [
           ['ignoring the headwind is a disaster even for a sharp player', r => r.stock.sharp.hazard > 0.5],
-          ['reading it (the arc 11 yards past the pin) keeps a sharp player dry', r => r.read.sharp.hazard === 0],
+          ['reading it (the arc 12 yards past the pin) keeps a sharp player dry', r => r.read.sharp.hazard === 0],
           ['and saves strokes for everyone', r => r.read.sharp.score < r.stock.sharp.score - 1 && r.read.shaky.score < r.stock.shaky.score] ] },
       { name: 'a following wind: play it stock or over-read it', plans: [
           { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } } },
-          { name: 'over', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } } } ],
+          { name: 'over', shot: { club: 'Iron', at: [0, 124.5], wind: { mph: 17, dir: 'tail' } } } ],
         expect: [
           ['over-reading the tailwind (arc on the front edge) is a disaster even for a sharp player', r => r.over.sharp.hazard > 0.5],
           ['the stock shot keeps a sharp player dry', r => r.stock.sharp.hazard === 0],
@@ -107,8 +107,10 @@ module.exports = {
       { name: 'an iron flown at the pin runs through the green and off the back', shot: { from: [0, 311], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
       { name: 'landed short of the tucked pin and run up, an iron holds the green', shot: { from: [0, 311], club: 'Iron', at: [22, 432] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
       { name: 'the attack over the bunker\'s edge, pulled a little, drops into the Road Hole bunker', shot: { from: [0, 311], club: 'Iron', at: [28, 436], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'into an 18 mph headwind, an iron flown at the pin loses carry but lands steeper and still runs off the back', shot: { from: [0, 311], club: 'Iron', wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
-      { name: 'with an 18 mph tailwind the attack barely flies further, lands flatter and softer, and still holds the green', shot: { from: [0, 311], club: 'Iron', at: [28, 436], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 10 } },
+      // the two wind checks were rewritten 2026-10-24 (the crater-wall bounce): they had a steeper landing run further and a flatter one stop,
+      // which only the inverted steep-landing law did. A ball landing steeper keeps less run, so into the wind it holds, and downwind it runs on.
+      { name: 'into an 18 mph headwind, an iron flown at the pin loses carry, lands steeper and checks: it holds the green', shot: { from: [0, 311], club: 'Iron', wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'with an 18 mph tailwind the attack over the bunker\'s edge lands flatter and runs through the green', shot: { from: [0, 311], club: 'Iron', at: [28, 436], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
       { name: 'a 3-wood flown over the road into the stone wall is stopped by it', shot: { from: [0, 311], club: '3-Wood', at: [14, 470] }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'], wall: true } },
       { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [32.5, 434.5], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 311], club: 'Iron', at: [10, 420] }, expect: { surf: ['GREENS'] } },
@@ -144,7 +146,7 @@ module.exports = {
     challenge: 'A short iron over Rae\'s Creek to a shallow, wide green angled away from the tee: the creek and its steep bank short, deep bunkers long, a swirling wind over it all. The deeper left side is the safe target; the Sunday pin tucked by the creek on the right is the temptation.',
     shots: [
       { name: 'a well-struck iron at the pin holds the right side of the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 7 } },
-      { name: 'a well-struck iron at the middle of the green holds it', shot: { club: 'Iron', at: [14, 131], offset: 0.1 }, expect: { surf: ['GREENS'] } },
+      { name: 'a well-struck iron at the middle of the green holds it', shot: { club: 'Iron', at: [14, 132], offset: 0.1 }, expect: { surf: ['GREENS'] } },
       { name: 'a thin iron at the pin comes up short in the creek', shot: { club: 'Iron', offset: 0.4 }, expect: { end: 'water' } },
       { name: 'a push right at the pin is wet', shot: { club: 'Iron', offset: 0.5 }, expect: { end: 'water' } },
       { name: 'carried long over the left half of the green, the ball finds a back bunker', shot: { club: 'Iron', at: [2, 152] }, expect: { end: 'rest', surf: ['SAND'] } },
@@ -155,7 +157,7 @@ module.exports = {
     strategies: [
       { name: 'the Sunday pin: attack it by the creek, or play to the deep middle', plans: [
           { name: 'pin', shot: { club: 'Iron' } },
-          { name: 'middle', shot: { club: 'Iron', at: [14, 131] } } ],
+          { name: 'middle', shot: { club: 'Iron', at: [14, 132] } } ],
         expect: [
           ['attacking the pin keeps a sharp player dry', r => r.pin.sharp.hazard === 0],
           ['a shaky player gets wet at least one time in four going at it', r => r.pin.shaky.hazard > 0.25],
@@ -251,16 +253,16 @@ module.exports = {
     challenge: 'The Home hole: drive over the Swilcan Burn onto the vast fairway shared with the 1st, across Granny Clark\'s Wynd, at a green guarded by the Valley of Sin in front and out of bounds right (the town) and behind (Golf Place). Short enough to drive.',
     shots: [
       { name: 'a pure drive at the pin runs through the Valley of Sin up onto the front of the green', shot: { club: 'Hammer', at: 'pin', power: 1 }, expect: { end: 'rest', surf: ['FRINGE', 'GREENS'], maxToPin: 25 } },
-      { name: 'a drive 22 % light stops short of the Valley, a pitch over it left', shot: { club: 'Hammer', at: 'pin', power: 0.78 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 30 } },
+      { name: 'a drive at two-thirds power stops short of the Valley, a pitch over it left', shot: { club: 'Hammer', at: 'pin', power: 0.65 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 30 } },
       { name: 'down the right in a wind off the left, a pushed drive finishes out of bounds in the town', shot: { club: 'Hammer', at: [-20, 255], power: 1, offset: 0.55, wind: { mph: 18, dir: 'right' } }, expect: { end: 'oob' } },
-      { name: 'the drive at the R&A clock, left, stays on the shared fairway', shot: { club: 'Hammer', at: [25, 255], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE'] } },
+      { name: 'the drive at the R&A clock, left, stays on the shared fairway', shot: { club: 'Hammer', at: [22, 255], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE'] } },
       { name: 'a topped iron pushed right finds the Swilcan Burn by the bridge', shot: { club: 'Iron', at: [-30, 20], power: 0.2 }, expect: { end: 'water' } },
       { name: 'from Granny Clark\'s Wynd, a full iron flies the green and finishes out of bounds behind it', shot: { from: [0, 205], club: 'Iron', power: 1 }, expect: { end: 'oob' } },
     ],
     strategies: [
-      { name: 'the drive: at the green, at the R&A clock (left), or an iron to the Wynd', plans: [
-          { name: 'green', shot: { club: 'Hammer', at: 'pin', power: 1 } },
-          { name: 'clock', shot: { club: 'Hammer', at: [25, 255], power: 1 } },
+      { name: 'the drive: at the green (2 yd left of the pin, away from the town), at the R&A clock (left), or an iron to the Wynd', plans: [
+          { name: 'green', shot: { club: 'Hammer', at: [-13, 292], power: 1 } },
+          { name: 'clock', shot: { club: 'Hammer', at: [22, 255], power: 1 } },
           { name: 'layup', shot: { club: 'Iron', at: [20, 175], power: 1 } } ],
         expect: [
           ['driving at the green finishes nearest the pin and is the best plan for a sharp player', r => r.green.sharp.toPin < r.clock.sharp.toPin && r.green.sharp.score < r.clock.sharp.score && r.green.sharp.score < r.layup.sharp.score],

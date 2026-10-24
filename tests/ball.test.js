@@ -58,8 +58,9 @@ test('flight is unchanged: every club still carries its stated distance on flat 
 
 test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps less, backspin and softer ground keep less, and the hop follows the ground', () => {
   // one impact at a time: ball a hair above flat ground, same speed, different fall angles; rpm: backspin at that moment (Aero's spin state)
-  // OpenFairway's law is not monotone in angle: below the critical angle (fairway 0.29 rad) the run keeps 0.55 x its spin factor;
-  // above it Penner's path keeps 0.55 x speed x sin(angle - critical), which starts near zero and grows. Rewritten with the bounce port (PR #22).
+  // Below the critical angle (fairway 0.29 rad) the run keeps 0.55 x its spin factor; above it the crater-wall path keeps 0.55 x speed x
+  // cos(angle + critical), less a spin term, faded in over BallModel OF.PEN_BLEND: steeper keeps less. (OpenFairway's own sin(angle - critical)
+  // grew with steepness; replaced 2026-10-24.) Rewritten with the bounce port (PR #22).
   const after = (angDeg, surf, rpm = 0, speed = 40) => {
     const a = angDeg * g.D2R, b = { p: { x: 0, y: R + 0.001, z: 0 }, v: { x: 0, y: -Math.sin(a) * speed, z: Math.cos(a) * speed }, rolling: false, landed: false, resting: false, t: 0, lipT: -9 };
     BM.begin(b); b.air = { w: rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
@@ -67,7 +68,7 @@ test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps
     return { kept: Math.hypot(b.v.x, b.v.z) / (Math.cos(a) * speed), hop: b.v.y };
   };
   for (const a of [8, 12]) assert.ok(Math.abs(after(a, g.FAIRWAY).kept - 0.55) < 0.01, `below the critical angle the run keeps 55 % (${a} deg: ${after(a, g.FAIRWAY).kept.toFixed(3)})`);
-  // with a real ball's spin; with none, a very steep drop (55 deg) keeps 0.6 of its horizontal run under Penner's formula, which is OpenFairway's behaviour too
+  // with a real ball's spin
   for (const a of [20, 25, 30, 40, 55]) assert.ok(after(a, g.FAIRWAY, 3000).kept < after(12, g.FAIRWAY, 3000).kept, `steeper than critical keeps less than a skid (${a} deg)`);
   for (const a of [12, 30, 45]) assert.ok(after(a, g.FAIRWAY, 6000).kept < after(a, g.FAIRWAY, 1000).kept, `more backspin keeps less run (${a} deg)`);
   // not between the critical angles (fairway 16.6 deg, rough 20.1): a landing in that band skids on in rough but grips on fairway (OpenFairway's presets)
@@ -80,11 +81,15 @@ test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps
 test('driver on flat, firm fairway: real carry, a substantial but bounded run, at rest in a few seconds', () => {
   const r = shot(HAMMER, flat(g.FAIRWAY)), s = r.summary;
   assert.ok(Math.abs(s.carry - 245) <= 0.6);
-  // Was 28-55 yd (main's physics, a driver landing at 15 deg). Under OpenFairway's bounce a pure driver ran 10 yd; the low-spin run-out
-  // (BallModel OF.LOWSPIN, 2026-10-23, owner's call: ~20-25 yd, a real firm fairway's 20-30) brings it to ~23.
+  // Was 28-55 yd (main's physics, a driver landing at 15 deg). Under OpenFairway's bounce a pure driver ran 10 yd; the owner's call
+  // (2026-10-23) is ~20-25 yd, a real firm fairway's 20-30. The crater-wall law (2026-10-24) gives 23 by itself (OF.LOWSPIN, the patch that
+  // gave it before, is gone).
   assert.ok(s.roll >= 18 && s.roll <= 30, `roll ${s.roll.toFixed(1)}`);
-  // Was: at rest within 10 s. The ball is in the air for 6 s under OpenFairway's aero (PR #22), so this is now 12 s: under 6 s on the ground.
-  assert.ok(r.resting && r.t < 12 && s.bounces >= 1 && s.bounces <= 3, `rest ${r.resting} after ${r.t.toFixed(1)}s, ${s.bounces} bounces`);
+  // Was: at rest within 10 s, then 12 s in all (6 s in the air under OpenFairway's aero, PR #22, and under 6 s on the ground). That budget was
+  // set when the inverted steep-landing law left a driver 10 yd of run; main's 21.5 yd (the OF.LOWSPIN patch) passed it by 0.02 s. Under the
+  // crater-wall law (2026-10-24) the drive runs 23 yd and needs 6.0 s on the ground, so this now bounds the time on the ground, from touchdown.
+  const ground = r.t - r.inv.firstContact.t;
+  assert.ok(r.resting && ground < 6.5 && s.bounces >= 1 && s.bounces <= 3, `rest ${r.resting} ${ground.toFixed(1)}s after touchdown, ${s.bounces} bounces`);
   assert.ok(r.inv.maxHopAfterLanding < 2.5, `hop ${r.inv.maxHopAfterLanding.toFixed(2)} yd`);
 });
 
@@ -99,7 +104,11 @@ test('the same holds for the iron and the wedge, and for steeper (Phase 3-style)
   for (const [c, z0] of [[IRON, 60], [WEDGE, 30]]) for (const s of [0.04, 0.1, 0.2]) {
     const up = shot(c, makeTerrain(grade(s, z0), g.FAIRWAY)).summary, lvl = shot(c, flat(g.FAIRWAY)).summary, dn = shot(c, makeTerrain(grade(-s, z0), g.FAIRWAY)).summary;
     assert.ok(up.carry < lvl.carry && lvl.carry < dn.carry && up.total < lvl.total && lvl.total < dn.total, `${c.name} grade ${s}`);
-    assert.ok(up.roll <= lvl.roll + 0.05, `${c.name} grade ${s}: uphill roll ${up.roll.toFixed(1)} vs level ${lvl.roll.toFixed(1)}`);
+    // forward run, signed (total - carry): negative when the ball spins back. `roll` is a distance moved either way, and was compared here
+    // while a full wedge still ran 2.8 yd forward on level ground, which it did only under the inverted steep-landing law. Under the
+    // crater-wall law (2026-10-24) the wedge checks on level ground and spins back down an upslope, which `roll` read as more roll.
+    const fwd = r => r.total - r.carry;
+    assert.ok(fwd(up) <= fwd(lvl) + 0.05, `${c.name} grade ${s}: uphill run ${fwd(up).toFixed(1)} vs level ${fwd(lvl).toFixed(1)}`);
   }
 });
 
@@ -182,9 +191,10 @@ test('steeper than the ground can hold, into a hazard: the ball goes in rather t
 });
 
 test('short shots: little bounce, a bounded release, at rest quickly; on a green a chip releases and a pitch checks', () => {
-  // Rewritten 2026-10-23 for OpenFairway's ground model and the green-chip blend. Was: roll <= 8 % of carry + 0.35 yd and rest within 4 s on
-  // every surface. On fairway (OpenFairway's rolling friction) a chip now releases 3-5 yd, which the owner judged realistic; on a green a slow
-  // landing blends toward the skid path (BallModel OF.CHIP_V), so a 5-15 yd chip releases 1-2 yd instead of stopping at its pitch mark.
+  // Rewritten 2026-10-23 for OpenFairway's ground model. Was: roll <= 8 % of carry + 0.35 yd and rest within 4 s on every surface. On fairway
+  // (OpenFairway's rolling friction) a chip releases 3-5 yd, which the owner judged realistic; on a green a 5-15 yd chip releases 1-2.6 yd,
+  // because a slow landing stays on the skid path (OpenFairway's low-energy guard, faded in over speed: BallModel OF.GUARD_W, 2026-10-24),
+  // while a 30-yd pitch is half on the crater-wall path and checks to about a yard.
   const roll = {};
   for (const p of [0.03, 0.06, 0.1, 0.25]) for (const surf of [g.FAIRWAY, g.GREENS, g.ROUGH]) {
     const r = shot(WEDGE, flat(surf), { power: p });

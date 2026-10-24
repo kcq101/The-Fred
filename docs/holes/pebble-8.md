@@ -67,13 +67,13 @@ All in `tests/hole-checks.js` → `pebble-8`.
 | Pure 3-wood | fairway, short of the cliff |
 | Iron from (−5, 190), slight mishit (0.1) | green within 8 yd |
 | Chunked iron (0.7) | water |
-| Thin-right iron (0.55) lands on the shaved bank | water |
+| Thin-right iron (0.6) lands on the shaved bank | water |
 | Bail-out left around the cove (0.5 miss) | dry |
 
 | Decision | Must hold | Result |
 |---|---|---|
 | Tee club: driver / 3-wood / iron | driver wet more often than not; 3-wood dry and best for both skills; iron leaves 50+ yd more | driver wet 100 % (sharp) / 62 % (shaky); 3-wood best for both (3.97 / 4.06); iron leaves 56 yd more (202 against 146) |
-| Approach: pin / bail left | pin brings the sea into play for a shaky player; sharp stays dry and greens it at least 9 times in 10; bail is dry but costs 0.5+ strokes | pin wet 5 % for shaky; sharp 19 in 21 on the green, 2 in the left bunker; bail costs a sharp player 1.15 strokes |
+| Approach: pin / bail left | pin is dry for a shaky player too but holds the green 30 %+ and saves 0.3+ strokes over the bail; sharp stays dry and greens it at least 9 times in 10; bail is dry but costs 0.5+ strokes | (2026-10-24) shaky: pin dry, 38 % on the green, 3.17 against the bail's 3.69; sharp 95 % on the green, 2.83 against 3.73 |
 
 **Check-change log**
 
@@ -88,6 +88,8 @@ All in `tests/hole-checks.js` → `pebble-8`.
 | Tee club: the iron lay-up | leaves 60+ yd more than the 3-wood | leaves 50+ yd more (56: 202 against 146) | OpenFairway's roll: a 3-wood runs 9 yd on flat fairway (main 26) and an iron 7, so the gap between them fell by about 17 yd. No tee position between +20 and +30 gives 60 |
 | Approach: a sharp player at the pin | hits the green every time | stays dry and holds the green at least 9 times in 10 | 19 in 21; the two most-pulled shots find the traced left bunker (−26, 342). The hole's base landform (`seed`, `roll`, `ridge`) is a function of absolute coordinates, so moving the tee re-rolls its small invented swells under the green complex; the lidar's ramps, the traced green, bunkers and coastline moved exactly. (At +22 every sharp approach held the green, but the 90 % driver was dry) |
 | **Tee 12 yd back (2026-10-23, low-spin run-out)** | tee 25 yd forward of the lidar frame, 351 yd; every z as it was | tee 13 yd forward, 363 yd; every z +12 (`tests/tools/teeshift.js`); `holes.test.js` recovery test's bunker lookups +12 | A low-spin landing now runs out (BallModel `OF.LOWSPIN`): a pure 3-wood ran 13 yd further, off the plateau into the sea, so the iron became the safe tee club. 12 yd back restores it; no check's wording or threshold changed. Tee club, after: driver sharp 100 % wet, 3-wood 0 % (4.00 / 4.10), iron 4.27 / 4.60 |
+| **Thin-right iron onto the shaved bank (2026-10-24, crater-wall bounce)** | needle 0.55 | needle 0.6 | The crater-wall law takes run off a ball flown into a bank's face (it checks instead of skidding on). At 0.55 the iron lands on the bank's 34 % face and stops on its lip (8.6 %), 24.7 yd from the pin; at 0.6 it lands lower on the same bank and feeds down to the sea, as the check means. It was a knife edge on main too (0.5 dry, 0.55 wet) |
+| **Approach: pin / bail, shaky player (2026-10-24, crater-wall bounce)** | going at the pin brings the sea into play for a shaky player (wet at least once in 21) | going at the pin is dry for a shaky player too (the bunker and the bank's lip catch the short-right misses), holds the green at least 30 % (38 %) against none for the bail, and saves 0.3+ strokes (0.52) | The sea was one sample on main: the ±0.55 extreme, the miss above. It now stops on the bank's lip, and the sea is one needle-width further (0.6, kept as a shot check). Re-aiming the "pin" plan half a yard right puts that sample back in the sea, but only by aiming off the pin to catch it, so the clause states what the baseline shows instead. Sharp: dry, 95 % on the green, 2.83 (main 100 %, 2.58: the iron checks short of the pin now instead of running to it) |
 
 ## 7. Results
 

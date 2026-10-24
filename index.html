@@ -687,7 +687,7 @@ const HOLES=[
   ob:[{pts:[[-27,-30],[-21,-18],[22,108],[-48.5,300],[-60,345],[-130,345],[-130,-30]]}],   // the hotel's grounds: right of the wall
   obstacles:[{type:'wall',pts:[[-4.6,30],[22,108],[-48.5,300],[-55,330]],t:0.8,h:1.2,e:0.3},   // the stone wall round the hotel's grounds (lidar: 1 m)
              {type:'wall',pts:[[-36,401],[-24,412],[-17.4,421.4],[-9.2,434.7],[-0.9,448.1],[7.6,461],[16.8,473.2],[26.1,485.4],[33,494]],t:1.2,h:2.2,e:0.3}],   // the stone wall beyond the road, at the foot of the lidar's rise
-  play:{firm:1.5,wind:[8,20],windPush:0.6,greens:{speed:1.15,firm:3.5}},
+  play:{firm:1.5,wind:[8,20],windPush:0.6,greens:{speed:1.15,firm:2.5}},
   // bunkers from the lidar: the Road Hole bunker (place and shape from the lidar, a 5 m pot 1.4 m below the green; deepened to 2.6 with a 0.6 lip to stand in for its revetted face, §5), and Scholar's and Progressing short-left (named on the yardage book)
   bunkers:[{pts:[[34.5,439.2],[32.5,438.8],[31.2,437],[30.2,436.5],[30.2,434.5],[28.2,431.5],[28.2,431],[30.5,428.8],[31.5,428.8],[32,428.2],[36.2,432],[36.2,433],[36.8,433.5],[36.2,434],[36.8,434.5],[36.8,438]],depth:2.6,lip:0.6},
            {pts:[[46.5,359.8],[45.5,358.8],[41.5,358.2],[41,357.8],[39,357.8],[37.5,358.8],[34,358.8],[33,358.2],[31.8,356],[32.8,352.5],[34,350.8],[36.5,349.8],[39,347.8],[42,346.2],[46.5,346.8],[49.2,349.5],[49.2,351],[50.8,354],[50.8,355.5],[49.8,358],[48.5,359.2],[47,359.2]],depth:1.17,lip:0.25},
@@ -757,7 +757,7 @@ const HOLES=[
     {type:'cover',area:{pts:[[0,200],[14,225],[19,305],[14,345],[12,385]],w:15},surf:'FAIRWAY'},   // the landing's low side is fairway: a drive kicks left down the slant and stops on it, not in the wiregrass (OpenFairway friction; §6)
     {type:'cover',area:{x:34,z:485,rx:36,rz:30,rot:0.45},surf:'WASTE'},            // and beyond the runoffs
   ],
-  play:{firm:1.1,greens:{speed:1.1,firm:1.8}},   // greens.firm 1 -> 2.2 (2026-10-21): a flown 3-wood lands steep under the OpenFairway physics and must release to run off the plateau; 2.2 -> 1.8 (2026-10-23): a low-spin 3-wood now runs out by itself (§6)
+  play:{firm:1.1,greens:{speed:1.1,firm:1.2}},   // greens.firm 1 -> 2.2 (2026-10-21): a flown 3-wood lands steep under the OpenFairway physics and must release to run off the plateau; 2.2 -> 1.8 (2026-10-23): a low-spin 3-wood now runs out by itself (§6)
   bunkers:[{x:-20,z:255,rx:5,rz:3.5,rot:0.1,depth:0.5,lip:0.25}],   // set into the land at a lidar-like depth (0.5 yd): its shape and place are still from words (no 1 m lidar here)
   water:[],
   bbox:{x0:-110,x1:150,z0:-55,z1:575},
@@ -1310,7 +1310,7 @@ const BallModel=(()=>{
   // Spin cuts restitution: up to SC_LOW below SC_LO rpm, up to SC_LOW+SC_ADD by SC_LO+SC_RANGE, the high-spin cut scaled from VS_LOW to 1 between VS_LO and VS_MID m/s.
   // Later bounces keep RO_LOW..RO_HIGH of the run as the spin ratio rises to RO_RATIO, bounce at RO_COR of the curve, and not at all below RO_KILL_V.
   const OF={A:.45,B:-.01,C:.0002,CAP:.25,CAP_V:20,KILL_V:2,RET_FLIGHT:.55,RET_MIN:.40,RET_SPIN:8000,PENNER_V:20,
-    SC_LO:1500,SC_LOW:.30,SC_RANGE:1500,SC_ADD:.40,VS_LO:12,VS_MID:25,VS_LOW:.50,RO_LOW:.85,RO_HIGH:.70,RO_RATIO:.20,RO_COR:.5,RO_KILL_V:4,CHIP_V:8,LOWSPIN:2000,LOWSPIN_SKID:.85};   // CHIP_V (m/s): on a green, landings slower than this skid on; LOWSPIN (rpm), LOWSPIN_SKID: a low-spin landing runs out. Ours, not OpenFairway's
+    SC_LO:1500,SC_LOW:.30,SC_RANGE:1500,SC_ADD:.40,VS_LO:12,VS_MID:25,VS_LOW:.50,RO_LOW:.85,RO_HIGH:.70,RO_RATIO:.20,RO_COR:.5,RO_KILL_V:4,PEN_BLEND:.14,GUARD_W:.5};   // PEN_BLEND (rad, ~8 deg), GUARD_W (share of the guard speed): ours, see impact()
   // OpenFairway's RolloutProfile.Default (m/s, rpm); VISC: 6*pi*radius/mass of a real ball (per second, per Pa·s of grass viscosity)
   const RO={CHIP_V:20,PITCH_V:35,VS_MIN:.60,VS_MAX:.87,LOW_RPM:1750,LOW_MAX:1.15,MID_MAX:2.25,HIGH_MAX:2.50,HIGH_RANGE:1000},VISC=6*Math.PI*0.021335/0.04592623;
   const E_REF=.30,BITE_REF=3.5,MU_REF=.22;   // fairway's e, bite and mu: the surface OpenFairway's profile stands for
@@ -1369,17 +1369,17 @@ const BallModel=(()=>{
     if(first){
       const ret=OF.RET_FLIGHT*clamp(1-rpm/OF.RET_SPIN,OF.RET_MIN,1)*BITE_REF/sp.bite;
       const sb=sp.spinback??SB_DEF,bo=sp.boost,crit=(sp.crit??CRIT_DEF)+(bo?bo.max*smooth((rpm-bo.rpm[0])/(bo.rpm[1]-bo.rpm[0]))*smooth((sp0M-bo.v[0])/(bo.v[1]-bo.v[0])):0);
-      const th=Math.atan2(un,ut),green=!!(bo||sb>1),penner=th>=crit&&(sp0M>=OF.PENNER_V||green);
-      // a spinback surface (a green) takes Penner's path at any speed above OF.PENNER_V; below it a slow, soft landing (a chip or a short pitch)
-      // blends toward the skid path (OF.CHIP_V and up: all Penner), so a chip releases instead of stopping at its pitch mark (2026-10-23).
-      // Full wedges and irons land faster than OF.PENNER_V and are unchanged.
+      const th=Math.atan2(un,ut),pv=OF.PENNER_V-(OF.PENNER_V-12)*clamp((rpm-4000)/4000,0,1),gv=smooth((sp0M-pv*(1-OF.GUARD_W))/(pv*OF.GUARD_W)),penner=th>=crit&&gv>0;
+      // OpenFairway's low-energy guard on every surface: full at 20 m/s (12 for a high-spin, 4,000-8,000 rpm landing), faded in from OF.GUARD_W
+      // of that speed below it (10-20 m/s; 6-12). A hard switch released every wedge from 14 to 70 yd the same 3.3 yd on a green and checked an 80-yd one (2026-10-24).
+      // Steeper than the critical angle the ball digs a small crater whose front wall tilts back toward it by the critical angle, so the run
+      // it keeps is its speed along that wall: cos(descent + crit), which shrinks as the landing gets steeper. (OpenFairway, at 4f3e11b, uses
+      // sin(descent - crit) with the descent measured from the surface, which grows with steepness: a 70 deg landing kept more run than a
+      // 25 deg one, and just past crit the run fell off a cliff. Audit 2026-10-24.) The wall and the spin term fade in over OF.PEN_BLEND
+      // past crit, so there is no cliff. Backspin then takes run off (and can spin the ball back) through Penner's spin term, as before.
       if(penner){
-        vt=ret*sp0*Math.sin(th-crit)-2/7*BALL_RAD*w*sb;b.stats.spinback=vt;
-        // a low-spin ball runs out: below OF.LOWSPIN rpm at landing, Penner's path blends toward the skid (OF.LOWSPIN_SKID of it), since
-        // backspin is what makes a steep landing bite. A pure driver lands at ~800 rpm and now runs ~23 yd on flat fairway (was 10);
-        // irons and wedges land above 2,300 rpm and are unchanged; chips land too slowly for Penner's path anyway (2026-10-23, ours)
-        {const k=smooth(rpm/OF.LOWSPIN);vt=mix(ut*ret*OF.LOWSPIN_SKID,vt,k);}
-        if(green&&sp0M<OF.PENNER_V){const f=smooth((sp0M-OF.CHIP_V)/(OF.PENNER_V-OF.CHIP_V));vt=mix(ut*ret,vt,f);}
+        const f=smooth((th-crit)/OF.PEN_BLEND),wall=ret*sp0*Math.cos(th+crit)-2/7*BALL_RAD*w*sb;
+        vt=mix(ut*ret,wall,f*gv);b.stats.spinback=vt;
       }
       else vt=ut*ret;
       // a spinning ball sticks: restitution cut by up to 70 % for high spin, and less of that cut for a slow (chip) impact
