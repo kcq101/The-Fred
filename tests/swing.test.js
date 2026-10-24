@@ -155,13 +155,21 @@ test('a perfect swing improves the odds without guaranteeing the pin', () => {
   }
 });
 
-test('environment stays separate from the swing: wind moves the same swing by the same amount at any quality', () => {
+test('environment stays separate from the swing: wind acts on the launch the swing produced, never on the swing quality itself', () => {
+  // Rewritten for OpenFairway's aero (PR #22). Wind now depends on launch speed, as it does on a real ball: a 13 mph headwind costs a pure
+  // Hammer 15 yd but a mis-hit (needle 0.8, 84 % speed, less backspin, lower flight) only 5, the "when it's breezy, swing easy" effect.
+  // What must still hold: the miss adds no wind sensitivity of its own. Its wind effect equals a pure strike's at the same launch speed,
+  // so the start-line and sidespin errors are never amplified or hidden by the wind (measured: they add 0.3-0.4 yd).
   const wind = { x: 0, z: -13 * 0.4889 }; // 13 mph headwind
   for (const c of FULL) {
     const dPerfect = swing(c, 0).carry - swing(c, 0, noJit, wind).carry;
-    const dBad = swing(c, 0.8).carry - swing(c, 0.8, noJit, wind).carry;
     assert.ok(dPerfect > 1, `${c.name} headwind should cost carry`);
-    assert.ok(Math.abs(dPerfect - dBad) < 0.35 * dPerfect, `${c.name} wind effect should not depend on the swing model`);
+    for (const a of [0.3, 0.8, 1]) {
+      const m = SM.resolve(c, a, noJit), sp = c.v0 * m.speedMult;
+      const dMiss = flatShot(g, c, sp, m.yawErr, m.spinErr).carry - flatShot(g, c, sp, m.yawErr, m.spinErr, wind).carry;
+      const dPure = flatShot(g, c, sp, 0, 0).carry - flatShot(g, c, sp, 0, 0, wind).carry;
+      assert.ok(Math.abs(dMiss - dPure) < Math.max(0.6, 0.1 * dPure), `${c.name} at ${a}: wind costs the miss ${dMiss.toFixed(1)} yd, a pure strike at its speed ${dPure.toFixed(1)}`);
+    }
   }
 });
 
