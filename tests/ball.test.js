@@ -81,8 +81,9 @@ test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps
 test('driver on flat, firm fairway: real carry, a substantial but bounded run, at rest in a few seconds', () => {
   const r = shot(HAMMER, flat(g.FAIRWAY)), s = r.summary;
   assert.ok(Math.abs(s.carry - 245) <= 0.6);
-  // Was 28-55 yd (main's physics, a driver landing at 15 deg). Under OpenFairway's bounce a pure driver ran 10 yd; the low-spin run-out
-  // (BallModel OF.LOWSPIN, 2026-10-23, owner's call: ~20-25 yd, a real firm fairway's 20-30) brings it to ~23.
+  // Was 28-55 yd (main's physics, a driver landing at 15 deg). Under OpenFairway's bounce a pure driver ran 10 yd; the owner's call
+  // (2026-10-23) is ~20-25 yd, a real firm fairway's 20-30. The crater-wall law (2026-10-24) gives 23 by itself (OF.LOWSPIN, the patch that
+  // gave it before, is gone).
   assert.ok(s.roll >= 18 && s.roll <= 30, `roll ${s.roll.toFixed(1)}`);
   // Was: at rest within 10 s, then 12 s in all (6 s in the air under OpenFairway's aero, PR #22, and under 6 s on the ground). That budget was
   // set when the inverted steep-landing law left a driver 10 yd of run; main's 21.5 yd (the OF.LOWSPIN patch) passed it by 0.02 s. Under the
