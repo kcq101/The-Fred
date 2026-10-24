@@ -112,6 +112,10 @@
 
 **Check-change log**: none (the checks were written before tuning; the only tuning after them was the run-off's `hold`, which the run-off check needed and §5 records, and softer pews, 0.45 → 0.3 rise and 0.7 → 0.6 deep, closer to the lidar).
 
+| Check | Was | Now | Why |
+|---|---|---|---|
+| The iron 20 yd short, and the full iron from the 3-wood's landing (2026-10-23) | rolls back to 35+ yd from the pin | 32+ yd (33.5 and 33.6) | On fairway-type ground the late-roll ramp now starts after 4 s on ground that can hold the ball (was 8 s), so the last crawl of the roll back down the hill ends sooner. Same decision: a short iron goes back down the hill, a pitch is left |
+
 ## 7. Results
 
 `node tests/tools/validate.js oakmont-3` (11 of 11). The "before" column is the hole-report baseline: the same land with its signature stripped.

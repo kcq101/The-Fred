@@ -6,7 +6,7 @@
 |---|---|
 | Real hole | St Andrews Old Course, hole 17, the Road Hole |
 | Par / yardage (real) | Par 4, about 495 yards (lengthened for recent Opens) |
-| Par / yardage (game) | Par 4, **438 yards** tee → pin since the OpenFairway physics (2026-10-21: the tee moved 50 yd forward, §6; `cards/card4.jpg` reads 438). 488 after the lidar rebuild moved the pin behind the bunker, 470 before that. A pure driver lands at 245 and runs 54 yd on the firm fairway, leaving 138 yards: a full iron. |
+| Par / yardage (game) | Par 4, **448 yards** tee → pin since 2026-10-23 (the tee 40 yd forward of the lidar frame, §6); 438 from 2026-10-21 (the tee moved 50 yd forward; `cards/card4.jpg` reads 438). 488 after the lidar rebuild moved the pin behind the bunker, 470 before that. A pure driver lands at 245 and runs 54 yd on the firm fairway, leaving 138 yards: a full iron. |
 | Sources | See below |
 
 - [golf.com — Inside the Old Course's Road Hole](https://golf.com/travel/inside-oid-course-road-hole-st-andrews/?amp=1)
@@ -69,7 +69,7 @@
 
 | Characteristic | Real | Game | Why this amount |
 |---|---|---|---|
-| Length | 495 yd | 438 yd (the tee 50 yd forward, the sheds and hotel with it) | A pure driver plus a full iron. Under OpenFairway's flight a driver runs 10 yd on flat fairway (main: 41), so at 488 the drive left 197 yd |
+| Length | 495 yd | 448 yd (the tee 40 yd forward since 2026-10-23, the landmarks with it; 438 and 50 before, §6) | A pure driver plus a full iron. Under OpenFairway's flight a driver runs 10 yd on flat fairway (main: 41), so at 488 the drive left 197 yd |
 | Firmness | firm | `firm:1.5`, greens firm 3.5 (1.3 before the OpenFairway physics) | The run-out is the point: a flown pin ball runs through to the road. With real landing angles (irons 42–49°) a green at 1.3 holds everything within 2–4 yd of its pitch mark, and an iron flown at the pin holed out; at 3 the middle no longer beat the attack (3.08 vs 3.02 for a sharp player), at 4 the attack runs off too often to be a temptation. 3.5 is between |
 | Road Hole Bunker depth | 1.4 m below the green, 1.8 m below its back face, the face revetted (near vertical) | depth 2.6, lip 0.6 (the lidar's 1.6 yd ×1.6) | The game has no revetted face: at the lidar's depth a wedge from the middle flies out (it holed out on the probe). 2.6/0.6 is the least that keeps the forward escape failing, standing in for the face (the owner's choice, 2026-10-20) |
 | Pin | the Sunday pin, tucked behind the bunker | (24.5, 487.1): the card reads 488 tee → pin, not 470 | The attack-over-the-bunker decision needs a pin beyond it, and the lidar puts the bunker at the green's left end, not in front of the old pin (the owner's choice) |
@@ -135,6 +135,7 @@ Coordinates since 2026-10-21 (the tee 50 yd forward): the pin (24.5, 437.1), the
 | `tests/holes.test.js` lieAdd and recovery tests, `tests/tools.test.js` probe test | from (1, 345), aim (27.5, 476.5), the bunker at (32.5, 474.5), lieAdd aim (8, 455) | from (0, 301), aim (28, 426), the bunker at (32.5, 424.5), aim (8, 405) | The tee move |
 | **The real tee shot (2026-10-23)**: three drive shots and the drive strategy | (none) | added (above) | New checks for the new layout, written after it was built from the lidar (the layout was not tuned to them). Every existing check is unchanged and its numbers are identical to main's (§7) |
 | `tests/ball.test.js` hand-over test | rest, water and leaving the hole | also: a ball at rest in an `ob` area goes to out of bounds | The new rule |
+| **Tee 10 yd back (2026-10-23, low-spin run-out)** | tee 50 yd forward of the lidar frame, 438 yd | tee 40 yd forward, 448 yd; every z +10 (`tests/tools/teeshift.js`), the trace file's `landmarks.shift` z −50 → −40; `holes.test.js` and `tools.test.js` shot positions +10 | A pure drive now runs ~45 yd further on the firm links (low-spin run-out, BallModel `OF.LOWSPIN`) and left 122–124 yd, under the check's 125. 10 yd back restores a full iron (the late-roll ramp took a little of the run back); no check's wording or threshold changed. Drive strategy, after: sign 4.00 / 4.15, right 3.95 / 4.46 (shaky 19 % OB), left 4.32 / 4.27 |
 
 ## 7. Results
 

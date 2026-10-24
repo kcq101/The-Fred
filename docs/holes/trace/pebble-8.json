@@ -1,5 +1,5 @@
 {
-  "tee_shift": {"z_yd": 25, "date": "2026-10-21", "note": "The game tee was moved 25 yd forward along the hole for the OpenFairway physics (docs/holes/pebble-8.md §6): every z in the HOLES entry is 25 yd less than this frame gives (everything moved with the land). Subtract 25 from z in lidar.py output before pasting it into the hole."},
+  "tee_shift": {"z_yd": 13, "date": "2026-10-21", "note": "2026-10-23: moved 12 yd back (tests/tools/teeshift.js) after the low-spin run-out, so a pure 3-wood stops short of the cliff again; it had been 25. The game tee was moved 13 yd forward along the hole for the OpenFairway physics (docs/holes/pebble-8.md §6): every z in the HOLES entry is 13 yd less than this frame gives (everything moved with the land). Subtract 13 from z in lidar.py output before pasting it into the hole."},
  "id": "pebble-8",
  "lidar": {
   "source": "USGS 3DEP 1 m DEM, project CA_AZ_FEMA_R9_Lidar_2017_D18 (flown 2017-18, published 2021), tile USGS_1M_10_x59y405_CA_AZ_FEMA_R9_Lidar_2017_D18.tif (public domain), from prd-tnm.s3.amazonaws.com. Not in the repo (229 MB): python3 tests/tools/lidar.py fetch --pin 36.563057,-121.936526 --download",

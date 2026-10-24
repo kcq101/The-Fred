@@ -9,7 +9,7 @@
 // An optional "name" labels the row. Prints, per shot: how it ended (rest/water/oob/holed), the surface and the yards to the pin, the first bounce
 // (where, on what surface, how far from the pin), the carry, the power used, the stance the lie gave, and wall strikes. --json prints the raw results.
 //
-//   node tests/tools/probe.js standrews-17 '[{"from":[0,334],"club":"Iron","at":[18,464]},{"from":[0,334],"club":"Iron","at":[18,464],"offset":-0.25}]'
+//   node tests/tools/probe.js standrews-17 '[{"from":[0,344],"club":"Iron","at":[18,474]},{"from":[0,344],"club":"Iron","at":[18,474],"offset":-0.25}]'
 const { args, die, openHole, f1 } = require('./lib');
 const { playShot } = require('../hole-play');
 

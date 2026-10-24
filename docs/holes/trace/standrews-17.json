@@ -1,5 +1,5 @@
 {
-  "tee_shift": {"z_yd": 50, "date": "2026-10-21", "note": "The game tee was moved 50 yd forward along the hole for the OpenFairway physics (docs/holes/standrews-17.md §6): every z in the HOLES entry is 50 yd less than this frame gives (the sheds and hotel of that time moved with the tee; since 2026-10-23 the tee-shot landmarks are placed by `landmarks.shift`). Subtract 50 from z in lidar.py output before pasting it into the hole."},
+  "tee_shift": {"z_yd": 40, "date": "2026-10-21", "note": "2026-10-23: moved 10 yd back (tests/tools/teeshift.js) after the low-spin run-out, so a pure drive leaves a full iron again; it had been 50. The game tee was moved 40 yd forward along the hole for the OpenFairway physics (docs/holes/standrews-17.md §6): every z in the HOLES entry is 40 yd less than this frame gives (the sheds and hotel of that time moved with the tee; since 2026-10-23 the tee-shot landmarks are placed by `landmarks.shift`). Subtract 40 from z in lidar.py output before pasting it into the hole."},
  "id": "standrews-17",
  "lidar": {
   "source": "Scottish Public Sector LiDAR Phase 5, 50 cm DTM, tiles NO41NE_50CM_DTM_PHASE5.tif and NO51NW_50CM_DTM_PHASE5.tif (Open Government Licence v3), from srsp-open-data.s3.eu-west-2.amazonaws.com (lidar/phase-5/dtm/27700/gridded/). Not in the repo (383 + 206 MB)",
@@ -21,7 +21,7 @@
   "reference": "the owner's screen recording of St Andrews Links' own drone flyover of the 17th (a Facebook reel); not in the repo. It fixed the tee (left of the wall), the shed's boards, roof and sign, the wall, path and netting",
   "shift": {
    "x_yd": -10,
-   "z_yd": -50,
+   "z_yd": -40,
    "why": "z: the tee shift above. x: the frame's tee is the owner's back-tee pin, on the wall's line, while the tee in the flyover is left of the wall; the landmarks are moved 10 yd right so they stand from the game tee as they do from the real one (the green, road and bunkers keep the frame)"
   },
   "height_scale": 1.161,
