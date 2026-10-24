@@ -82,7 +82,7 @@ function runBall(game, terrain, { start = { x: 0, z: 0 }, v, spin = 0, club = nu
     const wasLanded = b.landed;
     BallModel.step(b, BallModel.STEP, env);
     inv.steps++;
-    if (!wasLanded && b.landed) inv.firstContact = { x: b.p.x, z: b.p.z };   // seen from outside, not read from the model's own record
+    if (!wasLanded && b.landed) inv.firstContact = { x: b.p.x, z: b.p.z, t: b.t };   // seen from outside, not read from the model's own record
     if (!(Number.isFinite(b.p.x) && Number.isFinite(b.p.y) && Number.isFinite(b.p.z))) { inv.nan = true; break; }
     const h = terrain.H(b.p.x, b.p.z), clear = b.p.y - R - h;
     inv.minClear = Math.min(inv.minClear, clear);
