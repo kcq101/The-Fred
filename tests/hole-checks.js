@@ -253,16 +253,16 @@ module.exports = {
     challenge: 'The Home hole: drive over the Swilcan Burn onto the vast fairway shared with the 1st, across Granny Clark\'s Wynd, at a green guarded by the Valley of Sin in front and out of bounds right (the town) and behind (Golf Place). Short enough to drive.',
     shots: [
       { name: 'a pure drive at the pin runs through the Valley of Sin up onto the front of the green', shot: { club: 'Hammer', at: 'pin', power: 1 }, expect: { end: 'rest', surf: ['FRINGE', 'GREENS'], maxToPin: 25 } },
-      { name: 'a drive 22 % light stops short of the Valley, a pitch over it left', shot: { club: 'Hammer', at: 'pin', power: 0.78 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 30 } },
+      { name: 'a drive at two-thirds power stops short of the Valley, a pitch over it left', shot: { club: 'Hammer', at: 'pin', power: 0.65 }, expect: { end: 'rest', surf: ['FAIRWAY'], minToPin: 30 } },
       { name: 'down the right in a wind off the left, a pushed drive finishes out of bounds in the town', shot: { club: 'Hammer', at: [-20, 255], power: 1, offset: 0.55, wind: { mph: 18, dir: 'right' } }, expect: { end: 'oob' } },
-      { name: 'the drive at the R&A clock, left, stays on the shared fairway', shot: { club: 'Hammer', at: [25, 255], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE'] } },
+      { name: 'the drive at the R&A clock, left, stays on the shared fairway', shot: { club: 'Hammer', at: [22, 255], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY', 'FRINGE'] } },
       { name: 'a topped iron pushed right finds the Swilcan Burn by the bridge', shot: { club: 'Iron', at: [-30, 20], power: 0.2 }, expect: { end: 'water' } },
       { name: 'from Granny Clark\'s Wynd, a full iron flies the green and finishes out of bounds behind it', shot: { from: [0, 205], club: 'Iron', power: 1 }, expect: { end: 'oob' } },
     ],
     strategies: [
-      { name: 'the drive: at the green, at the R&A clock (left), or an iron to the Wynd', plans: [
-          { name: 'green', shot: { club: 'Hammer', at: 'pin', power: 1 } },
-          { name: 'clock', shot: { club: 'Hammer', at: [25, 255], power: 1 } },
+      { name: 'the drive: at the green (2 yd left of the pin, away from the town), at the R&A clock (left), or an iron to the Wynd', plans: [
+          { name: 'green', shot: { club: 'Hammer', at: [-13, 292], power: 1 } },
+          { name: 'clock', shot: { club: 'Hammer', at: [22, 255], power: 1 } },
           { name: 'layup', shot: { club: 'Iron', at: [20, 175], power: 1 } } ],
         expect: [
           ['driving at the green finishes nearest the pin and is the best plan for a sharp player', r => r.green.sharp.toPin < r.clock.sharp.toPin && r.green.sharp.score < r.clock.sharp.score && r.green.sharp.score < r.layup.sharp.score],

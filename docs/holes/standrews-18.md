@@ -66,16 +66,16 @@
 
 | Shot | Expected |
 |---|---|
-| A pure drive at the pin | Runs through the Valley onto the front: fringe or green, ≤ 25 yd (21) |
-| 22 % light (was 15 %: §6) | Fairway short of the Valley, 30+ yd (38) |
+| A pure drive at the pin | Runs through the Valley onto the front: fringe or green, ≤ 25 yd (6.8, 2026-10-24) |
+| Two-thirds power, 65 % (was 15 %, then 22 % light: §6) | Fairway short of the Valley, 30+ yd (47.8) |
 | Down the right, pushed, in an 18 mph wind off the left | Out of bounds in the town |
-| At the R&A clock (left) | Shared fairway (47 yd) |
+| At the R&A clock (left), (22, 255) | Shared fairway (42.8 yd) |
 | A topped iron pushed right | The Swilcan Burn |
 | From the Wynd, a full iron | Flies the green, out of bounds behind |
 
 | Decision | Plans | Must hold |
 |---|---|---|
-| The drive | at the green / at the clock / an iron to the Wynd | the green line finishes nearest and is a sharp player's best (3.47 against 3.59 and 3.86); in still air no line reaches the town for either player; the iron leaves 100+ yd. **Honest note**: the out of bounds takes a push *and* a crosswind; the baseline sees no risk in driving at the green, and a shaky player's best plan is also the drive (3.54) |
+| The drive | at the green (2 yd left of the pin, 2026-10-24) / at the clock, (22, 255) / an iron to the Wynd | the green line finishes nearest and is a sharp player's best (3.47 against 3.59 and 3.86); in still air no line reaches the town for either player; the iron leaves 100+ yd. **Honest note**: the out of bounds takes a push *and* a crosswind; the baseline sees no risk in driving at the green, and a shaky player's best plan is also the drive (3.54) |
 
 **Check-change log**: none until 2026-10-23. The tee shift was chosen from probes before the checks were written (§5).
 
@@ -84,6 +84,9 @@
 | **Tee 5 yd back (2026-10-23, low-spin run-out)** | tee 85 yd up the line, just past the Swilcan Burn, 287 yd | tee 80 yd up the line, 4–6 yd in front of the burn, 292 yd; every z +5 (`tests/tools/teeshift.js`) | A low-spin landing now runs out (BallModel `OF.LOWSPIN`): the 15 %-light drive ran onto the fringe (17 yd) and the drive at the clock into the rough. 15 yd back put the tee in the burn (it crosses the line 10–16 yd behind the old tee); 22 yd back, behind it, passed every check but the burn wrapped round the tee and its walled banks showed as stair-steps, so the owner chose the tee in front of it. At 5 yd the clock drive stays on the fairway (47 yd) and the pure drive reaches the green (8 yd) |
 | A light drive stops short of the Valley | 15 % light (power 0.85) | 22 % light (power 0.78): 38 yd out on the fairway | At 0.85 it now runs onto the fringe, 18 yd out. Same decision: a drive short of full leaves a pitch over the Valley |
 | A topped iron finds the burn | aimed at (−30, 20) | the same, (−30, 20) | The tee tool moved the aim with the land (to (−30, 25)), but a topped iron's carry is fixed, so the aim stays put relative to the tee |
+| **A light drive stops short of the Valley (2026-10-24, crater-wall bounce)** | 22 % light (power 0.78): 38 yd out | two-thirds power (0.65): fairway, 47.8 yd out | Under the crater-wall law a lighter drive lands shallower (30° against 36°) and keeps a little more run, where the inverted law gave it less: on flat fairway 24 yd against main's 18.5. On these firm links (`firm` 1.5) the 0.78 drive now runs through the Valley onto the green (9.7 yd). 0.7 stops 30.1 yd out (knife edge), 0.65 at 47.8. Easing `firm` to 1.3 instead kept the 0.78 drive short but made the hole all but undrivable (driving at the green: sharp 19 % on the green, against 100 % on main), so it was not taken |
+| **The drive at the R&A clock (shot and the `clock` plan), same day** | aimed at (25, 255) | aimed at (22, 255) | The extra run carried the drive at (25, 255) off the left of the shared fairway into the rough (48.4 yd). At (22, 255) it finishes on the fairway, 42.8 yd out. Clock: sharp 3.57, shaky 3.47 (main at the same aim: 3.49, 3.53) |
+| **Driving at the green (the `green` plan), same day** | aimed at the pin | aimed 2 yd left of it, at (−13, 292), away from the town | A shaky player's worst push (needle 0.55) now runs on across the road out of bounds (5 % OOB), which broke "in still air none of the three lines reaches the town". Aiming 2 yd left, as a player would with the town right, keeps it in bounds (0.55: rough, 40 yd). Green: sharp 100 % on the green, 2.92 (main at the same aim 3.02), shaky 62 %, 3.22 |
 
 ## 7. Results
 
