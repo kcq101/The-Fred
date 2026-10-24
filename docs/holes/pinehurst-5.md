@@ -43,7 +43,7 @@
 | Internal movement on the green | two small `hollow` swales and one low bump inside the plateau | Gentle breaks between flatter pockets, like the map |
 | Green on a diagonal | green ellipse rotated so its long axis runs front-right → back-left | The approach from the right plays to a shallow target |
 | Raised green | the DEM's rise along the line (about 5 yd over the last 100 yd) under the plateau `hollow`; the old 1.2 yd `rise` removed (it stacked on the DEM's) | Long-left leaves a pitch from below; right falls away |
-| Short, firm runoffs | `cover` FAIRWAY ring around the green, then WASTE beyond; `greens.firm` 2.2 (1.0 before 2026-10-21) | Balls run off the edges and keep going; a flown 3-wood has to land short and release, as the real hole's is run up the front |
+| Short, firm runoffs | `cover` FAIRWAY ring around the green, then WASTE beyond; `greens.firm` 1.2 (1.0 before 2026-10-21, 2.2, then 1.8 until 2026-10-24) | Balls run off the edges and keep going; a flown 3-wood has to land short and release, as the real hole's is run up the front |
 | Wiregrass and sand | `WASTE` bands along both sides of the fairway | A poor lie, not a lost ball |
 | Slanted fairway | `tilt` over the second-shot landing zone, falling to the left (2003 DEM), a box x −32…40, z 195–355 since 2026-10-21 (a band round x −9 before) | Ball above the feet: StanceModel hooks the second shot left |
 | A drive kicks left on the slant | `cover` FAIRWAY band left of the fairway over the landing (x ≈ −15–34, z 185–400); the left wiregrass moved off it and back in beyond it (§6) | Under OpenFairway's friction nothing stops on a 10 % slant: a drive runs left until something grabs it. It now runs onto fairway, on the same slant, and finishes there with the ball above the feet, not in the waste |
@@ -126,6 +126,7 @@
 | Check | Was | Now | Why |
 |---|---|---|---|
 | `greens.firm` (no check changed) | 2.2 | 1.8 | A 3-wood lands at ~1,100 rpm and now runs out by itself (BallModel `OF.LOWSPIN`): at 2.2 the run-up 3-wood ran 18 yd through into the waste and no aim held the plateau. At 1.6 a shaky player held it 38 % (limit 35 %); at 2.0 the run-up ran off again; 1.8 passes all ten checks as written. Strategy, after: go 2.93 / 3.48 (green 62 % / 33 %), lay-up 3.68 / 3.74; payoff sharp 0.75, shaky 0.26 |
+| **`greens.firm` (2026-10-24, crater-wall bounce)** | 1.8 | 1.2 | The 3-wood keeps more of its run under the crater-wall law (main held it back with the low-spin patch), and at 1.8 the run-up 3-wood aimed 10 yd short ran 18.8 yd through into the waste; aiming shorter only found the falloff in front (16–25 yd short all end in the waste, 13 short is a lone sweet spot). At 1.2 it finishes 5.6 yd away; the full 3-wood at the pin still runs 17.9 yd off; the wedges are unchanged. No check changed. Go vs lay up: go sharp 76 % on the green, 2.88 (main 62 %, 2.93), shaky 29 %, 3.54 (33 %, 3.48); going saves 0.80 / 0.20 |
 
 ## 7. Results
 

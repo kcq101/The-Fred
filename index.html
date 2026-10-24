@@ -757,7 +757,7 @@ const HOLES=[
     {type:'cover',area:{pts:[[0,200],[14,225],[19,305],[14,345],[12,385]],w:15},surf:'FAIRWAY'},   // the landing's low side is fairway: a drive kicks left down the slant and stops on it, not in the wiregrass (OpenFairway friction; §6)
     {type:'cover',area:{x:34,z:485,rx:36,rz:30,rot:0.45},surf:'WASTE'},            // and beyond the runoffs
   ],
-  play:{firm:1.1,greens:{speed:1.1,firm:1.8}},   // greens.firm 1 -> 2.2 (2026-10-21): a flown 3-wood lands steep under the OpenFairway physics and must release to run off the plateau; 2.2 -> 1.8 (2026-10-23): a low-spin 3-wood now runs out by itself (§6)
+  play:{firm:1.1,greens:{speed:1.1,firm:1.2}},   // greens.firm 1 -> 2.2 (2026-10-21): a flown 3-wood lands steep under the OpenFairway physics and must release to run off the plateau; 2.2 -> 1.8 (2026-10-23): a low-spin 3-wood now runs out by itself (§6)
   bunkers:[{x:-20,z:255,rx:5,rz:3.5,rot:0.1,depth:0.5,lip:0.25}],   // set into the land at a lidar-like depth (0.5 yd): its shape and place are still from words (no 1 m lidar here)
   water:[],
   bbox:{x0:-110,x1:150,z0:-55,z1:575},
