@@ -40,8 +40,8 @@
     }
   },
   "tee_shift": {
-    "z_yd": 63,
+    "z_yd": 80,
     "date": "2026-10-23",
-    "note": "2026-10-23: moved 22 yd back (tests/tools/teeshift.js) after the low-spin run-out, to just behind the Swilcan Burn (a light drive stops short of the Valley again; a pure drive still reaches the green); it had been 85. The game tee is 63 yd up the line from the real tee pad, just behind the Swilcan Burn by the bridge, so a pure drive reaches the green (docs/holes/standrews-18.md \u00a75): every z in the HOLES entry is 63 yd less than this frame gives. Subtract 63 from z in lidar.py output before pasting it into the hole."
+    "note": "2026-10-23: moved 5 yd back (tests/tools/teeshift.js) after the low-spin run-out, to just in front of the Swilcan Burn (owner's call: 22 yd back put the tee behind the burn, which then wrapped round it); it had been 85. The game tee is 80 yd up the line from the real tee pad, 4-6 yd in front of the Swilcan Burn, so a pure drive reaches the green (docs/holes/standrews-18.md \u00a75): every z in the HOLES entry is 80 yd less than this frame gives. Subtract 80 from z in lidar.py output before pasting it into the hole."
   }
 }

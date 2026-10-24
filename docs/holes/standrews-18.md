@@ -16,7 +16,7 @@
 | Real hole | St Andrews Old Course, No. 18, "Tom Morris" |
 | Par / yardage (real) | Par 4, 357 yd (Open card); 356–357 in every source. The lidar's tee pad → the game's pin: 364 yd |
 | **Matches the request?** | Yes: par 4, and the real hole is drivable for tour players |
-| Par / yardage (game) | Par 4, **309 yd** since 2026-10-23 (§6: the tee 63 yd up the line, just behind the Swilcan Burn by the bridge; 287 yd and 85 yd before), so a pure driver reaches the front of the green |
+| Par / yardage (game) | Par 4, **292 yd** since 2026-10-23 (§6: the tee 80 yd up the line, just in front of the Swilcan Burn; 287 yd and 85 yd before), so a pure driver reaches the front of the green |
 | Sources | [Wikipedia: Old Course](https://en.wikipedia.org/wiki/Old_Course_at_St_Andrews), [Wikipedia: Swilcan Bridge](https://en.wikipedia.org/wiki/Swilcan_Bridge), [Golf Monthly: the Valley of Sin](https://golfmonthly.com/tour/open-championship/what-is-the-valley-of-sin), [The Open: St Andrews guide](https://www.theopen.com/latest/st-andrews-guide) |
 
 ## 2. What makes it iconic
@@ -57,9 +57,9 @@
 
 | Characteristic | Real | Game | Why |
 |---|---|---|---|
-| Length | 357 yd | 309 yd: the tee 63 yd forward, just behind the burn (287 and past it until 2026-10-23, §6) | Under OpenFairway's flight a pure driver totals about 270 on this turf; at 357 the hole could not be driven, which is the point of it. The burn and the bridge move from 70–90 yd ahead to beside the tee (the price; §8). **The owner's choice (2026-10-23): keep it drivable** rather than a tee behind the burn (about 340 yd, the bridge in view, a 50 yd pitch left) |
+| Length | 357 yd | 292 yd: the tee 80 yd forward, just past the burn (287 and 85 yd until 2026-10-23, §6) | Under OpenFairway's flight a pure driver totals about 270 on this turf; at 357 the hole could not be driven, which is the point of it. The burn and the bridge move from 70–90 yd ahead to beside the tee (the price; §8). **The owner's choice (2026-10-23): keep it drivable** rather than a tee behind the burn (about 340 yd, the bridge in view, a 50 yd pitch left) |
 | Valley of Sin | 0.8–1.0 yd below the green in the lidar (the "8 ft" is from the green's back) | + a 0.9 yd `hollow` | it must hold a ball and read from the fairway |
-| Pin | | (−15, 309), back-right toward the town | the drive at the pin aims toward the out of bounds |
+| Pin | | (−15, 292), back-right toward the town | the drive at the pin aims toward the out of bounds |
 | Green slope | lidar plane, 1.3 % | same | `slope.js`: "flat pockets" WARN (one plane; the 50 cm lidar resolves no break) |
 
 ## 6. Validation
@@ -67,7 +67,7 @@
 | Shot | Expected |
 |---|---|
 | A pure drive at the pin | Runs through the Valley onto the front: fringe or green, ≤ 25 yd (21) |
-| 15 % light | Fairway short of the Valley, 30+ yd (41) |
+| 22 % light (was 15 %: §6) | Fairway short of the Valley, 30+ yd (38) |
 | Down the right, pushed, in an 18 mph wind off the left | Out of bounds in the town |
 | At the R&A clock (left) | Shared fairway (47 yd) |
 | A topped iron pushed right | The Swilcan Burn |
@@ -81,7 +81,9 @@
 
 | Check | Was | Now | Why |
 |---|---|---|---|
-| **Tee 22 yd back (2026-10-23, low-spin run-out)** | tee 85 yd up the line, just past the Swilcan Burn, 287 yd | tee 63 yd up the line, just behind the burn (the drive now carries it by the bridge), 309 yd; every z +22, including the checks' aim points (`tests/tools/teeshift.js`) | A low-spin landing now runs out (BallModel `OF.LOWSPIN`): the 15 %-light drive ran onto the fringe (17 yd) and the drive at the clock into the rough. 15 yd back (the owner's pick) put the tee in the burn, which crosses the line 10–16 yd behind the old tee, so it went to the first dry ground beyond it. No check's wording or threshold changed. After: pure drive 13 yd from the pin on the green, light drive 37 yd out on the fairway; drive strategy green 3.13 / 3.41, clock 3.53 / 3.62, lay-up 3.93 / 3.96 |
+| **Tee 5 yd back (2026-10-23, low-spin run-out)** | tee 85 yd up the line, just past the Swilcan Burn, 287 yd | tee 80 yd up the line, 4–6 yd in front of the burn, 292 yd; every z +5 (`tests/tools/teeshift.js`) | A low-spin landing now runs out (BallModel `OF.LOWSPIN`): the 15 %-light drive ran onto the fringe (17 yd) and the drive at the clock into the rough. 15 yd back put the tee in the burn (it crosses the line 10–16 yd behind the old tee); 22 yd back, behind it, passed every check but the burn wrapped round the tee and its walled banks showed as stair-steps, so the owner chose the tee in front of it. At 5 yd the clock drive stays on the fairway (47 yd) and the pure drive reaches the green (8 yd) |
+| A light drive stops short of the Valley | 15 % light (power 0.85) | 22 % light (power 0.78): 38 yd out on the fairway | At 0.85 it now runs onto the fringe, 18 yd out. Same decision: a drive short of full leaves a pitch over the Valley |
+| A topped iron finds the burn | aimed at (−30, 20) | the same, (−30, 20) | The tee tool moved the aim with the land (to (−30, 25)), but a topped iron's carry is fixed, so the aim stays put relative to the tee |
 
 ## 7. Results
 
