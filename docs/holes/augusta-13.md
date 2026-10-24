@@ -65,7 +65,7 @@ All in `tests/hole-checks.js` → `augusta-13`.
 | Pure drive left-center | rest in fairway, ≤250 to pin |
 | Drawn drive | ≤235 to pin |
 | Second from the valley, (34, 275) | the stance model reads ball above the feet |
-| Pure 3-wood straight at the pin | hooks 8+ yd off |
+| Pure 3-wood aimed 10 yd short of the pin, at (72.9, 460.2) | curves in, lands on line, runs up within 3 yd (0.5) |
 | Pure 3-wood aimed right for the hook, at (65, 465) | green or fringe |
 | Slightly thin 3-wood (0.25) | water (lands on the front of the green, rolls back down the bank) |
 | Wedge from the lay-up, 0.35 miss | green |
@@ -96,6 +96,7 @@ All in `tests/hole-checks.js` → `augusta-13`.
 | Thin 3-wood into the creek | at (65, 465), needle 0.25 | at the pin, needle 0.35 | At 0.25 a ball aimed at the pin now finishes on the green (9.9 yd) |
 | Strategy `go` plan | at (65, 465) | at (75, 464) | As above |
 | Shaky player | lays up (layup better) | a wash: 33 % wet, going saves 0.09 stroke (limit: ≥ 25 % wet, under 0.25) | Without the hook the shaky miss is only the thin one; go sharp 2.83 vs layup 3.90, shaky 3.79 vs 3.88 |
+| **Pure 3-wood allowing for the lie (2026-10-24, crater-wall bounce)** | at the pin, finishes within 3 yd (it holed out) | aimed 10 yd short of the pin, at (72.9, 460.2), finishes within 3 yd (0.5) | The 3-wood lands on the pin either way; under the crater-wall law it keeps more of its run at a 3-wood's landing angle (main's low-spin patch skidded it at 0.85 of the skid), so it runs 9.1 yd past. The check is about the hook allowance, which still lands the ball on line; aimed 10 yd short it runs up to the pin, as a player would play it onto this green |
 
 ## 7. Results
 

@@ -45,7 +45,7 @@ module.exports = {
       { name: 'a pure drive lands at the foot of the valley and holds the sidehill fairway, in 3-wood reach', shot: { club: 'Hammer', at: [12, 160], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'], maxToPin: 250 } },
       { name: 'a drawn drive also holds the valley, within 3-wood reach', shot: { club: 'Hammer', at: [3, 160], power: 1, offset: -0.3 }, expect: { end: 'rest', maxToPin: 235 } },
       { name: 'the second shot is played with the ball above the feet', shot: { from: [34, 275], club: '3-Wood', at: [75, 464] }, expect: { stance: 'BALL ABOVE FEET · HOOKS' } },
-      { name: 'aimed straight at the pin, a pure 3-wood allows for the hanging lie (starts right, hooks back in) and finishes by the pin', shot: { from: [34, 275], club: '3-Wood' }, expect: { maxToPin: 3 } },
+      { name: 'aimed 10 yd short of the pin, a pure 3-wood allows for the hanging lie (starts right, hooks back in), lands on line and runs up by the pin', shot: { from: [34, 275], club: '3-Wood', at: [72.9, 460.2] }, expect: { maxToPin: 3 } },
       { name: 'aimed a few yards short of the pin, a pure 3-wood holds the putting surface', shot: { from: [34, 275], club: '3-Wood', at: [75, 464] }, expect: { end: 'rest', surf: ['GREENS', 'FRINGE'] } },
       { name: 'a thin 3-wood at the pin lands on the shaved bank and rolls back into the creek', shot: { from: [34, 275], club: '3-Wood', offset: 0.35 }, expect: { end: 'water' } },
       { name: 'the lay-up leaves a flat wedge that a decent swing puts on the green', shot: { from: [50, 400], club: 'Wedge', offset: 0.35 }, expect: { surf: ['GREENS'] } },
