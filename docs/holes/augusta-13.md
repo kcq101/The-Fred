@@ -87,6 +87,16 @@ All in `tests/hole-checks.js` → `augusta-13`.
 | Pure 3-wood straight at the pin | hooks 18+ yd off | hooks 8+ yd off (8.8: on the green's left half, against 4.5 aimed right) | The drive now stops on the lidar's 9–10 % sidehill; the old spot sat on 15 % (the slot's fall plus the tilt), which hooked the shot twice as far. Aiming right of the pin is still the better play, which is what the check is about |
 | `play.firm` (and the second shot's spot) | 0.5; the second shot from (27, 271) | 0.6; from (34, 275) | The project owner asked to firm the hole back up as far as the drive still holds the sidehill (2026-10-21). Tested 0.5–0.8 at the 100-yd tee: at 0.6 five of the six test drives hold the fairway 199–210 out on a ball-above-feet lie, and the one pulled 0.2 left runs into the left rough on a downhill lie (a pulled drive drifting left toward the trees, as the real hole punishes it); at 0.7 three of six run off left; at 0.8 the pure drive does. (34, 275) is where the pure drive now stops. The at-the-pin hook is 8.8 yd, just over the 8-yd threshold. The proper fix is turf firmness by area (a soft landing on an otherwise firm hole), which the engine does not have yet |
 
+**Check-change log** (2026-10-23, the arc and a pure shot allow for the sloping lie)
+
+| Check | Was | Now | Why |
+|---|---|---|---|
+| Pure 3-wood at the pin | hooked 8+ yd left (`minToPin: 8`) | curves in and finishes by the pin (`maxToPin: 3`; it holes out) | The owner asked that on a sloping lie the arc land on the target and only its shape show the lie (2026-10-23): the start direction is now solved for the slope's curve as for a draw or fade, so a pure strike no longer finishes off line. The slope still bends the flight, changes the distance and speeds up the needle |
+| Aimed right for the hook | at (65, 465), reaches the putting surface | at (75, 464), a few yards short of the pin, holds it | No hook to allow for |
+| Thin 3-wood into the creek | at (65, 465), needle 0.25 | at the pin, needle 0.35 | At 0.25 a ball aimed at the pin now finishes on the green (9.9 yd) |
+| Strategy `go` plan | at (65, 465) | at (75, 464) | As above |
+| Shaky player | lays up (layup better) | a wash: 33 % wet, going saves 0.09 stroke (limit: ≥ 25 % wet, under 0.25) | Without the hook the shaky miss is only the thin one; go sharp 2.83 vs layup 3.90, shaky 3.79 vs 3.88 |
+
 ## 7. Results
 
 After the OpenFairway redesign (2026-10-21: the tee 100 yd forward, `play.firm` 0.6). "before" is the hole-report baseline (commit 548d49a with the signature stripped, played at the new coordinates), not the branch before this change; that comparison is in §6's log and in PR #22.

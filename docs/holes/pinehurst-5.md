@@ -113,6 +113,14 @@
 | The wedge back up from the runoff | needle 0.1 | needle 0.15 | With the firmer green it holed out (0.2 yd), which fails `end: 'rest'`; at 0.15 it finishes 0.6 yd away. Same shot, same outcome the check is about |
 | Check names | "aimed right of the pin, allowing for the slant" | "aimed right of the pin and short of it, allowing for the slant and the firm green" | The aim moved short (above) |
 
+**Check-change log** (2026-10-23, the arc and a pure shot allow for the sloping lie)
+
+| Check | Was | Now | Why |
+|---|---|---|---|
+| Full 3-wood at the pin | hooked left by the lie, ≥ 10 yd away | flown to the pin it runs off the firm plateau, ≥ 10 yd away (11.4) | The owner asked that on a sloping lie the arc land on the target and only its shape show the lie (2026-10-23): the start direction is now solved for the slope's curve as for a draw or fade, so a pure strike no longer finishes off line. The slope still bends the flight, changes the distance and speeds up the needle |
+| 3-wood close | aimed right and short at (25, 482) | aimed 10 yd short at (36, 478): 3.5 yd | No hook to allow for; (25, 482) now finishes 11.6 yd right |
+| Strategy `go` plan | at (25, 482) | at (36, 478) | As above. Payoff sharp 0.74, shaky 0.31 (was 0.08 / 0.12); every clause still holds |
+
 ## 7. Results
 
 `node tests/hole-report.js --hole=pinehurst-5` after the OpenFairway redesign (2026-10-21: the tee 15 yd forward, the landing's low side fairway, `greens.firm` 2.2). "before" is the hole-report baseline (commit 548d49a with the signature stripped, played at the new coordinates), not the branch before this change; that comparison is in §6's log and in PR #22.

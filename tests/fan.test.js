@@ -56,7 +56,7 @@ test('draw / fade: the arc slides round the ring to the ball\'s starting directi
   const yl = px(fanPiece(h, 12, -1, -0.8, 4)).reduce((a, q) => a + q[1], 0), yr = px(fanPiece(h, 12, 0.8, 1, 4)).reduce((a, q) => a + q[1], 0);
   assert.ok(l < r && yl < yr, 'and is skewed: its left end rises, its right end drops, like the ring turning');
   assert.ok(fanTip(0, h, 12).x > fanTip(0, h, 0).x, 'dead-center arrow follows the start line');
-  assert.match(SRC, /fanYaw=aimYaw\+y\+st\.yaw;land=simArc\(sp,fanYaw,pts,spin\+st\.spin\)/, 'drawGuide hands the start direction (shaping + stance) to the meter');
+  assert.match(SRC, /fanYaw=aimYaw\+y;land=simArc\(sp,fanYaw,pts,spin\+st\.spin\)/, 'drawGuide hands the start direction (shaping + stance) to the meter');
 });
 
 test('arrow: along a ray from the ball, from clear of the ball to inside the band, slim with a small head', () => {
