@@ -1317,6 +1317,7 @@ const BallModel=(()=>{
   const V_STOP=0.07,V_MAX=32;// slower than V_STOP on ground that can hold it = at rest; nothing on the ground goes faster than V_MAX
   const LIFT=0.06;           // a rolling ball whose ground falls away by more than this leaves the ground
   const ROLL_T=8;            // after this long on the ground, rolling resistance ramps up so nothing can roll forever
+  const ROLL_T_RR=4,RAMP_RR=6;   // the same on rolling-friction (rr) surfaces: from 4 s, twice as steep, so a crawl along a sidehill ends (2026-10-23)
   const MAX_T=22;            // the game ends a shot after this long regardless
   const NY_MIN=0.05;         // guard against dividing by the tilt of a near-vertical bank
   const V_REL=1.0;           // a ball slower than this on ground steeper than SP.hold is let go; so is one already heading downhill
@@ -1434,7 +1435,8 @@ const BallModel=(()=>{
     // steeper than the surface can hold: a ball that is nearly still, or already heading downhill, is let go (friction gives way and it slides);
     // one still climbing keeps full friction, so a steeper bank never lets a ball run further up it
     if(tan>sp.hold&&(s<V_REL||down>0.25*s))dec=Math.min(dec,0.5*G*ny*sp.hold);
-    b.rollT+=dt;if(b.rollT>ROLL_T)dec*=1+(b.rollT-ROLL_T)*3;
+    // the quicker rr ramp only where the ground can hold the ball: one sliding off a bank, or feeding back down a run-off, is left alone
+    b.rollT+=dt;{const quick=sp.rr!=null&&tan<=sp.hold,rt=quick?ROLL_T_RR:ROLL_T;if(b.rollT>rt)dec*=1+(b.rollT-rt)*(quick?RAMP_RR:3);}
     s=Math.hypot(v.x,v.y,v.z);
     if(s>0){const s2=Math.min(V_MAX,Math.max(0,s-dec*dt)),f=s2/s;v.x*=f;v.y*=f;v.z*=f;s=s2;}
     p.x+=v.x*dt;p.y+=v.y*dt;p.z+=v.z*dt;

@@ -83,7 +83,8 @@ test('driver on flat, firm fairway: real carry, a substantial but bounded run, a
   // Was 28-55 yd (main's physics, a driver landing at 15 deg). Under OpenFairway's bounce a pure driver ran 10 yd; the low-spin run-out
   // (BallModel OF.LOWSPIN, 2026-10-23, owner's call: ~20-25 yd, a real firm fairway's 20-30) brings it to ~23.
   assert.ok(s.roll >= 18 && s.roll <= 30, `roll ${s.roll.toFixed(1)}`);
-  assert.ok(r.resting && r.t < 10 && s.bounces >= 1 && s.bounces <= 3, `rest ${r.resting} after ${r.t.toFixed(1)}s, ${s.bounces} bounces`);
+  // Was: at rest within 10 s. The ball is in the air for 6 s under OpenFairway's aero (PR #22), so this is now 12 s: under 6 s on the ground.
+  assert.ok(r.resting && r.t < 12 && s.bounces >= 1 && s.bounces <= 3, `rest ${r.resting} after ${r.t.toFixed(1)}s, ${s.bounces} bounces`);
   assert.ok(r.inv.maxHopAfterLanding < 2.5, `hop ${r.inv.maxHopAfterLanding.toFixed(2)} yd`);
 });
 
@@ -392,7 +393,9 @@ test('real holes, 600 random shots each (random start, club, power, aim, shaping
   assert.ok(tot.shots > 1500 && tot.rest > 800, JSON.stringify(tot));
   assert.ok(tot.minClear >= -0.02, `ball went ${(-tot.minClear).toFixed(3)} yd into the ground`);
   assert.ok(tot.maxGround <= BM.V_MAX + 1e-6, `ground speed ${tot.maxGround.toFixed(1)} on ${tot.where} (limit ${BM.V_MAX})`);
-  assert.ok(tot.maxRestT < 12, `slowest settle ${tot.maxRestT.toFixed(1)}s (the game's own limit is ${BM.MAX_T}s)`);
+  // Was 12 s. Flights alone last up to 6 s since PR #22; the sink and the steeper late ramp on rr surfaces (2026-10-23) cut the worst
+  // settle from 17.7 s (a ball crawling ~10 s along Augusta 13's sidehill) to ~13. Budget 14 s: a shot never waits 8 s on the ground.
+  assert.ok(tot.maxRestT < 14, `slowest settle ${tot.maxRestT.toFixed(1)}s (the game's own limit is ${BM.MAX_T}s)`);
   assert.ok(tot.maxDryHop < 3.5, `highest hop on dry ground ${tot.maxDryHop.toFixed(2)} yd`);
 });
 
