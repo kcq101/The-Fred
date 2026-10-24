@@ -80,7 +80,9 @@ test('impact (OpenFairway bounce): a shallow landing skids on, a steep one keeps
 test('driver on flat, firm fairway: real carry, a substantial but bounded run, at rest in a few seconds', () => {
   const r = shot(HAMMER, flat(g.FAIRWAY)), s = r.summary;
   assert.ok(Math.abs(s.carry - 245) <= 0.6);
-  assert.ok(s.roll >= 28 && s.roll <= 55, `roll ${s.roll.toFixed(1)}`);
+  // Was 28-55 yd (main's physics, a driver landing at 15 deg). Under OpenFairway's bounce a pure driver ran 10 yd; the low-spin run-out
+  // (BallModel OF.LOWSPIN, 2026-10-23, owner's call: ~20-25 yd, a real firm fairway's 20-30) brings it to ~23.
+  assert.ok(s.roll >= 18 && s.roll <= 30, `roll ${s.roll.toFixed(1)}`);
   assert.ok(r.resting && r.t < 10 && s.bounces >= 1 && s.bounces <= 3, `rest ${r.resting} after ${r.t.toFixed(1)}s, ${s.bounces} bounces`);
   assert.ok(r.inv.maxHopAfterLanding < 2.5, `hop ${r.inv.maxHopAfterLanding.toFixed(2)} yd`);
 });
@@ -132,7 +134,9 @@ test('iron on fairway vs rough: same carry, but the rough takes the bounce and t
 
 test('wedge on a green: lands steeply, checks quickly, little bounce, at rest', () => {
   const t = flat(g.GREENS), w = shot(WEDGE, t), h = shot(HAMMER, t);
-  assert.ok(arrivalAngle(WEDGE, t) > 2 * arrivalAngle(HAMMER, t), 'the wedge comes down much more steeply than the driver');
+  // Was: more than twice as steep. With OpenFairway's aero (PR #22) a driver lands at a real ~36 deg (was 15) and the wedge at ~60 (tour
+  // averages: ~38 and ~50), so the rule is now a margin in degrees.
+  assert.ok(arrivalAngle(WEDGE, t) > arrivalAngle(HAMMER, t) + 20, `the wedge comes down much more steeply than the driver (${arrivalAngle(WEDGE, t).toFixed(0)} vs ${arrivalAngle(HAMMER, t).toFixed(0)} deg)`);
   assert.ok(w.summary.roll <= 5 && w.summary.bounces <= 3 && w.resting && w.t < 8, `roll ${w.summary.roll.toFixed(1)}, ${w.summary.bounces} bounces, ${w.t.toFixed(1)}s`);
   assert.ok(w.summary.roll / w.summary.carry < 0.5 * (h.summary.roll / h.summary.carry), 'the wedge runs out far less than a low shot');
   assert.ok(w.inv.maxHopAfterLanding < 2.5, `hop ${w.inv.maxHopAfterLanding.toFixed(2)} yd`);
