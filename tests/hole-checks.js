@@ -17,7 +17,7 @@ module.exports = {
       { name: 'a pure 3-wood stops on the plateau, short of the cliff', shot: { club: '3-Wood', at: [-5, 237], power: 1 }, expect: { end: 'rest', surf: ['FAIRWAY'] } },
       { name: 'from there a well-struck iron carries the chasm and holds the green', shot: { from: [-5, 202], club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
       { name: 'a chunked approach comes up short in the chasm', shot: { from: [-5, 202], club: 'Iron', offset: 0.7 }, expect: { end: 'water' } },
-      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 202], club: 'Iron', offset: 0.55 }, expect: { end: 'water' } },
+      { name: 'a ball short-right on the shaved bank feeds back down to the sea', shot: { from: [-5, 202], club: 'Iron', offset: 0.6 }, expect: { end: 'water' } },
       { name: 'the bail-out left, around the head of the cove, stays dry', shot: { from: [-5, 202], club: 'Iron', at: [10, 343], offset: 0.5 }, expect: { end: 'rest' } },
     ],
     strategies: [
@@ -33,7 +33,7 @@ module.exports = {
           { name: 'pin', shot: { from: [-5, 202], club: 'Iron' } },
           { name: 'bail', shot: { from: [-5, 202], club: 'Iron', at: [10, 343] } } ],
         expect: [
-          ['going at the pin brings the sea into play for a shaky player (the front-right bunker catches most short-right misses)', r => r.pin.shaky.hazard > 0 && r.bail.shaky.hazard === 0],
+          ['going at the pin pays a shaky player too: the front-right bunker and the bank\'s lip catch his short-right misses (the sea is one needle-width past them: 0.6, the shot above), and he holds the green a third of the time against none for the bail', r => r.pin.shaky.hazard === 0 && r.bail.shaky.hazard === 0 && r.pin.shaky.surfs.GREENS >= 0.3 * r.pin.shaky.n && r.bail.shaky.score > r.pin.shaky.score + 0.3],
           ['a sharp player stays dry and holds the green at least nine times in ten (the most-pulled find the left bunker)', r => r.pin.sharp.hazard === 0 && r.pin.sharp.surfs.GREENS >= 0.9 * r.pin.sharp.n],
           ['the bail-out is dry but costs strokes', r => r.bail.sharp.score > r.pin.sharp.score + 0.5] ] },
     ],
