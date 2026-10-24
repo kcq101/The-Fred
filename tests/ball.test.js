@@ -176,13 +176,23 @@ test('steeper than the ground can hold, into a hazard: the ball goes in rather t
   assert.ok(wet !== null && wet < 3, `reached the water after ${wet}s`);
 });
 
-test('short shots stop without excessive bounce or roll', () => {
+test('short shots: little bounce, a bounded release, at rest quickly; on a green a chip releases and a pitch checks', () => {
+  // Rewritten 2026-10-23 for OpenFairway's ground model and the green-chip blend. Was: roll <= 8 % of carry + 0.35 yd and rest within 4 s on
+  // every surface. On fairway (OpenFairway's rolling friction) a chip now releases 3-5 yd, which the owner judged realistic; on a green a slow
+  // landing blends toward the skid path (BallModel OF.CHIP_V), so a 5-15 yd chip releases 1-2 yd instead of stopping at its pitch mark.
+  const roll = {};
   for (const p of [0.03, 0.06, 0.1, 0.25]) for (const surf of [g.FAIRWAY, g.GREENS, g.ROUGH]) {
     const r = shot(WEDGE, flat(surf), { power: p });
-    assert.ok(r.resting && r.t < 4, `power ${p} on ${SP[surf].name}: rest ${r.resting} at ${r.t.toFixed(1)}s`);
+    (roll[surf] = roll[surf] || {})[p] = r.summary.roll;
+    assert.ok(r.resting && r.t < 6, `power ${p} on ${SP[surf].name}: rest ${r.resting} at ${r.t.toFixed(1)}s`);
     assert.ok(r.summary.bounces <= 2 && r.inv.maxHopAfterLanding < 0.6, `power ${p}: ${r.summary.bounces} bounces, hop ${r.inv.maxHopAfterLanding.toFixed(2)} yd`);
-    assert.ok(r.summary.roll <= 0.08 * r.summary.carry + 0.35, `power ${p} on ${SP[surf].name}: roll ${r.summary.roll.toFixed(2)} of carry ${r.summary.carry.toFixed(1)}`);
+    assert.ok(r.summary.roll <= 0.6 * r.summary.carry + 0.5, `power ${p} on ${SP[surf].name}: roll ${r.summary.roll.toFixed(2)} of carry ${r.summary.carry.toFixed(1)}`);
   }
+  for (const p of [0.03, 0.06, 0.1]) {
+    assert.ok(roll[g.GREENS][p] >= 0.5, `a chip on a green releases (power ${p}: ${roll[g.GREENS][p].toFixed(2)} yd)`);
+    assert.ok(roll[g.ROUGH][p] < roll[g.GREENS][p] && roll[g.ROUGH][p] < roll[g.FAIRWAY][p], `rough grabs a chip hardest (power ${p})`);
+  }
+  assert.ok(roll[g.GREENS][0.25] < roll[g.GREENS][0.1], 'a longer, spinning pitch checks more than a chip');
 });
 
 // ---------------------------------------------------------------- wind and the aiming arc
