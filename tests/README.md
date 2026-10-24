@@ -13,6 +13,7 @@ Authoring tools, in `tests/tools/` (each file opens with its full usage and flag
     node tests/tools/validate.js <id>                                    # the Validate step in one go: the hole's checks + map + slope map and bounds + its report section, with a summary
     node tests/tools/probe.js <id> '<json shots>'                        # single shots: end, surface, yards to pin, first bounce, stance, wall strikes
     node tests/tools/aimscan.js <id> <from> <club> <x0,x1,z0,z1,step>    # one shot at a grid of aim points, sharp and shaky: expected strokes, green rate, wet rate
+    node tests/tools/impact-matrix.js [--json] [--spin [--tau=5,20,smits]]  # landing/rollout matrix: fixed incoming states on flat and sloped ground; --spin: spin at landing per club (launch/landing rpm, carry, landing angle, run on fairway and green) for the game's decay and alternatives
     node tests/tools/slope.js <id>                                       # green slope map (< 1 / 1-2.5 / 2.5-4 / > 4 % bands, contours, downhill arrows) -> docs/maps/<id>-slope.png, band shares, realism bounds
     python3 tests/tools/render.py <id> [tee bird approach green aerial ref] [--js EXPR]  # real-game screenshots in headless Chromium (nature models loaded), and the ball's screen position against the HUD;
                                                                          # ref: the game from each reference photo's matched camera, outlines on top; --js: evaluate inside the game (debugging)

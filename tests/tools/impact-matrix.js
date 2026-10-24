@@ -3,29 +3,36 @@
 // at the ground, so the club that made it cannot matter after contact; the "club landings" table shows what each club actually brings down.
 //   node tests/tools/impact-matrix.js            all tables
 //   node tests/tools/impact-matrix.js --json     machine-readable rows
+//   node tests/tools/impact-matrix.js --spin [--tau=5,10,20,smits]   only table 11: spin at landing per club, for the game's decay and
+//                                                each listed alternative (a number: Aero's TAU in seconds; smits: Smits & Smith's
+//                                                speed-dependent decay, tau = 23.8 s × 100 mph / air speed). Alternatives patch a copy
+//                                                of index.html in memory; each club's launch speed is re-solved for its stated carry.
 // Columns: speed (m/s) and its horizontal / vertical parts, descent angle, backspin (rpm) at contact; bounces (each hop's length, yd);
 // roll after the last hop; run (first contact to rest along the line, yd; negative: spun back); side (yd, + left).
+const fs = require('fs');
 const path = require('path');
 const { loadGame, makeTerrain } = require(path.join(__dirname, '..', 'harness'));
+const SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'index.html'), 'utf8');
 const g = loadGame(), BM = g.BallModel, R = g.R, D2R = Math.PI / 180, YD = 0.9144;
 const FULL = g.CLUBS.filter(c => !c.putt), byName = n => FULL.find(c => c.name === n);
-const json = process.argv.includes('--json');
+const json = process.argv.includes('--json'), spinOnly = process.argv.includes('--spin');
+const tauArg = (process.argv.find(a => a.startsWith('--tau=')) || '').slice(6);
 
 // SP with a hole's play profile applied, as applyPlay does (firm: fairway-type turf; gfirm: the greens' bite)
-function surfaces(firm = 1, gfirm = 1) {
-  const sp = JSON.parse(JSON.stringify(g.SP));
+function surfaces(firm = 1, gfirm = 1, gg = g) {
+  const sp = JSON.parse(JSON.stringify(gg.SP));
   for (const k of [g.TEE, g.FAIRWAY, g.ROUGH, g.FRINGE]) { sp[k].bite /= firm; sp[k].mu /= firm; if (sp[k].rr != null) sp[k].rr /= firm; }
   sp[g.GREENS].bite /= gfirm;
   return sp;
 }
 // one landing: incoming speed (m/s), descent angle (deg), backspin (rpm), heading +z; terrain height fn and surface
-function land({ speed, angle, rpm }, H, surf, sp = surfaces()) {
+function land({ speed, angle, rpm }, H, surf, sp = surfaces(), gg = g) {
   const t = makeTerrain(H, surf), s = speed / YD, a = angle * D2R;
   const b = { p: { x: 0, y: t.H(0, 0) + R + 1e-3, z: 0 }, v: { x: 0, y: -Math.sin(a) * s, z: Math.cos(a) * s }, rolling: false, landed: false, resting: false, t: 0, lipT: -9 };
-  BM.begin(b); b.air = { w: rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
-  return settle(b, { terrain: t, sp, wind: { x: 0, z: 0 } }, t);
+  gg.BallModel.begin(b); b.air = { w: rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
+  return settle(b, { terrain: t, sp, wind: { x: 0, z: 0 } }, t, gg.BallModel);
 }
-function settle(b, env, t) {
+function settle(b, env, t, BM = g.BallModel) {
   const touches = []; let wasAir = true, first = null;
   while (!b.resting && b.t < BM.MAX_T) {
     const air = !b.rolling && !(b.landed && b.p.y - R - t.H(b.p.x, b.p.z) < 0.002);
@@ -41,13 +48,13 @@ function settle(b, env, t) {
   return { bounces: hops.length, hops, roll: b.p.z - last.z, run: b.p.z - first.z, end: { ...b.p }, rest: b.resting, t: b.t, spinback: b.stats.spinback };
 }
 // a real club's flight to the ground: what it brings down (no wind, flat)
-function clubLanding(club, power = 1) {
-  const t = makeTerrain(() => 0, g.FAIRWAY), s = club.v0 * Math.sqrt(power);
+function clubLanding(club, power = 1, gg = g) {
+  const BM = gg.BallModel, t = makeTerrain(() => 0, gg.FAIRWAY), s = club.v0 * Math.sqrt(power);
   const b = { p: { x: 0, y: R + 0.02, z: 0 }, v: { x: 0, y: Math.sin(club.ang) * s, z: Math.cos(club.ang) * s }, rolling: false, landed: false, resting: false, t: 0, lipT: -9, club };
-  BM.begin(b); let pre = null, rpm = 0;
-  while (!b.landed) { pre = { ...b.v, z0: b.p.z }; rpm = b.air.w / (2 * Math.PI / 60); BM.step(b, BM.STEP, { terrain: t, sp: g.SP, wind: { x: 0, z: 0 } }); }
+  BM.begin(b); let pre = null, rpm = 0, apex = 0, launchRpm = b.air.w / (2 * Math.PI / 60);
+  while (!b.landed) { pre = { ...b.v, z0: b.p.z }; rpm = b.air.w / (2 * Math.PI / 60); apex = Math.max(apex, b.p.y); BM.step(b, BM.STEP, { terrain: t, sp: gg.SP, wind: { x: 0, z: 0 } }); }
   const h = Math.hypot(pre.x, pre.z), sp = Math.hypot(h, pre.y);
-  return { speed: sp * YD, angle: Math.atan2(-pre.y, h) / D2R, rpm, carry: b.stats.carry };
+  return { speed: sp * YD, angle: Math.atan2(-pre.y, h) / D2R, rpm, carry: b.stats.carry, launchRpm, hang: b.t, apex, v0: s };
 }
 const flat = () => 0, grade = s => (x, z) => s * z, side = s => (x, z) => s * x;
 const rows = [];
@@ -63,6 +70,8 @@ function print(table, title) {
   for (const r of rows.filter(r => r.table === table)) console.log(`  ${r.name.padEnd(38)}${f1(r.speed).padStart(5)}  ${f1(r.vh).padStart(4)}  ${f1(r.vv).padStart(4)}  ${f0(r.angle).padStart(4)}°  ${f0(r.rpm).padStart(5)}  ${String(r.bounces).padStart(2)} ${('(' + r.hops.map(f1).join(', ') + ')').padEnd(22)} ${f1(r.roll).padStart(5)}  ${f1(r.run).padStart(5)}  ${r.side.toFixed(2).padStart(6)}`);
 }
 
+let jsonOut = null;
+if (!spinOnly) {
 // 0. what each club brings down (flat, still air): the inputs the cases are built from
 const club = {};
 for (const c of FULL) { const L = clubLanding(c); club[c.name] = L; const r = land(L, flat, g.FAIRWAY); row('clubs', `${c.name} full, onto fairway (carry ${f0(L.carry)})`, L, r); }
@@ -105,4 +114,31 @@ const inc = club.Iron, idRows = FULL.map(c => {
   return settle(b, { terrain: t, sp: g.SP, wind: { x: 0, z: 0 } }, t).run;
 });
 if (!json) console.log(`\n9. The iron's incoming state, with each club set on the ball: run ${idRows.map(f1).join(' / ')} yd (${Math.max(...idRows) - Math.min(...idRows) < 1e-9 ? 'identical' : 'DIFFERS'})`);
-if (json) console.log(JSON.stringify({ rows, clubIndependent: Math.max(...idRows) - Math.min(...idRows) < 1e-9 }, null, 1));
+if (json) jsonOut = { rows, clubIndependent: Math.max(...idRows) - Math.min(...idRows) < 1e-9 };
+}
+
+// 11: spin at landing per club, for the game's decay and alternatives (--spin, --tau=...)
+function decaySrc(tau) {
+  const line = 'if(air.w)air.w*=Math.exp(-dt/TAU);';
+  if (!SRC.includes(line)) throw new Error('spin-decay line not found in index.html');
+  if (tau === 'smits') return SRC.replace(line, 'if(air.w)air.w*=Math.exp(-dt*s/(23.8*44.704/YD));');   // tau = 23.8 s at 100 mph air speed, inversely with speed
+  return SRC.replace(/const TAU=[\d.]+,/, `const TAU=${+tau},`);
+}
+function spinTable() {
+  const cur = String(g.Aero.TAU), alts = tauArg ? tauArg.split(',').filter(t => t !== cur) : [];
+  const out = [];
+  for (const tau of [cur, ...alts]) {
+    const gg = tau === cur ? g : loadGame(decaySrc(tau));
+    for (const c of gg.CLUBS.filter(c => !c.putt)) {
+      const L = clubLanding(c, 1, gg), fw = land(L, flat, gg.FAIRWAY, surfaces(1, 1, gg), gg), gr = land(L, flat, gg.GREENS, surfaces(1, 1, gg), gg);
+      out.push({ tau: tau === cur ? `${tau} (game)` : tau, club: c.name, stated: c.carry, v0: L.v0 * YD, launchRpm: L.launchRpm, rpm: L.rpm, kept: L.rpm / L.launchRpm, carry: L.carry, hang: L.hang, apex: L.apex, angle: L.angle, speed: L.speed, fairway: fw.run, green: gr.run });
+    }
+  }
+  if (json) return out;
+  console.log('\n11. Spin at landing per club, full swing, flat, still air (launch speed re-solved for each club\'s stated carry)');
+  console.log('  decay tau   club     stated  v0 m/s  launch rpm  land rpm  kept   carry  hang s  apex yd  land °  land m/s  run fwy  run green');
+  for (const r of out) console.log(`  ${r.tau.padEnd(11)} ${r.club.padEnd(8)}${String(r.stated).padStart(6)}  ${f1(r.v0).padStart(6)}  ${f0(r.launchRpm).padStart(10)}  ${f0(r.rpm).padStart(8)}  ${(100 * r.kept).toFixed(0).padStart(3)} %  ${f1(r.carry).padStart(5)}  ${r.hang.toFixed(2).padStart(6)}  ${f1(r.apex).padStart(7)}  ${f1(r.angle).padStart(6)}  ${f1(r.speed).padStart(8)}  ${f1(r.fairway).padStart(7)}  ${f1(r.green).padStart(9)}`);
+  return out;
+}
+const spinRows = spinTable();
+if (json) console.log(JSON.stringify(spinOnly ? spinRows : { ...jsonOut, spinAtLanding: spinRows }, null, 1));
