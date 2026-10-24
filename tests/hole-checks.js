@@ -146,7 +146,7 @@ module.exports = {
     challenge: 'A short iron over Rae\'s Creek to a shallow, wide green angled away from the tee: the creek and its steep bank short, deep bunkers long, a swirling wind over it all. The deeper left side is the safe target; the Sunday pin tucked by the creek on the right is the temptation.',
     shots: [
       { name: 'a well-struck iron at the pin holds the right side of the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 7 } },
-      { name: 'a well-struck iron at the middle of the green holds it', shot: { club: 'Iron', at: [14, 131], offset: 0.1 }, expect: { surf: ['GREENS'] } },
+      { name: 'a well-struck iron at the middle of the green holds it', shot: { club: 'Iron', at: [14, 132], offset: 0.1 }, expect: { surf: ['GREENS'] } },
       { name: 'a thin iron at the pin comes up short in the creek', shot: { club: 'Iron', offset: 0.4 }, expect: { end: 'water' } },
       { name: 'a push right at the pin is wet', shot: { club: 'Iron', offset: 0.5 }, expect: { end: 'water' } },
       { name: 'carried long over the left half of the green, the ball finds a back bunker', shot: { club: 'Iron', at: [2, 152] }, expect: { end: 'rest', surf: ['SAND'] } },
@@ -157,7 +157,7 @@ module.exports = {
     strategies: [
       { name: 'the Sunday pin: attack it by the creek, or play to the deep middle', plans: [
           { name: 'pin', shot: { club: 'Iron' } },
-          { name: 'middle', shot: { club: 'Iron', at: [14, 131] } } ],
+          { name: 'middle', shot: { club: 'Iron', at: [14, 132] } } ],
         expect: [
           ['attacking the pin keeps a sharp player dry', r => r.pin.sharp.hazard === 0],
           ['a shaky player gets wet at least one time in four going at it', r => r.pin.shaky.hazard > 0.25],

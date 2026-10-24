@@ -67,7 +67,7 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 | Shot | Expected |
 |---|---|
 | A well-struck iron at the pin | Green, ≤ 7 yd from the pin |
-| A well-struck iron at the deep left side, (14, 131) | Green |
+| A well-struck iron at the deep left side, (14, 132) | Green |
 | A thin iron at the pin (needle 0.4) | Short, in the creek |
 | A push right at the pin | Wet |
 | Long over the left half, at (2,152) | A back bunker |
@@ -92,6 +92,7 @@ It differs from Sawgrass 17 on purpose: shallow and wide, angled, one water haza
 | The safe plan's target (shot and strategy) | the middle, (10, 139) | the deep left side, (14, 131) | (10, 139) was the ellipse's middle; on the traced green it is 1 yd from the back edge and a pure iron ran off it onto the fringe. The traced green is deep at its left end (the spec's 'deeper left side'), so the safe plan now aims there |
 | 14 mph tailwind, stock shot (2026-10-21, OpenFairway physics) | flies the green into the back bunkers or beyond (sand or rough) | barely flies further, lands flatter, and still holds the green (≤ 6 yd) | Under OpenFairway's drag and lift a tailwind barely lengthens an iron: +2.5 yd carry (main: +6.5, landing at 25° and running 4 yd into the rough). The ball lands at 41° against 48° in still air and runs 0.5 yd; the green has 6.7 yd behind the pin, so it holds, 3.0 yd away. Firmer greens do not bring the old outcome back: the steeper still-air ball runs further on a firm green than the flatter downwind one (at `greens.firm` 1.5, 6.5 yd against 3.9), so the stock shot would leave the green first. Same pattern as St Andrews No. 17's tailwind check |
 | The Sunday pin, shaky player (same day) | the two plans within a quarter stroke of each other, either way (`|pin − middle| < 0.25`) | a shaky player gains less than half what a sharp one does (`middle.shaky − pin.shaky < 0.5 × (middle.sharp − pin.sharp)`) | Not the wind: still air. A ball now stops within a yard of its pitch mark on this green (main ran 5–6 yd on toward the back right, closer to the pin), so a shaky player's middle shots finish a yard further away, and the needle-0.44 miss now pitches on the shaved bank and feeds into the creek (main: dry on the fairway). Shaky middle 3.59 → 3.67, while the pin went 3.47 → 3.36: a 0.31 gap. The decision is unchanged in kind: attacking pays a sharp player 0.92, a shaky player a third of that, at twice the water. `greens.firm` 0.75 → 1.3 would pass the old wording (gap 0.22), but only by making the pin worse (sharp 2.28 → 2.60), so it was not taken. **Knife edge** on the assertion beside it, "the middle drowns half as often": 3 of 21 against 6, exactly on the bound |
+| **The deep middle (shot and the `middle` plan), 2026-10-24, crater-wall bounce** | aim (14, 131) | aim (14, 132) | A shaky player's thin miss (needle 0.385) lands on the bank short of the green. On main it kicked forward into the front bunker; under the crater-wall law it checks on the bank and rolls back into the creek, which took the middle to 4 wet in 21 (limit: half the pin's 6). A yard deeper it carries into that bunker: 3 in 21 again, sharp 95 % on the green, 3.21; the pin still saves 0.93 (sharp) and 0.33 (shaky). Knife edge, as before |
 
 ## 7. Results
 
