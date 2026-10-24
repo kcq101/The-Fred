@@ -71,6 +71,8 @@ button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 
 #meter{position:absolute;left:max(10px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 190px);height:22%;width:14px;border:3px solid var(--ink);background:var(--paper);box-shadow:3px 3px 0 var(--ink)}
 #meterFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,var(--cyan),var(--violet) 55%,var(--magenta))}
+#meterPlan{position:absolute;left:-7px;right:-7px;height:0;border-top:3px solid var(--ink);transform:translateY(1.5px)}
+#meterPlan::after{content:'';position:absolute;right:-9px;top:-7px;border:5px solid transparent;border-right:7px solid var(--ink)}
 #meter .lbl{position:absolute;top:100%;left:0;transform:translate(0,5px);font-family:var(--display);font-size:11px;letter-spacing:.06em;color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill}
 #carry{display:none;position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) rotate(-3deg);white-space:nowrap;font-size:13px}
 #carry b{font-size:22px}
@@ -242,6 +244,7 @@ body:has(#title:not([hidden])) #nowPlaying{top:calc(env(safe-area-inset-top,0px)
 
   <div id="meter" hidden>
     <div id="meterFill"></div>
+    <div id="meterPlan" hidden></div>
     <div class="lbl">POWER</div>
     <div class="cap" id="carry"><b id="carryN">0</b> <span id="carryU">yds</span></div>
   </div>
@@ -2959,6 +2962,25 @@ function flatShapedArc(sp,spin,pts){
   }
   return null;                                            // not settling: fall back to the general solve
 }
+// the pull that lands the ball on the target (still air, this lie and stance, no shaping): the arc shows it while aiming, and the power meter
+// marks it while pulling, so dragging the target nearer or farther moves the arc's landing with it. Memoized: re-solved only when the target,
+// the ball, the club or the hole change (about 8 flights)
+let planMemo=null;
+function planPower(){
+  const c=CLUBS[clubIdx];if(c.putt)return 1;
+  const key=target.x+','+target.z+','+ball.p.x+','+ball.p.y+','+ball.p.z+','+clubIdx+','+holeIdx+','+shotV+','+aimYaw;
+  if(planMemo&&(planMemo.key===key||(drag&&drag.kind==='pull'&&planMemo.club===clubIdx)))return planMemo.p;   // while pulling the drift only turns the aim
+  const st=stanceNow(),want=hdist(ball.p,target);
+  const reach=p=>{const l=simArc(shotSpeed(p),aimYaw+st.yaw,null,st.spin);return l?hdist(ball.p,l):0;};
+  // walk down from a full pull to the first power that falls short, then bisect between the two. Walking (not bisecting the whole range)
+  // matters where a weak pull clips ground near the ball: on Pebble's tee a driver under 70 % lands 10 yd out, which would fool a bisection
+  let p=1,hi=1,rh=reach(1);
+  if(rh>want){
+    let lo=hi;for(let q=0.95;q>=0.05;q-=0.05){const r=reach(q);if(r<=want){lo=q;break;}hi=q;rh=r;}
+    if(lo<hi){for(let i=0;i<6;i++){const m=(lo+hi)/2;if(reach(m)<want)lo=m;else hi=m;}p=hi;}else p=hi;   // hi: the shortest pull still at or past the target
+  }
+  planMemo={key,p,club:clubIdx};return p;
+}
 function drawGuide(power){
   const c=CLUBS[clubIdx];let pts=[];let land;
   if(c.putt){
@@ -3155,6 +3177,16 @@ function drawFan(){
   ['arrL','arrSL'].forEach(id=>$(id).setAttribute('points',ar[0]));['arrR','arrSR'].forEach(id=>$(id).setAttribute('points',ar[1]));
 }
 // </fan-draw>
+// holding the pull past the full draw or fade swings the aim slowly the way the arc bulges (a fade, pulled right, bulges left, so the aim turns
+// left), and the camera turns with it. It starts at the edge of the shaping range and builds to EDGE_RATE 35 % beyond it: a push against resistance
+const EDGE_RATE=0.14;   // radians a second at full push (about 8 degrees)
+function edgeDrift(dt){
+  const c=CLUBS[clubIdx];if(c.putt||!drag||drag.kind!=='pull'||pullPower()<0.02)return;
+  const r=(drag.x-drag.x0)/(Math.min(vw,vh)*0.3),over=clamp((Math.abs(r)-1)/0.35,0,1);if(!over)return;
+  const d=hdist(ball.p,target),yaw=aimYaw+Math.sign(r)*EDGE_RATE*over*over*dt;
+  const x=ball.p.x+Math.sin(yaw)*d,z=ball.p.z+Math.cos(yaw)*d;
+  target.set(x,H(x,z),z);targetPinned=Math.hypot(x-PIN.x,z-PIN.z)<0.6;solveShot();
+}
 function pullPower(){const dy=drag.y-drag.y0;return dy>6?clamp(dy/(Math.min(vw,vh)*0.34),0,1):0;}
 // -1 = full draw (pulled down-left, right-to-left flight) .. 1 = full fade (pulled down-right, left-to-right)
 let shapeNow=0;
@@ -3532,12 +3564,15 @@ function frame(now){
     tgtRing.position.set(target.x,target.y+0.06,target.z);tgtRing.scale.setScalar(ts);
     tgtDot.position.copy(tgtRing.position);tgtDot.scale.setScalar(ts);
     const pulling=drag&&drag.kind==='pull';
-    const land=drawGuide(pulling?Math.max(pullPower(),0.02):1);
+    const plan=CLUBS[clubIdx].putt?1:planPower();
+    const land=drawGuide(pulling?Math.max(pullPower(),0.02):plan);
+    $('meterPlan').style.bottom=(plan*100)+'%';$('meterPlan').hidden=CLUBS[clubIdx].putt||plan>=0.995;
     landRing.visible=!!(pulling&&land)&&!CLUBS[clubIdx].putt;
     if(landRing.visible){landRing.position.set(land.x,H(land.x,land.z)+0.07,land.z);landRing.scale.setScalar(Math.max(0.5,11/pxPer(camera.position.distanceTo(land))));}
     if(pulling&&land){const cl=CLUBS[clubIdx];const dd=hdist(ball.p,land);
       $('lie').textContent=cl.putt?Math.round(dd*3)+' FT':Math.round(dd)+' YDS';
       $('dist').textContent=cl.putt?'roll':(Math.abs(shapeNow)<0.08?'straight':(shapeNow<0?'draw':'fade'));$('liePen').textContent='';}
+    if(pulling)edgeDrift(dt);
     if(pulling){const b=ballScreen();drag.bx=b.x;drag.by=b.y;showPull();updatePendulum(dt);}
     const c=CLUBS[clubIdx];const td2=hdist(ball.p,target);
     if(c.putt||pulling)$('targetTag').hidden=true;else placeTag($('targetTag'),new V3(target.x,target.y,target.z),Math.round(td2)+'y');
