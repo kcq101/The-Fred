@@ -66,26 +66,26 @@ module.exports = {
     challenge: 'Pure distance and direction control to an island green, with the wind as the hidden variable.',
     shots: [
       { name: 'a well-struck iron holds the green', shot: { club: 'Iron', offset: 0.1 }, expect: { surf: ['GREENS'], maxToPin: 8 } },
-      { name: 'a shot carried 13 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 150] }, expect: { end: 'water' } },
+      { name: 'a shot carried 14 yards long runs off the back of the island into the water', shot: { club: 'Iron', at: [-4, 151] }, expect: { end: 'water' } },
       { name: 'a bad miss right is wet', shot: { club: 'Iron', offset: 0.6 }, expect: { end: 'water' } },
       { name: 'with a 17 mph tailwind a stock shot barely flies further, lands flatter, and still holds the green', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 4 } },
-      { name: 'over-reading the tailwind (arc on the island\'s front edge) comes up short of the green', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['FRINGE'], minToPin: 9 } },
+      { name: 'over-reading the tailwind (arc on the island\'s front edge) comes up short of the green', shot: { club: 'Iron', at: [0, 124.5], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'rest', surf: ['FRINGE'], minToPin: 9 } },
       { name: 'where the tailwind costs you is long: 12 yards long holds in still air, but the same arc downwind goes over the back into the water', shot: { club: 'Iron', at: [-4, 149], wind: { mph: 17, dir: 'tail' } }, expect: { end: 'water' } },
       { name: 'into a 17 mph headwind, a stock shot to a front pin comes up short and wet', shot: { club: 'Iron', at: [-4, 129], wind: { mph: 17, dir: 'head' } }, expect: { end: 'water' } },
-      { name: 'into the same headwind, aiming the arc 11 yards past the pin, left of the pot bunker, finds the green', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
-      { name: 'the same arc straight over the pot bunker comes down short of the pin, in it', shot: { club: 'Iron', at: [-5, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
+      { name: 'into the same headwind, aiming the arc 12 yards past the pin, left of the pot bunker, finds the green', shot: { club: 'Iron', at: [-2, 149], wind: { mph: 17, dir: 'head' } }, expect: { surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'an arc a yard shorter, straight over the pot bunker, comes down short of the pin, in it', shot: { club: 'Iron', at: [-5, 148], wind: { mph: 17, dir: 'head' } }, expect: { end: 'rest', surf: ['SAND'] } },
     ],
     strategies: [
       { name: 'reading a headwind', plans: [
           { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'head' } } },
-          { name: 'read', shot: { club: 'Iron', at: [-2, 148], wind: { mph: 17, dir: 'head' } } } ],
+          { name: 'read', shot: { club: 'Iron', at: [-2, 149], wind: { mph: 17, dir: 'head' } } } ],
         expect: [
           ['ignoring the headwind is a disaster even for a sharp player', r => r.stock.sharp.hazard > 0.5],
-          ['reading it (the arc 11 yards past the pin) keeps a sharp player dry', r => r.read.sharp.hazard === 0],
+          ['reading it (the arc 12 yards past the pin) keeps a sharp player dry', r => r.read.sharp.hazard === 0],
           ['and saves strokes for everyone', r => r.read.sharp.score < r.stock.sharp.score - 1 && r.read.shaky.score < r.stock.shaky.score] ] },
       { name: 'a following wind: play it stock or over-read it', plans: [
           { name: 'stock', shot: { club: 'Iron', wind: { mph: 17, dir: 'tail' } } },
-          { name: 'over', shot: { club: 'Iron', at: [0, 125], wind: { mph: 17, dir: 'tail' } } } ],
+          { name: 'over', shot: { club: 'Iron', at: [0, 124.5], wind: { mph: 17, dir: 'tail' } } } ],
         expect: [
           ['over-reading the tailwind (arc on the front edge) is a disaster even for a sharp player', r => r.over.sharp.hazard > 0.5],
           ['the stock shot keeps a sharp player dry', r => r.stock.sharp.hazard === 0],
