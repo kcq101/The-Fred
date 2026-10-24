@@ -7,6 +7,7 @@ views (default: tee bird approach)
     tee              the golfer's-eye aim view from the tee
     bird             bird's-eye (the HUD's button) from the tee;  bird=x,z  from that spot
     approach         aim view from 80 yd short of the pin, on the route;  approach=x,z  from that spot
+    look=x,z,tx,tz   the aim view from (x,z) turned toward (tx,tz) instead of the pin (e.g. to look across the rough)
     green            the putting view, 8 yd from the pin on the tee side
     aerial           a drone's-eye view of the green complex with the HUD hidden: 83 yd short of the green on the line it is approached on, 27 yd up,
                      a 30° lens, 4:5 (the camera Riviera No. 6's aerial photo was taken from). For holes with no photo yet, and as the shot to look for
@@ -117,9 +118,10 @@ def main():
         ev('startPlay()')
         frames = lambda n=3: page.evaluate('n => new Promise(r => { const f = () => --n <= 0 ? r() : requestAnimationFrame(f); requestAnimationFrame(f); })', n)
 
-        def place(x, z, zoom=0):
-            """ball on the ground at (x,z), aim view re-aimed at the pin and the camera snapped to where it settles (zoom 1 = bird's eye)"""
-            ev(f"ball.p.set({x},H({x},{z})+R,{z});ball.v.set(0,0,0);ball.rolling=true;ballGroup.visible=true;setupAim();setZoom({zoom});zoomV={zoom};aimTarget(tP,tL);camPos.copy(tP);camLook.copy(tL)")
+        def place(x, z, zoom=0, tgt=None):
+            """ball on the ground at (x,z), aim view re-aimed at the pin (or at tgt=(x,z)) and the camera snapped to where it settles (zoom 1 = bird's eye)"""
+            aim = f"target.x={tgt[0]};target.z={tgt[1]};solveShot();" if tgt else ''
+            ev(f"ball.p.set({x},H({x},{z})+R,{z});ball.v.set(0,0,0);ball.rolling=true;ballGroup.visible=true;setupAim();{aim}setZoom({zoom});zoomV={zoom};aimTarget(tP,tL);camPos.copy(tP);camLook.copy(tL)")
             frames()
 
         def measure():
@@ -141,6 +143,9 @@ def main():
             elif name == 'approach':
                 z = max(20.0, pin['z'] - 80.0) if pin['z'] > 100 else pin['z'] * 0.55
                 place(*(xy or (ev(f'centerX({z})'), z)))
+            elif name == 'look':
+                if not xy or len(xy) != 4: sys.exit('look=x,z,tx,tz: the aim view from (x,z) turned toward (tx,tz)')
+                place(xy[0], xy[1], tgt=xy[2:])
             elif name == 'green':
                 import math
                 l = math.hypot(pin['x'], pin['z']) or 1
@@ -152,7 +157,7 @@ def main():
                 ref_views(page, ev, frames, a, arg, out, w, h)
                 continue
             else:
-                sys.exit(f"unknown view '{v}': use tee, bird[=x,z], approach[=x,z], green, aerial or ref[=view]")
+                sys.exit(f"unknown view '{v}': use tee, bird[=x,z], approach[=x,z], look=x,z,tx,tz, green, aerial or ref[=view]")
             m = measure()
             f = out / f"{a.hole}-{name}{'-' + arg.replace(',', '_') if arg else ''}.png"
             page.screenshot(path=str(f))
