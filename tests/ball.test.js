@@ -148,7 +148,10 @@ test('wedge on a green: lands steeply, checks quickly, little bounce, at rest', 
   // averages: ~38 and ~50), so the rule is now a margin in degrees.
   assert.ok(arrivalAngle(WEDGE, t) > arrivalAngle(HAMMER, t) + 20, `the wedge comes down much more steeply than the driver (${arrivalAngle(WEDGE, t).toFixed(0)} vs ${arrivalAngle(HAMMER, t).toFixed(0)} deg)`);
   assert.ok(w.summary.roll <= 5 && w.summary.bounces <= 3 && w.resting && w.t < 8, `roll ${w.summary.roll.toFixed(1)}, ${w.summary.bounces} bounces, ${w.t.toFixed(1)}s`);
-  assert.ok(w.summary.roll / w.summary.carry < 0.5 * (h.summary.roll / h.summary.carry), 'the wedge runs out far less than a low shot');
+  // Signed forward run since the slower spin decay (2026-10-24): a full wedge now spins back ~3 yd on a green, which summary.roll (distance from
+  // the landing) counted as running out
+  const fwd = r => r.ball.p.z - r.summary.carry;
+  assert.ok(fwd(w) / w.summary.carry < 0.5 * (fwd(h) / h.summary.carry), `the wedge runs out far less than a low shot (${fwd(w).toFixed(1)} vs ${fwd(h).toFixed(1)} yd)`);
   assert.ok(w.inv.maxHopAfterLanding < 2.5, `hop ${w.inv.maxHopAfterLanding.toFixed(2)} yd`);
 });
 

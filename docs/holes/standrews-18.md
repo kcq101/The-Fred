@@ -75,7 +75,7 @@
 
 | Decision | Plans | Must hold |
 |---|---|---|
-| The drive | at the green (2 yd left of the pin, 2026-10-24) / at the clock, (22, 255) / an iron to the Wynd | the green line finishes nearest and is a sharp player's best (3.47 against 3.59 and 3.86); in still air no line reaches the town for either player; the iron leaves 100+ yd. **Honest note**: the out of bounds takes a push *and* a crosswind; the baseline sees no risk in driving at the green, and a shaky player's best plan is also the drive (3.54) |
+| The drive | at the green (3 yd left of the pin, 2026-10-24, slower spin decay; 2 yd before) / at the clock, (22, 255) / an iron to the Wynd | the green line finishes nearest and is a sharp player's best (3.47 against 3.59 and 3.86); in still air no line reaches the town for either player; the iron leaves 100+ yd. **Honest note**: the out of bounds takes a push *and* a crosswind; the baseline sees no risk in driving at the green, and a shaky player's best plan is also the drive (3.54) |
 
 **Check-change log**: none until 2026-10-23. The tee shift was chosen from probes before the checks were written (§5).
 
@@ -87,6 +87,7 @@
 | **A light drive stops short of the Valley (2026-10-24, crater-wall bounce)** | 22 % light (power 0.78): 38 yd out | two-thirds power (0.65): fairway, 47.8 yd out | Under the crater-wall law a lighter drive lands shallower (30° against 36°) and keeps a little more run, where the inverted law gave it less: on flat fairway 24 yd against main's 18.5. On these firm links (`firm` 1.5) the 0.78 drive now runs through the Valley onto the green (9.7 yd). 0.7 stops 30.1 yd out (knife edge), 0.65 at 47.8. Easing `firm` to 1.3 instead kept the 0.78 drive short but made the hole all but undrivable (driving at the green: sharp 19 % on the green, against 100 % on main), so it was not taken |
 | **The drive at the R&A clock (shot and the `clock` plan), same day** | aimed at (25, 255) | aimed at (22, 255) | The extra run carried the drive at (25, 255) off the left of the shared fairway into the rough (48.4 yd). At (22, 255) it finishes on the fairway, 42.8 yd out. Clock: sharp 3.57, shaky 3.47 (main at the same aim: 3.49, 3.53) |
 | **Driving at the green (the `green` plan), same day** | aimed at the pin | aimed 2 yd left of it, at (−13, 292), away from the town | A shaky player's worst push (needle 0.55) now runs on across the road out of bounds (5 % OOB), which broke "in still air none of the three lines reaches the town". Aiming 2 yd left, as a player would with the town right, keeps it in bounds (0.55: rough, 40 yd). Green: sharp 100 % on the green, 2.92 (main at the same aim 3.02), shaky 62 %, 3.22 |
+| **Driving at the green (the `green` plan), 2026-10-24, slower spin decay** | aimed 2 yd left of the pin, (−13, 292) | 3 yd left, (−12, 292) | With spin decaying at 20 s in flight a shaky player's widest push again ran on into the town: 1 of 21 out of bounds (score 3.37). A yard further left: 0 % out, 62 % on the green, 3.27; sharp 100 % green, 3.02 and still the best plan. **Knife edge**, as before |
 
 ## 7. Results
 

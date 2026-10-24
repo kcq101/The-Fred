@@ -1102,7 +1102,11 @@ const Aero=(()=>{
   const TK=(75-32)*5/9+273.15;                                        // OpenFairway's default air: sea level, 75 °F
   const RHO=101325/(287.058*TK),MU=1.716e-5*Math.pow(TK/273.15,1.5)*(273.15+198.72)/(TK+198.72);
   const KQ=0.5*RHO*AREA/MASS*YD;                                     // accel (yd/s²) = KQ × coefficient × speed² (yd/s)
-  const TAU=5,RPM=2*Math.PI/60;                                      // spin decay time constant (s); rpm -> rad/s
+  // Spin decay time constant (s). OpenFairway's 5 s left a full wedge a third of its spin by landing; measured golf-ball decay is several
+  // times slower: Smits & Smith ~24 s at 100 mph, Tavares et al. ~19 s, TrackMan ~4 %/s (~25 s), Tutelman 30 s. 20 s is the slow end of
+  // that range (a full shot keeps ~75 % of its spin). The ball's lift uses this spin. TAU_OF: OpenFairway's own decay, kept for the bounce
+  // (air.wb, see impact): its spin constants were fitted against the spin that decay leaves at landing (2026-10-24). rpm -> rad/s.
+  const TAU=20,TAU_OF=5,RPM=2*Math.PI/60;
   const P={cdA:1.1948,cdB:-0.0000209661,cdC:1.42472e-10,cdD:-3.14383e-16,cdHi:0.2,cdLo:0.38,loBlend:30000,cd50:0.4632,
     clMax:0.268,clMaxHi:0.32,clSr0:0.35,clSr1:0.50,
     sdK:4,sdMax:1.20,sdHiMax:1.03,sdUltraMax:1.21,sdHi0:0.30,sdHi1:0.48,sdRe0:90000,sdRe1:105000,sdU0:0.57,sdU1:0.77,sdProg0:0.33,sdProg1:0.50,sdProgMax:0.25,
@@ -1167,8 +1171,8 @@ const Aero=(()=>{
     return out;
   }
   // the ball's spin as it leaves the club: rate (rad/s), a horizontal axis square to the launch direction (pure backspin), launch angle
-  function launch(rpm,v){const h=Math.hypot(v.x,v.z)||1;return{w:rpm*RPM,ax:-v.z/h,az:v.x/h,la:Math.atan2(v.y,h)/D2R};}
-  const NONE={w:0,ax:0,az:0,la:0};
+  function launch(rpm,v){const h=Math.hypot(v.x,v.z)||1;return{w:rpm*RPM,wb:rpm*RPM,ax:-v.z/h,az:v.x/h,la:Math.atan2(v.y,h)/D2R};}
+  const NONE={w:0,wb:0,ax:0,az:0,la:0};
   const C={cd:0,cl:0};
   // one step of air on velocity v (yd/s, moved in place), against a wind {x,z}; decays the spin in air
   function step(v,wind,air,dt){
@@ -1180,8 +1184,9 @@ const Aero=(()=>{
     v.y+=(-d*vy+l*(air.az*vx-air.ax*vz)-G)*dt;
     v.z+=(-d*vz+l*air.ax*vy)*dt;
     if(air.w)air.w*=Math.exp(-dt/TAU);
+    if(air.wb)air.wb*=Math.exp(-dt/TAU_OF);
   }
-  return{YD,RHO,MU,KQ,TAU,RPM,NONE,cd,cl,coef,launch,step};
+  return{YD,RHO,MU,KQ,TAU,TAU_OF,RPM,NONE,cd,cl,coef,launch,step};
 })();
 // </aero>
 const CLUBS=[
@@ -1310,7 +1315,7 @@ const BallModel=(()=>{
   // Spin cuts restitution: up to SC_LOW below SC_LO rpm, up to SC_LOW+SC_ADD by SC_LO+SC_RANGE, the high-spin cut scaled from VS_LOW to 1 between VS_LO and VS_MID m/s.
   // Later bounces keep RO_LOW..RO_HIGH of the run as the spin ratio rises to RO_RATIO, bounce at RO_COR of the curve, and not at all below RO_KILL_V.
   const OF={A:.45,B:-.01,C:.0002,CAP:.25,CAP_V:20,KILL_V:2,RET_FLIGHT:.55,RET_MIN:.40,RET_SPIN:8000,PENNER_V:20,
-    SC_LO:1500,SC_LOW:.30,SC_RANGE:1500,SC_ADD:.40,VS_LO:12,VS_MID:25,VS_LOW:.50,RO_LOW:.85,RO_HIGH:.70,RO_RATIO:.20,RO_COR:.5,RO_KILL_V:4,PEN_BLEND:.14,GUARD_W:.5};   // PEN_BLEND (rad, ~8 deg), GUARD_W (share of the guard speed): ours, see impact()
+    SC_LO:1500,SC_LOW:.30,SC_RANGE:1500,SC_ADD:.40,VS_LO:12,VS_MID:25,VS_LOW:.50,RO_LOW:.85,RO_HIGH:.70,RO_RATIO:.20,RO_COR:.5,RO_KILL_V:4,PEN_BLEND:.14,GUARD_W:.5,KNEE:2500,BITE:1.2,BITE_MAX:1.5};   // PEN_BLEND (rad, ~8 deg), GUARD_W (share of the guard speed): ours, see impact()
   // OpenFairway's RolloutProfile.Default (m/s, rpm); VISC: 6*pi*radius/mass of a real ball (per second, per Pa·s of grass viscosity)
   const RO={CHIP_V:20,PITCH_V:35,VS_MIN:.60,VS_MAX:.87,LOW_RPM:1750,LOW_MAX:1.15,MID_MAX:2.25,HIGH_MAX:2.50,HIGH_RANGE:1000},VISC=6*Math.PI*0.021335/0.04592623;
   const E_REF=.30,BITE_REF=3.5,MU_REF=.22;   // fairway's e, bite and mu: the surface OpenFairway's profile stands for
@@ -1356,6 +1361,9 @@ const BallModel=(()=>{
   function cor(vn){                                        // OpenFairway's restitution curve, vn in m/s
     if(vn>OF.CAP_V)return OF.CAP;if(vn<OF.KILL_V)return 0;return OF.A+OF.B*vn+OF.C*vn*vn;
   }
+  // A high-spin landing (a full wedge or long pitch) bites harder than OpenFairway's fit: above OF.KNEE (bounce rpm) the spin the bounce sees
+  // grows by (rpm/KNEE)^OF.BITE, at most ×OF.BITE_MAX (a full wedge: ×1.42). Below it (drives, irons, chips) nothing changes. Ours, 2026-10-24, with the slower flight decay (Aero TAU)
+  function spinBite(w){const r=w/RPM;return r>OF.KNEE?w*Math.min(OF.BITE_MAX,Math.pow(r/OF.KNEE,OF.BITE)):w;}
   function impact(b,nx,ny,nz,sp){
     const v=b.v,vn=v.x*nx+v.y*ny+v.z*nz;
     if(vn>=0)return;
@@ -1363,7 +1371,9 @@ const BallModel=(()=>{
     const tx=v.x-vn*nx,ty=v.y-vn*ny,tz=v.z-vn*nz;         // velocity along the ground
     const ut=Math.hypot(tx,ty,tz),sp0=Math.hypot(un,ut);
     const unM=un/YD_M,sp0M=sp0/YD_M,first=!b.landed;
-    const w=first?((b.air&&b.air.w)||0):(b.w||0),rpm=w/RPM;if(first)b.impRpm=rpm;   // spin (rad/s): backspin in flight, rolling spin after the first landing
+    // spin (rad/s): backspin in flight, rolling spin after the first landing. The first landing reads the bounce spin (air.wb: decayed at
+    // OpenFairway's 5 s, the spin its constants were fitted to; a state set without it uses w), with more bite above OF.KNEE rpm (spinBite)
+    const w=first?spinBite(b.air?(b.air.wb??b.air.w)||0:0):(b.w||0),rpm=w/RPM;if(first)b.impRpm=rpm;
     const eS=sp.e/E_REF;
     let vt,e;                                             // new run along the ground (negative: spins back), restitution
     if(first){

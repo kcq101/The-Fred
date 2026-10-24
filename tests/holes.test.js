@@ -130,7 +130,10 @@ test('stance: ground falling to the left (ball above the feet) hooks left; falli
 test('surfaces: road runs out further than fairway; waste grabs and stops the ball; both obey hold <= dec/G', () => {
   const wedge = g.CLUBS[3], iron = g.CLUBS[2];
   const roll = (club, surf) => flatShot(g, club, club.v0, 0, 0, { x: 0, z: 0 }, surf).roll;
-  assert.ok(roll(wedge, g.ROAD) > 1.5 * roll(wedge, g.FAIRWAY), 'a wedge rolls out far more on the road');
+  // Forward run (signed) since the slower spin decay (2026-10-24): a full wedge now spins back on fairway (-1.4 yd) and checks on the road (-0.2),
+  // so a ratio means nothing; the road still lets it go a yard further (main: +2.2 vs -0.1)
+  const fwd = (club, surf) => { const r = flatShot(g, club, club.v0, 0, 0, { x: 0, z: 0 }, surf); return r.depth - r.carry; };
+  assert.ok(fwd(wedge, g.ROAD) > fwd(wedge, g.FAIRWAY) + 1, `a wedge runs further on the road (${fwd(wedge, g.ROAD).toFixed(1)} vs ${fwd(wedge, g.FAIRWAY).toFixed(1)} yd)`);
   assert.ok(roll(iron, g.ROAD) > roll(iron, g.FAIRWAY));
   assert.ok(roll(iron, g.WASTE) < 0.5 * roll(iron, g.FAIRWAY), 'the waste area stops a ball dead');
   assert.ok(g.SP[g.WASTE].lie < 1 && g.SP[g.ROAD].lie < 1, 'both are worse lies than fairway');

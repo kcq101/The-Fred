@@ -7,7 +7,8 @@
 //                                                each listed alternative (a number: Aero's TAU in seconds; smits: Smits & Smith's
 //                                                speed-dependent decay, tau = 23.8 s × 100 mph / air speed). Alternatives patch a copy
 //                                                of index.html in memory; each club's launch speed is re-solved for its stated carry.
-// Columns: speed (m/s) and its horizontal / vertical parts, descent angle, backspin (rpm) at contact; bounces (each hop's length, yd);
+// Columns: speed (m/s) and its horizontal / vertical parts, descent angle, backspin (rpm) at contact (a fixed state's rpm is the spin the bounce
+// reads; a club's landing shows its flight spin and the bounce reads its own, table 11); bounces (each hop's length, yd);
 // roll after the last hop; run (first contact to rest along the line, yd; negative: spun back); side (yd, + left).
 const fs = require('fs');
 const path = require('path');
@@ -26,10 +27,11 @@ function surfaces(firm = 1, gfirm = 1, gg = g) {
   return sp;
 }
 // one landing: incoming speed (m/s), descent angle (deg), backspin (rpm), heading +z; terrain height fn and surface
-function land({ speed, angle, rpm }, H, surf, sp = surfaces(), gg = g) {
+function land({ speed, angle, rpm, rpmB }, H, surf, sp = surfaces(), gg = g) {
   const t = makeTerrain(H, surf), s = speed / YD, a = angle * D2R;
   const b = { p: { x: 0, y: t.H(0, 0) + R + 1e-3, z: 0 }, v: { x: 0, y: -Math.sin(a) * s, z: Math.cos(a) * s }, rolling: false, landed: false, resting: false, t: 0, lipT: -9 };
   gg.BallModel.begin(b); b.air = { w: rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
+  if (rpmB != null) b.air.wb = rpmB * 2 * Math.PI / 60;   // a club's landing: the bounce reads its own spin (Aero TAU_OF), when the game keeps one
   return settle(b, { terrain: t, sp, wind: { x: 0, z: 0 } }, t, gg.BallModel);
 }
 function settle(b, env, t, BM = g.BallModel) {
@@ -51,10 +53,10 @@ function settle(b, env, t, BM = g.BallModel) {
 function clubLanding(club, power = 1, gg = g) {
   const BM = gg.BallModel, t = makeTerrain(() => 0, gg.FAIRWAY), s = club.v0 * Math.sqrt(power);
   const b = { p: { x: 0, y: R + 0.02, z: 0 }, v: { x: 0, y: Math.sin(club.ang) * s, z: Math.cos(club.ang) * s }, rolling: false, landed: false, resting: false, t: 0, lipT: -9, club };
-  BM.begin(b); let pre = null, rpm = 0, apex = 0, launchRpm = b.air.w / (2 * Math.PI / 60);
-  while (!b.landed) { pre = { ...b.v, z0: b.p.z }; rpm = b.air.w / (2 * Math.PI / 60); apex = Math.max(apex, b.p.y); BM.step(b, BM.STEP, { terrain: t, sp: gg.SP, wind: { x: 0, z: 0 } }); }
+  BM.begin(b); let pre = null, rpm = 0, rpmB = null, apex = 0, launchRpm = b.air.w / (2 * Math.PI / 60);
+  while (!b.landed) { pre = { ...b.v, z0: b.p.z }; rpm = b.air.w / (2 * Math.PI / 60); rpmB = b.air.wb == null ? null : b.air.wb / (2 * Math.PI / 60); apex = Math.max(apex, b.p.y); BM.step(b, BM.STEP, { terrain: t, sp: gg.SP, wind: { x: 0, z: 0 } }); }
   const h = Math.hypot(pre.x, pre.z), sp = Math.hypot(h, pre.y);
-  return { speed: sp * YD, angle: Math.atan2(-pre.y, h) / D2R, rpm, carry: b.stats.carry, launchRpm, hang: b.t, apex, v0: s };
+  return { speed: sp * YD, angle: Math.atan2(-pre.y, h) / D2R, rpm, rpmB, carry: b.stats.carry, launchRpm, hang: b.t, apex, v0: s };
 }
 const flat = () => 0, grade = s => (x, z) => s * z, side = s => (x, z) => s * x;
 const rows = [];
@@ -110,7 +112,7 @@ print('angle', '10. Descent-angle sweep, everything else fixed');
 const inc = club.Iron, idRows = FULL.map(c => {
   const t = makeTerrain(flat, g.GREENS), s = inc.speed / YD, a = inc.angle * D2R;
   const b = { p: { x: 0, y: R + 1e-3, z: 0 }, v: { x: 0, y: -Math.sin(a) * s, z: Math.cos(a) * s }, rolling: false, landed: false, resting: false, t: 0, lipT: -9, club: c };
-  BM.begin(b); b.air = { w: inc.rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 };
+  BM.begin(b); b.air = { w: inc.rpm * 2 * Math.PI / 60, ax: -1, az: 0, la: 0 }; if (inc.rpmB != null) b.air.wb = inc.rpmB * 2 * Math.PI / 60;
   return settle(b, { terrain: t, sp: g.SP, wind: { x: 0, z: 0 } }, t).run;
 });
 if (!json) console.log(`\n9. The iron's incoming state, with each club set on the ball: run ${idRows.map(f1).join(' / ')} yd (${Math.max(...idRows) - Math.min(...idRows) < 1e-9 ? 'identical' : 'DIFFERS'})`);
@@ -119,7 +121,7 @@ if (json) jsonOut = { rows, clubIndependent: Math.max(...idRows) - Math.min(...i
 
 // 11: spin at landing per club, for the game's decay and alternatives (--spin, --tau=...)
 function decaySrc(tau) {
-  const line = 'if(air.w)air.w*=Math.exp(-dt/TAU);';
+  const line = 'if(air.w)air.w*=Math.exp(-dt/TAU);';   // the flight's decay (the bounce's own, TAU_OF, if the game has one, is left alone)
   if (!SRC.includes(line)) throw new Error('spin-decay line not found in index.html');
   if (tau === 'smits') return SRC.replace(line, 'if(air.w)air.w*=Math.exp(-dt*s/(23.8*44.704/YD));');   // tau = 23.8 s at 100 mph air speed, inversely with speed
   return SRC.replace(/const TAU=[\d.]+,/, `const TAU=${+tau},`);
@@ -131,13 +133,13 @@ function spinTable() {
     const gg = tau === cur ? g : loadGame(decaySrc(tau));
     for (const c of gg.CLUBS.filter(c => !c.putt)) {
       const L = clubLanding(c, 1, gg), fw = land(L, flat, gg.FAIRWAY, surfaces(1, 1, gg), gg), gr = land(L, flat, gg.GREENS, surfaces(1, 1, gg), gg);
-      out.push({ tau: tau === cur ? `${tau} (game)` : tau, club: c.name, stated: c.carry, v0: L.v0 * YD, launchRpm: L.launchRpm, rpm: L.rpm, kept: L.rpm / L.launchRpm, carry: L.carry, hang: L.hang, apex: L.apex, angle: L.angle, speed: L.speed, fairway: fw.run, green: gr.run });
+      out.push({ tau: tau === cur ? `${tau} (game)` : tau, club: c.name, stated: c.carry, v0: L.v0 * YD, launchRpm: L.launchRpm, rpm: L.rpm, rpmB: L.rpmB ?? L.rpm, kept: L.rpm / L.launchRpm, carry: L.carry, hang: L.hang, apex: L.apex, angle: L.angle, speed: L.speed, fairway: fw.run, green: gr.run });
     }
   }
   if (json) return out;
   console.log('\n11. Spin at landing per club, full swing, flat, still air (launch speed re-solved for each club\'s stated carry)');
-  console.log('  decay tau   club     stated  v0 m/s  launch rpm  land rpm  kept   carry  hang s  apex yd  land °  land m/s  run fwy  run green');
-  for (const r of out) console.log(`  ${r.tau.padEnd(11)} ${r.club.padEnd(8)}${String(r.stated).padStart(6)}  ${f1(r.v0).padStart(6)}  ${f0(r.launchRpm).padStart(10)}  ${f0(r.rpm).padStart(8)}  ${(100 * r.kept).toFixed(0).padStart(3)} %  ${f1(r.carry).padStart(5)}  ${r.hang.toFixed(2).padStart(6)}  ${f1(r.apex).padStart(7)}  ${f1(r.angle).padStart(6)}  ${f1(r.speed).padStart(8)}  ${f1(r.fairway).padStart(7)}  ${f1(r.green).padStart(9)}`);
+  console.log('  decay tau   club     stated  v0 m/s  launch rpm  land rpm  kept  bounce rpm  carry  hang s  apex yd  land °  land m/s  run fwy  run green');
+  for (const r of out) console.log(`  ${r.tau.padEnd(11)} ${r.club.padEnd(8)}${String(r.stated).padStart(6)}  ${f1(r.v0).padStart(6)}  ${f0(r.launchRpm).padStart(10)}  ${f0(r.rpm).padStart(8)}  ${(100 * r.kept).toFixed(0).padStart(3)} %  ${f0(r.rpmB).padStart(10)}  ${f1(r.carry).padStart(5)}  ${r.hang.toFixed(2).padStart(6)}  ${f1(r.apex).padStart(7)}  ${f1(r.angle).padStart(6)}  ${f1(r.speed).padStart(8)}  ${f1(r.fairway).padStart(7)}  ${f1(r.green).padStart(9)}`);
   return out;
 }
 const spinRows = spinTable();
