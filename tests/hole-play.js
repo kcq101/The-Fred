@@ -53,7 +53,7 @@ function shapeYaw(course, s, speed, spin) {
 function powerFor(course, s, spinShape) {
   const want = Math.hypot(s.at.x - s.from.x, s.at.z - s.from.z);
   let lo = 0.04, hi = 1;
-  const dist = pw => { const sp = s.base * Math.sqrt(pw), y = shapeYaw(course, s, sp, spinShape) + s.st.yaw, l = arcLand(course, s, sp, s.aim + y, spinShape + s.st.spin); return l ? Math.hypot(l.x - s.from.x, l.z - s.from.z) : 0; };
+  const dist = pw => { const sp = s.base * Math.sqrt(pw), y = shapeYaw(course, s, sp, spinShape + s.st.spin), l = arcLand(course, s, sp, s.aim + y, spinShape + s.st.spin); return l ? Math.hypot(l.x - s.from.x, l.z - s.from.z) : 0; };
   if (dist(1) <= want) return 1;
   for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; dist(m) < want ? lo = m : hi = m; }
   return (lo + hi) / 2;
@@ -65,7 +65,7 @@ function playShot(course, shot, { trace = false } = {}) {
   const power = shot.power ?? powerFor(course, s, spinShape);
   const sw = g.SwingModel.resolve(c, shot.offset || 0, () => 0.5);     // the needle, minus the small random jitter
   const speed = s.base * Math.sqrt(power) * sw.speedMult;
-  const yaw = s.aim + shapeYaw(course, s, speed, spinShape) + s.st.yaw + sw.yawErr;
+  const yaw = s.aim + shapeYaw(course, s, speed, spinShape + s.st.spin) + sw.yawErr;   // as the game: the start direction allows for the slope's curve
   if (shot.wind) {
     const w = shot.wind, a = s.aim + ({ head: Math.PI, tail: 0, left: Math.PI / 2, right: -Math.PI / 2 }[w.dir] ?? 0), m = w.mph * 0.4889 * (((course.HOLE && course.HOLE.play) || {}).windPush || 1);
     s.env.wind = { x: Math.sin(a) * m, z: Math.cos(a) * m };

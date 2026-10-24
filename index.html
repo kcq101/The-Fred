@@ -3037,7 +3037,7 @@ function planPower(){
   const key=target.x+','+target.z+','+ball.p.x+','+ball.p.y+','+ball.p.z+','+clubIdx+','+holeIdx+','+shotV+','+aimYaw;
   if(planMemo&&(planMemo.key===key||(drag&&drag.kind==='pull'&&planMemo.club===clubIdx)))return planMemo.p;   // while pulling the drift only turns the aim
   const st=stanceNow(),want=hdist(ball.p,target);
-  const reach=p=>{const l=simArc(shotSpeed(p),aimYaw+st.yaw,null,st.spin);return l?hdist(ball.p,l):0;};
+  const reach=p=>{const sp=shotSpeed(p),l=simArc(sp,aimYaw+shapeYaw(sp,st.spin),null,st.spin);return l?hdist(ball.p,l):0;};
   // walk down from a full pull to the first power that falls short, then bisect between the two. Walking (not bisecting the whole range)
   // matters where a weak pull clips ground near the ball: on Pebble's tee a driver under 70 % lands 10 yd out, which would fool a bisection
   let p=1,hi=1,rh=reach(1);
@@ -3060,7 +3060,7 @@ function drawGuide(power){
       // a level lie (the tee, most fairway) adds nothing to the flight, so the drawn arc is itself the flight shapeYaw aims: start from last
       // frame's answer, and the drawn flight is usually the only one flown
       if(spin&&!st.yaw&&!st.spin)land=flatShapedArc(sp,spin,pts);
-      if(!land){pts=[];const y=shapeYaw(sp,spin,true);fanYaw=aimYaw+y+st.yaw;land=simArc(sp,fanYaw,pts,spin+st.spin);}
+      if(!land){pts=[];const y=shapeYaw(sp,spin+st.spin,true);fanYaw=aimYaw+y;land=simArc(sp,fanYaw,pts,spin+st.spin);}
       if(land)pts.push(land.clone());guideMemo={key,fanYaw,land:land&&land.clone(),pts};}
   }
   guide.count=0;guideOut.count=0;
@@ -3133,8 +3133,10 @@ function shoot(power,offset,sh=0,py=0){
   const club=CLUBS[clubIdx];
   const sw=SwingModel.resolve(club,offset),fb=sw.feedback;
   const speed=shotSpeed(power)*sw.speedMult;
-  const st=stanceNow(),sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin);
-  const yaw=aimYaw+sYaw+st.yaw+py+sw.yawErr;
+  // a sloping lie bends the flight (st.spin) but a pure strike still lands on the aim line: the start direction is solved for the whole curve,
+  // shaping and slope together, the way a draw or fade always was (2026-10-23; before, the slope's hook or slice landed off the line)
+  const st=stanceNow(),sSpin=shapeSpin(sh),sYaw=club.putt?0:shapeYaw(speed,sSpin+st.spin);
+  const yaw=aimYaw+sYaw+py+sw.yawErr;
   prevLie.copy(ball.p);strokes++;
   Object.assign(ball,{club,landed:false,t:0,resting:false,lipT:-9,spin:sSpin+st.spin+sw.spinErr});ball.lastOut.copy(ball.p);stepAcc=0;
   if(club.putt){ball.v.set(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed);ball.rolling=true;ball.p.y=H(ball.p.x,ball.p.z)+R;SND.putt();sfx('TAP',ball.p.clone(),{cls:'small',dy:-60});}
