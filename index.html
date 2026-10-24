@@ -1771,9 +1771,11 @@ let _blade=null;
 function bladeTex(){
   if(_blade)return _blade;
   const cv=document.createElement('canvas');cv.width=256;cv.height=128;const g=cv.getContext('2d'),r=rng(4242);
-  for(let i=0;i<34;i++){const x=4+r()*248,w=3+r()*5,h=60+r()*66,lean=(r()-0.5)*40;
-    g.beginPath();g.moveTo(x-w/2,128);g.quadraticCurveTo(x+lean*0.3,128-h*0.6,x+lean,128-h);g.quadraticCurveTo(x+lean*0.3+w*0.2,128-h*0.6,x+w/2,128);g.closePath();
-    g.fillStyle='#fff';g.fill();}
+  // back to front: short blades first, then tall ones, each a slightly different grey so overlapping blades read apart (the shader reads .r as a shade)
+  const bl=[];for(let i=0;i<78;i++)bl.push({x:2+r()*252,w:3.5+r()*5.5,h:i<30?28+r()*40:62+r()*64,lean:(r()-0.5)*46,k:150+Math.floor(r()*105)});
+  bl.sort((a,b)=>a.h-b.h).reverse();
+  for(const{x,w,h,lean,k}of bl){g.beginPath();g.moveTo(x-w/2,128);g.quadraticCurveTo(x+lean*0.3,128-h*0.6,x+lean,128-h);g.quadraticCurveTo(x+lean*0.3+w*0.2,128-h*0.6,x+w/2,128);g.closePath();
+    g.fillStyle=`rgb(${k},${k},${k})`;g.fill();}
   _blade=new THREE.CanvasTexture(cv);_blade.anisotropy=4;return _blade;
 }
 // links fescue (look only). streak: the ground shader's downwind strokes (0 off, 1 default). The ribbon is a band of tall alpha-tested fescue cards
@@ -2173,7 +2175,35 @@ function buildWorld(){
               diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.09,0.05,0.2),ink*near*rough*0.4);
             }
           }
-        }`:'')+``);
+        }`:`
+        // parkland rough, drawn in the ground (look only; vRf = how much of this spot is rough, 0 in the first cut): the dense card carpet stands
+        // only along the fairway's and green's edges, so beyond it this is what reads as thick rough. A deeper, cooler green than the fairway;
+        // long strokes leaning one way (the grass lying over), dark in the troughs and a fresh green on the crests; darker clumps with a sunlit rim;
+        // a soft sheen rolling downwind. Every octave evens out with distance before it can shimmer in a pan
+        {
+          float rough=smoothstep(0.5,0.95,vRf);
+          if(rough>0.0){
+            float fpx2=max(fwidth(vWP.x),fwidth(vWP.z));
+            diffuseColor.rgb*=mix(vec3(1.0),vec3(0.8,0.9,0.84),rough);
+            vec2 wd=uWind/max(length(uWind),0.001);float ws=length(uWind);
+            float band=dot(vWP.xz,wd)*0.08-uT*(0.2+0.7*ws)+(vnoise(vWP.xz*0.03)-0.5)*4.0;
+            diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.07,1.12,1.0),smoothstep(0.6,1.0,sin(band))*(0.3+0.5*smoothstep(0.1,0.6,ws))*0.5*rough);
+            vec2 ln=vec2(0.6,0.8),lp=vec2(dot(vWP.xz,ln),dot(vWP.xz,vec2(-ln.y,ln.x)));
+            float s1=vnoise(vec2(lp.x*0.7,lp.y*2.2)),s2=vnoise(vec2(lp.x*1.6+7.0,lp.y*5.0));
+            float stroke=mix(s1,s1*0.55+s2*0.45,1.0-smoothstep(0.05,0.16,fpx2));
+            stroke=mix(stroke,0.5,smoothstep(0.22,0.6,fpx2));
+            float sk=rough*smoothstep(2.0,8.0,distance(vWP.xz,cameraPosition.xz));
+            diffuseColor.rgb*=1.0+(stroke-0.5)*0.42*sk;
+            diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.05,1.1,0.9),smoothstep(0.62,0.85,stroke)*0.5*sk);
+            diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(0.78,0.88,0.86),smoothstep(0.38,0.15,stroke)*0.55*sk);
+            vec2 sunD=normalize(vec2(${SUN_OFF.x.toFixed(3)},${SUN_OFF.z.toFixed(3)}));
+            vec2 cp=vWP.xz*0.65+5.0,cs=sunD*0.3;
+            float cl0=smoothstep(0.48,0.76,vnoise(cp)*0.65+vnoise(cp*2.3+9.0)*0.35),cl1=smoothstep(0.48,0.76,vnoise(cp+cs)*0.65+vnoise((cp+cs)*2.3+9.0)*0.35);
+            float clFade=1.0-smoothstep(0.06,0.2,fpx2);
+            diffuseColor.rgb*=1.0-0.16*cl0*rough*clFade;
+            diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.1,1.14,0.96),clamp((cl0-cl1)*1.5,0.0,1.0)*0.55*rough*clFade);
+          }
+        }`)+``);
     };
     const terrain=add(new THREE.Mesh(tg,tm));terrain.receiveShadow=true;
   }
@@ -2419,11 +2449,13 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
   // lighter tip that drifts across the hole, and the tips bend in the wind (the idea from FluffyGrass, github.com/thebenezer/FluffyGrass, MIT). Look only.
   {
     const r=rng(5+holeIdx*29),LINKS=HOLE.theme==='links',spots=[];
-    const NC=LINKS?0:22000;   // links: none; the ground shader draws that rough (the cards shimmered in camera pans)
-    for(let i=0;i<NC*5&&spots.length<NC;i++){
-      let x,z;
-      if(r()<0.8){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.3+Math.pow(r(),1.4)*24);}
-      else{const a=r()*6.28,q=Math.max(GREEN.rx,GREEN.rz)+2+r()*22;x=GREEN.x+Math.cos(a)*q;z=GREEN.z+Math.sin(a)*q;}
+    // since 2026-10-24 the cards stand in a dense band (ROUGH_BAND yd) along the fairway's and green's edges, where the eye meets the rough, and a
+    // thin scatter (15 %) breaks up the painted rough beyond it; the ground shader draws the rest (parkland block in the terrain shader)
+    const NC=LINKS?0:22000,ROUGH_BAND=6;   // links: none; the ground shader draws that rough (the cards shimmered in camera pans)
+    for(let i=0;i<NC*6&&spots.length<NC;i++){
+      let x,z;const far=r()<0.15,dq=far?ROUGH_BAND+r()*16:Math.pow(r(),1.25)*ROUGH_BAND;
+      if(r()<0.82){z=mix(-10,PIN.z+25,r());const side=r()<0.5?-1:1;x=centerX(z)+side*(fairwayHalf(z)+0.3+dq);}
+      else{const a=r()*6.28,q=Math.max(GREEN.rx,GREEN.rz)+1.5+dq;x=GREEN.x+Math.cos(a)*q;z=GREEN.z+Math.sin(a)*q;}
       if(x<bb.x0||x>bb.x1||S(x,z)!==ROUGH||(cliffB&&cliffB.near(x,z,0.8)>-0.8))continue;spots.push([x,z]);
     }
     if(spots.length){
@@ -2445,11 +2477,11 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
           float ch21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
           float cnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(ch21(i),ch21(i+vec2(1.0,0.0)),f.x),mix(ch21(i+vec2(0.0,1.0)),ch21(i+vec2(1.0,1.0)),f.x),f.y);}`)
           .replace('#include <map_fragment>',`vec4 tA=texture2D(map,vUv);diffuseColor.a*=tA.a;
-          vec3 tip=mix(uTip1,uTip2,cnz(vCW.xz*0.09));diffuseColor.rgb=mix(uBase,tip,smoothstep(0.0,0.85,vH));`);
+          vec3 tip=mix(uTip1,uTip2,cnz(vCW.xz*0.09));diffuseColor.rgb=mix(uBase,tip,smoothstep(0.0,0.85,vH))*mix(0.72,1.05,tA.r);`);
       };
       const cm=add(new THREE.InstancedMesh(cg,gm,spots.length));cm.receiveShadow=true;
       const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0);
-      spots.forEach(([x,z],i)=>{const w=LINKS?0.9+r()*0.6:0.8+r()*0.5,h=LINKS?0.35+r()*0.3:0.22+r()*0.16;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.03,z),q,new V3(w,h,w));cm.setMatrixAt(i,m);});
+      spots.forEach(([x,z],i)=>{const w=LINKS?0.9+r()*0.6:1.0+r()*0.6,h=LINKS?0.35+r()*0.3:0.34+r()*0.24;q.setFromAxisAngle(up,r()*6.28);m.compose(new V3(x,H(x,z)-0.03,z),q,new V3(w,h,w));cm.setMatrixAt(i,m);});
     }
   }
   // ---- links fescue ribbon: tall wispy cards in a band along the fairway's edges and round the green, so the rough has a ragged, standing
