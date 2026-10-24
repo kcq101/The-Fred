@@ -124,7 +124,8 @@ test('longer clubs are less forgiving: they lose more distance and miss by more 
   // Rewritten 2026-10-23 (owner's rule). Was: the sideways miss, as a share of carry, shrinks from Hammer to Wedge. Since PR #22 scaled the
   // curve for OpenFairway's flights (Hammer x0.40 .. Wedge x0.72) the shares run the other way (Hammer 14 %, Wedge 17 %), and the owner kept that:
   // the driver misses by the most yards but is a little more forgiving sideways for its length. Its difficulty is in the timing instead.
-  const worst = FULL.map(c => { const ref = swing(c, 0).carry, r = swing(c, 1); return { n: c.name, loss: 1 - r.carry / ref, yd: Math.abs(r.lateral), side: Math.abs(r.lateral) / ref }; });
+  // side: measured where the ball lands, so it is the swing's miss and not the roll after it (a driver's longer run carries its miss further offline)
+  const worst = FULL.map(c => { const ref = swing(c, 0).carry, r = swing(c, 1); return { n: c.name, loss: 1 - r.carry / ref, yd: Math.abs(r.lateral), side: Math.abs(r.carryLat) / ref }; });
   for (let i = 1; i < worst.length; i++) {
     assert.ok(worst[i].loss < worst[i - 1].loss, `${worst[i].n} should lose less distance than ${worst[i - 1].n}`);
     assert.ok(worst[i].yd < worst[i - 1].yd, `${worst[i].n} should miss by fewer yards than ${worst[i - 1].n}`);
