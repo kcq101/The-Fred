@@ -107,8 +107,10 @@ module.exports = {
       { name: 'an iron flown at the pin runs through the green and off the back', shot: { from: [0, 311], club: 'Iron' }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
       { name: 'landed short of the tucked pin and run up, an iron holds the green', shot: { from: [0, 311], club: 'Iron', at: [22, 432] }, expect: { surf: ['GREENS', 'FRINGE'], maxToPin: 10 } },
       { name: 'the attack over the bunker\'s edge, pulled a little, drops into the Road Hole bunker', shot: { from: [0, 311], club: 'Iron', at: [28, 436], offset: -0.25 }, expect: { end: 'rest', surf: ['SAND'] } },
-      { name: 'into an 18 mph headwind, an iron flown at the pin loses carry but lands steeper and still runs off the back', shot: { from: [0, 311], club: 'Iron', wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
-      { name: 'with an 18 mph tailwind the attack barely flies further, lands flatter and softer, and still holds the green', shot: { from: [0, 311], club: 'Iron', at: [28, 436], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 10 } },
+      // the two wind checks were rewritten 2026-10-24 (the crater-wall bounce): they had a steeper landing run further and a flatter one stop,
+      // which only the inverted steep-landing law did. A ball landing steeper keeps less run, so into the wind it holds, and downwind it runs on.
+      { name: 'into an 18 mph headwind, an iron flown at the pin loses carry, lands steeper and checks: it holds the green', shot: { from: [0, 311], club: 'Iron', wind: { mph: 18, dir: 'head' } }, expect: { end: 'rest', surf: ['GREENS'], maxToPin: 6 } },
+      { name: 'with an 18 mph tailwind the attack over the bunker\'s edge lands flatter and runs through the green', shot: { from: [0, 311], club: 'Iron', at: [28, 436], wind: { mph: 18, dir: 'tail' } }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'] } },
       { name: 'a 3-wood flown over the road into the stone wall is stopped by it', shot: { from: [0, 311], club: '3-Wood', at: [14, 470] }, expect: { end: 'rest', surf: ['ROAD', 'ROUGH'], wall: true } },
       { name: 'from the middle of the bunker a wedge at the pin cannot get out forwards', shot: { from: [32.5, 434.5], club: 'Wedge' }, expect: { end: 'rest', surf: ['SAND'] } },
       { name: 'the safe line to the wide front of the green holds it', shot: { from: [0, 311], club: 'Iron', at: [10, 420] }, expect: { surf: ['GREENS'] } },
