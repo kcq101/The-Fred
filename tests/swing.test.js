@@ -120,12 +120,24 @@ test('club distances are coherent: strictly ordered, each club at least 10% beyo
   for (let i = 1; i < carries.length; i++) assert.ok(carries[i] <= carries[i - 1] * 0.90, `${FULL[i - 1].name} ${carries[i - 1].toFixed(0)} -> ${FULL[i].name} ${carries[i].toFixed(0)}`);
 });
 
-test('longer clubs are less forgiving than shorter ones (distance lost and sideways miss, as a share of carry)', () => {
-  const worst = FULL.map(c => { const ref = swing(c, 0).carry, r = swing(c, 1); return { n: c.name, loss: 1 - r.carry / ref, side: Math.abs(r.lateral) / ref }; });
+test('longer clubs are less forgiving: they lose more distance and miss by more yards; the needle swings faster the longer and fuller the shot', () => {
+  // Rewritten 2026-10-23 (owner's rule). Was: the sideways miss, as a share of carry, shrinks from Hammer to Wedge. Since PR #22 scaled the
+  // curve for OpenFairway's flights (Hammer x0.40 .. Wedge x0.72) the shares run the other way (Hammer 14 %, Wedge 17 %), and the owner kept that:
+  // the driver misses by the most yards but is a little more forgiving sideways for its length. Its difficulty is in the timing instead.
+  const worst = FULL.map(c => { const ref = swing(c, 0).carry, r = swing(c, 1); return { n: c.name, loss: 1 - r.carry / ref, yd: Math.abs(r.lateral), side: Math.abs(r.lateral) / ref }; });
   for (let i = 1; i < worst.length; i++) {
     assert.ok(worst[i].loss < worst[i - 1].loss, `${worst[i].n} should lose less distance than ${worst[i - 1].n}`);
-    assert.ok(worst[i].side < worst[i - 1].side, `${worst[i].n} should miss less sideways than ${worst[i - 1].n}`);
+    assert.ok(worst[i].yd < worst[i - 1].yd, `${worst[i].n} should miss by fewer yards than ${worst[i - 1].n}`);
   }
+  assert.ok(worst[0].side <= worst[worst.length - 1].side, `the Hammer is no less forgiving sideways, for its length, than the Wedge (${(worst[0].side * 100).toFixed(1)} % vs ${(worst[worst.length - 1].side * 100).toFixed(1)} %)`);
+  // needle speed: two factors, the yards attempted and the share of the club's power
+  for (let i = 0; i < FULL.length; i++) {
+    for (let p = 0.05; p < 1; p += 0.05) assert.ok(g.needleRate(FULL[i], p + 0.05) > g.needleRate(FULL[i], p), `${FULL[i].name}: a fuller pull swings the needle faster (${p.toFixed(2)})`);
+    if (i) assert.ok(g.needleRate(FULL[i], 1) < g.needleRate(FULL[i - 1], 1), `a full ${FULL[i].name} is easier to time than a full ${FULL[i - 1].name}`);
+  }
+  // the same yards: a soft swing with a long club is easier to time than a full swing with a short one
+  const wedge = FULL[FULL.length - 1], ham = FULL[0], pSoft = (g.speedForCarry(ham, wedge.carry) / ham.v0) ** 2;
+  assert.ok(g.needleRate(ham, pSoft) < g.needleRate(wedge, 1), `a ${wedge.carry}-yd Hammer (${g.needleRate(ham, pSoft).toFixed(2)}) vs a full Wedge (${g.needleRate(wedge, 1).toFixed(2)})`);
 });
 
 test('no club dominates: expected sideways error per yard of carry stays within 1.6x across clubs', () => {
