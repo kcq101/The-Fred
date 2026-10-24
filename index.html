@@ -1102,7 +1102,10 @@ const Aero=(()=>{
   const TK=(75-32)*5/9+273.15;                                        // OpenFairway's default air: sea level, 75 °F
   const RHO=101325/(287.058*TK),MU=1.716e-5*Math.pow(TK/273.15,1.5)*(273.15+198.72)/(TK+198.72);
   const KQ=0.5*RHO*AREA/MASS*YD;                                     // accel (yd/s²) = KQ × coefficient × speed² (yd/s)
-  const TAU=5,RPM=2*Math.PI/60;                                      // spin decay time constant (s); rpm -> rad/s
+  // spin decay time constant (s); rpm -> rad/s. OpenFairway's 5 s left a full wedge a third of its spin by landing; measured golf-ball decay
+  // is several times slower: Smits & Smith ~24 s at 100 mph, Tavares et al. ~19 s, TrackMan ~4 %/s (~25 s), Tutelman 30 s. 20 s: the slow end
+  // of that range (a ball keeps ~75 % of its spin over a 5.5 s flight). Prototype, 2026-10-24 (branch spin-decay-prototype)
+  const TAU=20,RPM=2*Math.PI/60;
   const P={cdA:1.1948,cdB:-0.0000209661,cdC:1.42472e-10,cdD:-3.14383e-16,cdHi:0.2,cdLo:0.38,loBlend:30000,cd50:0.4632,
     clMax:0.268,clMaxHi:0.32,clSr0:0.35,clSr1:0.50,
     sdK:4,sdMax:1.20,sdHiMax:1.03,sdUltraMax:1.21,sdHi0:0.30,sdHi1:0.48,sdRe0:90000,sdRe1:105000,sdU0:0.57,sdU1:0.77,sdProg0:0.33,sdProg1:0.50,sdProgMax:0.25,
