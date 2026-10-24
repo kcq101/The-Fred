@@ -2463,7 +2463,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       for(let k=0;k<3;k++){const a=k*Math.PI/3,cx=Math.cos(a)*0.5,cz=Math.sin(a)*0.5,b=pos.length/3;
         pos.push(-cx,0,-cz, cx,0,cz, cx,1,cz, -cx,1,-cz);uv.push(0,0,1,0,1,1,0,1);nor.push(0,1,0,0,1,0,0,1,0,0,1,0);ix.push(b,b+1,b+2,b,b+2,b+3);}
       const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));cg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));cg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));cg.setIndex(ix);
-      const base=new THREE.Color(GP.rough).multiplyScalar(0.55),tip1=new THREE.Color(LINKS?'#d9c47a':GP.rough).offsetHSL(0,0.05,LINKS?0:0.12),tip2=new THREE.Color(LINKS?'#9aa257':GP.fringe).offsetHSL(0,0,LINKS?0:0.04);
+      const base=new THREE.Color(GP.rough).multiplyScalar(LINKS?0.55:0.8),tip1=new THREE.Color(LINKS?'#d9c47a':GP.rough).offsetHSL(0,0.05,LINKS?0:0.12),tip2=new THREE.Color(LINKS?'#9aa257':GP.fringe).offsetHSL(0,0,LINKS?0:0.04);
       const gm=toon(0xffffff,{map:bladeTex(),opacity:0.75,alphaTest:0.3,side:THREE.DoubleSide});gm.customProgramCacheKey=()=>'grass-carpet';
       gm.onBeforeCompile=sh=>{
         Object.assign(sh.uniforms,{uT:WT,uBase:{value:base},uTip1:{value:tip1},uTip2:{value:tip2},uBall:{value:ball.p}});
@@ -2477,7 +2477,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
           float ch21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
           float cnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(ch21(i),ch21(i+vec2(1.0,0.0)),f.x),mix(ch21(i+vec2(0.0,1.0)),ch21(i+vec2(1.0,1.0)),f.x),f.y);}`)
           .replace('#include <map_fragment>',`vec4 tA=texture2D(map,vUv);diffuseColor.a*=tA.a;
-          vec3 tip=mix(uTip1,uTip2,cnz(vCW.xz*0.09));diffuseColor.rgb=mix(uBase,tip,smoothstep(0.0,0.85,vH))*mix(0.72,1.05,tA.r);`);
+          vec3 tip=mix(uTip1,uTip2,cnz(vCW.xz*0.09));diffuseColor.rgb=mix(uBase,tip,smoothstep(0.0,0.85,vH))*mix(0.82,1.04,clamp(tA.r/max(tA.a,0.02),0.0,1.0));`);
       };
       const cm=add(new THREE.InstancedMesh(cg,gm,spots.length));cm.receiveShadow=true;
       const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new V3(0,1,0);
@@ -2540,7 +2540,7 @@ float gnz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(gh
       const n=4+Math.floor(r()*10),rad=0.6+r()*1.4;
       for(let k=0;k<n&&spots.length<NT;k++){const a=r()*6.28,q=rad*Math.sqrt(r()),xx=x+Math.cos(a)*q,zz=z+Math.sin(a)*q;if(S(xx,zz)===ROUGH)spots.push([xx,zz]);}}
     // the blades sway in the wind: tips move most, each tuft a little out of step with its neighbours (look only)
-    const tuftM=toon(0xffffff,{side:THREE.DoubleSide});
+    const tuftM=toon(0xffffff,{side:THREE.DoubleSide,opacity:0.75});   // opacity 0.75: the post pass treats them as ground (an ink outline round every tuft read as clutter)
     tuftM.onBeforeCompile=sh=>{sh.uniforms.uT=WT;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uT;')
       .replace('#include <begin_vertex>',`#include <begin_vertex>
       #ifdef USE_INSTANCING
