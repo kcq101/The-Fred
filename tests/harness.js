@@ -26,7 +26,7 @@ function loadGame(src = SRC) {
   const ball = between_('// <ball-model>', '// </ball-model>');
   const stance = src.includes('// <stance-model>') ? between_('// <stance-model>', '// </stance-model>') : 'const StanceModel=null;';
   const body = `${prelude}\n${surfaces}\n${physics}\n${lieFn}\n${swing}\n${stance}\n${ball}\n` +
-    'return {G,K:typeof K===\'undefined\'?undefined:K,Aero:typeof Aero===\'undefined\'?undefined:Aero,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE:typeof PINE===\'undefined\'?undefined:PINE,ROAD:typeof ROAD===\'undefined\'?undefined:ROAD,WASTE:typeof WASTE===\'undefined\'?undefined:WASTE,PATH:typeof PATH===\'undefined\'?undefined:PATH,LAWN:typeof LAWN===\'undefined\'?undefined:LAWN,lieMult,carryFlat,speedForCarry,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
+    'return {G,K:typeof K===\'undefined\'?undefined:K,Aero:typeof Aero===\'undefined\'?undefined:Aero,R,CLUBS,SP,TEE,FAIRWAY,ROUGH,FRINGE,GREENS,SAND,WATER,PINE:typeof PINE===\'undefined\'?undefined:PINE,ROAD:typeof ROAD===\'undefined\'?undefined:ROAD,WASTE:typeof WASTE===\'undefined\'?undefined:WASTE,PATH:typeof PATH===\'undefined\'?undefined:PATH,LAWN:typeof LAWN===\'undefined\'?undefined:LAWN,lieMult,carryFlat,speedForCarry,needleRate:typeof needleRate===\'undefined\'?undefined:needleRate,clamp,mix,D2R,SwingModel,StanceModel,BallModel};';
   return new Function(body)();
 }
 

@@ -1185,15 +1185,16 @@ const Aero=(()=>{
 })();
 // </aero>
 const CLUBS=[
-  // dev: how far (radians) a full miss starts the ball off line; curve: sideways pull in flight; swing: needle speed at no pull and full pull
+  // dev: how far (radians) a full miss starts the ball off line; curve: sideways pull in flight; swing (putter only): needle speed at no pull and full pull.
+  // A full club's needle speed comes from the shot itself (needleRate, below): the yards attempted and the share of the club's power.
   // mishit: share of launch speed lost on the worst possible contact (see SwingModel). Long clubs punish a bad swing hardest, the wedge the least.
   // shape: sideways pull of a full draw/fade (yd/s²), set by pulling down-left or down-right
   // curve and shape were scaled (Hammer x0.40, 3-Wood x0.43, Iron x0.54, Wedge x0.72) for OpenFairway's longer flights, so a full miss and a full draw land within 0.5 yd of where they did before (PR #22)
   // rpm: backspin off a full swing (tour launch-monitor averages for a driver, 3-wood, 7-iron and wedge); it gives the ball its lift (see Aero) and scales with launch speed
-  {name:'Hammer',rpm:2700,carry:245,ang:13*D2R,dev:0.110,curve:2.64,mishit:0.23,shape:2.8,  swing:[1.1,3.4],word:'THWACK!'},
-  {name:'3-Wood',rpm:3600,carry:215,ang:15*D2R,dev:0.100,curve:2.47,mishit:0.21,shape:2.75,swing:[1.05,3.2],word:'WHACK!'},
-  {name:'Iron',  rpm:7000,carry:155,ang:22*D2R,dev:0.076,curve:2.13,mishit:0.17,shape:2.97,swing:[1.0,3.0],word:'TOK!'},
-  {name:'Wedge', rpm:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.33,mishit:0.14,shape:2.52,swing:[0.9,2.6],word:'CHIK!'},
+  {name:'Hammer',rpm:2700,carry:245,ang:13*D2R,dev:0.110,curve:2.64,mishit:0.23,shape:2.8, word:'THWACK!'},
+  {name:'3-Wood',rpm:3600,carry:215,ang:15*D2R,dev:0.100,curve:2.47,mishit:0.21,shape:2.75,word:'WHACK!'},
+  {name:'Iron',  rpm:7000,carry:155,ang:22*D2R,dev:0.076,curve:2.13,mishit:0.17,shape:2.97,word:'TOK!'},
+  {name:'Wedge', rpm:9500,carry:90, ang:40*D2R,dev:0.058,curve:1.33,mishit:0.14,shape:2.52,word:'CHIK!'},
   {name:'Putter',carry:30, putt:true, dev:0.07,curve:0,  swing:[0.6,1.6],word:'TAP'},
 ];
 // still-air carry on flat ground at launch speed v0, angle a, backspin rpm: the same Aero.step the ball and the aiming arc take
@@ -1205,6 +1206,17 @@ CLUBS.forEach(c=>{
   let lo=5,hi=300;for(let i=0;i<40;i++){const m=(lo+hi)/2;carryFlat(m,c.ang,c.rpm)<c.carry?lo=m:hi=m;}c.v0=lo;c.spv=c.rpm/c.v0;
   c.table=[];for(let i=0;i<=48;i++){const v=4+(c.v0*1.06-4)*i/48;c.table.push([v,carryFlat(v,c.ang,c.spv*v)]);}
 });
+// still-air carry on flat ground at launch speed v, from the club's own table
+function carryForSpeed(c,v){const t=c.table;if(v<=t[0][0])return t[0][1]*(v/t[0][0])*(v/t[0][0]);for(let i=1;i<t.length;i++)if(t[i][0]>=v)return mix(t[i-1][1],t[i][1],(v-t[i-1][0])/(t[i][0]-t[i-1][0]));return t[t.length-1][1];}
+// needle speed (swings per second, before the stance) for a pull of `power` (0..1): two factors, the owner's rule (2026-10-23).
+// The yards the shot attempts (still-air carry at that pull) make a long shot hard to time whatever the club; the share of the club's power
+// makes a full swing harder than a soft one of the same length. Full Hammer 3.7, 3-Wood 3.5, Iron 3.0, Wedge 2.4; a 90-yd Hammer 2.0; a 5-yd chip 0.85.
+const NEEDLE_RATE={base:0.7,yd:2.4,ref:245,pow:0.75,full:0.6};
+function needleRate(c,power){
+  if(c.putt)return mix(c.swing[0],c.swing[1],power);
+  const N=NEEDLE_RATE,yd=carryForSpeed(c,c.v0*Math.sqrt(power));
+  return N.base+N.yd*Math.pow(Math.max(0,yd)/N.ref,N.pow)+N.full*power;
+}
 function speedForCarry(c,D){const t=c.table;if(D<=t[0][1])return t[0][0]*Math.sqrt(D/Math.max(t[0][1],0.1));for(let i=1;i<t.length;i++)if(t[i][1]>=D){const f=(D-t[i-1][1])/(t[i][1]-t[i-1][1]);return mix(t[i-1][0],t[i][0],f);}return t[t.length-1][0];}
 function lieMult(lie,club){if(lie===SAND&&club===CLUBS[3])return 0.9;return SP[lie].lie;}
 // <swing-model>
@@ -1220,7 +1232,7 @@ const SwingModel=(()=>{
   const lateralSev=a=>Math.pow(clamp(a,0,1),LAT_POW);    // share of the club's full sideways miss: 0 at dead center .. 1 at the end of the swing
   const speedLoss=(c,a)=>c.mishit*Math.pow(clamp(a,0,1),LOSS_POW);  // share of launch speed lost
   // still-air carry at a given launch speed, from the club's own table
-  function carryAt(c,v){const t=c.table;if(v<=t[0][0])return t[0][1]*(v/t[0][0])*(v/t[0][0]);for(let i=1;i<t.length;i++)if(t[i][0]>=v)return mix(t[i-1][1],t[i][1],(v-t[i-1][0])/(t[i][0]-t[i-1][0]));return t[t.length-1][1];}
+  const carryAt=carryForSpeed;
   const carryFactor=(c,speedMult)=>carryAt(c,c.v0*speedMult)/carryAt(c,c.v0);
   const tier=a=>a<PERFECT?'perfect':a<=GOOD?'good':a<=CHUNK?'bad':'chunk';
   // returns what a swing does to the shot, plus the words to show for it
@@ -3278,9 +3290,9 @@ function offsetAtRelease(t){
   return phaseOffset(pendPhase+pendRate*ahead);
 }
 function updatePendulum(dt){
-  const power=pullPower();const sw=CLUBS[clubIdx].swing;
+  const power=pullPower();
   // constant-speed sweep so the center is as catchable as the edges
-  pendRate=mix(sw[0],sw[1],power)*stanceNow().needle;pendT=performance.now();
+  pendRate=needleRate(CLUBS[clubIdx],power)*stanceNow().needle;pendT=performance.now();
   pendPhase+=pendRate*dt;pendOffset=phaseOffset(pendPhase);
   const pe=$('pend');pe.hidden=power<0.02;
   if(!pe.hidden)drawFan();
